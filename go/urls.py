@@ -9,6 +9,7 @@ urlpatterns = patterns('',
                        url(r'^$', 'go.GoServer.views.Index', name='site-homepage'),
                        url(r'^games/new', 'go.GoServer.views.GameCreate', name='game-create'),
                        url(r'^games/edit/(?P<game_id>\d+)', 'go.GoServer.views.GameEdit', name='game-edit'),
+                       url(r'^games/join/(?P<game_id>\d+)', 'go.GoServer.views.GameJoin', name='game-join'),
                        url(r'^games', 'go.GoServer.views.GameList', name='game-list'),
                        
                        (r'^accounts/', include('registration.urls')),
