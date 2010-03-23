@@ -1,0 +1,14 @@
+{% extends "Skin.html" %}
+
+{% block content %}
+Edit Game #{{ Game.id }}
+
+<div>
+ <form method="post">
+ {{ GameEditForm.as_p }}
+ <input type="submit" value="Submit" />
+ </form>
+</div>
+
+
+{% endblock %}

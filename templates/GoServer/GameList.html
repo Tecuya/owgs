@@ -1,0 +1,14 @@
+{% extends "Skin.html" %}
+
+{% block content %}
+
+<a href="/games/new">New Game</a><br />
+
+<ul>
+ {% for Game in GameList %}
+ <li> {{Game.StartDate}} {{Game.BoardSize}} </li>
+ {% endfor %}
+</ul>
+
+{% endblock %}
+

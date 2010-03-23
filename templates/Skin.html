@@ -1,0 +1,26 @@
+<html>
+<head>
+ <title>Go Server</title>
+</head>
+<body>
+<h1> Go Server </h1>
+
+<div style="font-weight:bold; float:left; display:inline;">
+ <a href="{% url site-homepage %}">Home</a> | 
+ <a href="{% url game-list %}">Game List</a> 
+</div>
+
+<div style="float:right; display:inline;">
+ {% if user.is_authenticated %}
+ Logged in as {{ user.username }} | <a href="/accounts/logout">Log Out</a>
+ {% else %}
+ <a style="font-weight:bold;" href="/accounts/login">Log In</a>
+ {% endif %}
+</div>
+
+<div style="border: solid black 1px; clear:both">
+ {% block content %}No content!{% endblock %}
+</div>
+
+</body>
+</html>

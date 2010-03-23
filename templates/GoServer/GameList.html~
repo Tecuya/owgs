@@ -1,0 +1,10 @@
+{% extends "Skin.html" %}
+
+{% block content %}
+
+<a href="/games/new">New Game</a><br />
+
+
+Game List Here!
+{% endblock %}
+

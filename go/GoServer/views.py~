@@ -1,0 +1,40 @@
+# Create your views here.
+from django.shortcuts import render_to_response
+from django.http import HttpResponse, HttpResponseRedirect
+from django.template import RequestContext
+
+def GameList(request):
+    return render_to_response('GoServer/GameList.html', context_instance=RequestContext(request))
+
+def GameCreate(request):
+    from django.forms.models import modelformset_factory
+    from GoServer.models import GameForm, Game, GameParticipant
+    
+    # check if they are logged in and bail if they arent
+    if request.user.is_anonymous():
+        return HttpResponseRedirect('/accounts/login')
+
+    if request.method == 'POST':
+        
+        # newgame = Game(StartDate = datetime.datetime.now() )
+        # form = GameForm(request.POST, instance=newgame)        
+        
+        form = GameForm(request.POST)
+        
+        if form.is_valid():
+            newgame = form.save()
+            
+            gp = GameParticipant(Game=newgame, Participant=request.user)
+            gp.save()
+        
+    else:
+        form = GameForm()
+
+    return render_to_response('GoServer/GameCreate.html', {"GameCreateForm": form}, context_instance=RequestContext(request))   
+
+def PlayerProfile(request):
+    return render_to_response('GoServer/PlayerProfile.html', context_instance=RequestContext(request))
+
+def Index(request):
+    return render_to_response('GoServer/Index.html', context_instance=RequestContext(request))
+
