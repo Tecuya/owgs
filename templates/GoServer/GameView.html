@@ -1,0 +1,36 @@
+{% extends "Skin.html" %}
+
+{% block content %}
+View Game #{{ Game.id }}
+
+<div>
+ <h2>Game Info</h2>
+ {{ Game }}
+</div>
+
+{% if not Game.PlayersAssigned %}
+<div>
+ <h2>Join Game</h2>
+ This game is waiting for another player.  Use the form below to make a request to join this game.
+ <form method="post">
+ {{ GameForm.as_p }}
+
+ <!-- this is not in the normal game
+ <p>Color: <select name="Color"><option>White</option><option>Black</option></select></p>
+
+ <input type="submit" value="Send Request" />
+ </form>
+</div>
+{% endif %}
+
+<div id="Participants">
+ <h2>Participants</h2>
+ <ul>
+ {% for GameParticipant in GameParticipants %}
+ <li>{{ GameParticipant.Participant.username }} (<b>{{ GameParticipant.State }}</b>)</li>
+ {% endfor %}
+ </ul>
+</div>
+
+
+{% endblock %}
