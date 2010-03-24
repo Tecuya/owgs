@@ -1,2 +1,0 @@
-class Command(django.core.management.base.BaseCommand):
-    
