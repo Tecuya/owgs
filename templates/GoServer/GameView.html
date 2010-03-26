@@ -1,6 +1,19 @@
 {% extends "Skin.html" %}
 
+{% block head %}
+
+<script> document.domain = document.domain; </script>
+<script type="text/javascript" src="http://localhost:8001/static/Orbited.js"></script>
+<script type="text/javascript" src="/static/NetClient.js"></script>
+<script> 
+nc = new NetClient("{{ request.session.session_key }}");
+window.addEventListener("load", nc.start, false); 
+</script>
+
+{% endblock %}
+
 {% block content %}
+
 View Game #{{ Game.id }}
 
 <div>
@@ -15,12 +28,6 @@ View Game #{{ Game.id }}
  <form method="post">
  {{ GameForm.as_p }}
 
- <!-- this is not in the normal game
- <p>Color: <select name="Color"><option>White</option><option>Black</option></select></p>
-
- <input type="submit" value="Send Request" />
- </form>
-</div>
 {% endif %}
 
 <div id="Participants">
@@ -34,3 +41,4 @@ View Game #{{ Game.id }}
 
 
 {% endblock %}
+

@@ -1,6 +1,7 @@
 from optparse import make_option
 from django.core.management.base import BaseCommand, CommandError
 
+
 class Command(BaseCommand):
     option_list = BaseCommand.option_list + (
         make_option('--long', '-l', dest='long',
@@ -9,4 +10,4 @@ class Command(BaseCommand):
     help = 'Help text goes here'
 
     def handle(self, **options):
-         print "This is a command"
+        print go.GoServer.models
