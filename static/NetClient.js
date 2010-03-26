@@ -2,16 +2,18 @@
 
 Orbited.settings.port = 8001
 
-var tcp;
+var NetClient_instance;
 
 function NetClient(sessionid) { 
     this.sessionid = sessionid;
+	
+	this.tcp = null;
 
 	this.start = function() { 
     	tcp = new Orbited.TCPSocket();
 	    tcp.open('127.0.0.1',8002,false);
 
-	    tcp.onopen = onopencallbacktest;
+	    tcp.onopen = NetClient_onopen_wrapper;
 	    tcp.onread = function(data) { alert('Message: '+data); }
     	tcp.onclose = function(code) { alert('Closed: '+code); }
     }
@@ -35,6 +37,14 @@ function NetClient(sessionid) {
     }
 }
 
-function onopencallbacktest() { 
-	nc.connected();
+function NetClient_onopen_wrapper() { 
+	NetClient_instance.connected();
+}
+
+function NetClient_start() { 
+	NetClient_instance.start();
+}
+
+function NetClient_preload(sessionid) { 
+	NetClient_instance = new NetClient(sessionid);
 }
