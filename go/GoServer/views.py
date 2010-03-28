@@ -19,15 +19,16 @@ def GameCreate(request):
 
     if request.method == 'POST':
 
-        form = GameForm(request.POST)
+        game = Game( Owner = request.user)
+        form = GameForm(request.POST, instance=game)
         
         if form.is_valid():
             newgame = form.save()
             
-            gp = GameParticipant(Game=newgame, Participant=request.user, State='O')
-            gp.save()
+            # gp = GameParticipant(Game=newgame, Participant=request.user, State='O')
+            # gp.save()
 
-            return HttpResponseRedirect('/games/edit/%d' % newgame.id)                  
+            return HttpResponseRedirect('/games/join/%d' % newgame.id)
     else:
         form = GameForm()
 
@@ -61,6 +62,9 @@ def GameEdit(request, game_id):
 def GameJoin(request, game_id):
     from GoServer.models import GameForm, Game, GameParticipant
 
+    if request.user.is_anonymous():
+        return HttpResponseRedirect('/accounts/login')
+
     game = Game.objects.get(pk = game_id)
     form = GameForm(instance=game)
     
@@ -74,9 +78,9 @@ def GameJoin(request, game_id):
 
     # set up a comet socket awaiting the response to our challenge
     
-    participants = GameParticipant.objects.filter(Game = game_id)
+    # participants = GameParticipant.objects.filter(Game = game_id)
     
-    return render_to_response('GoServer/GameView.html', {"GameForm": form, "Game": game, "GameParticipants": participants}, context_instance=RequestContext(request))   
+    return render_to_response('GoServer/GameView.html', {"GameForm": form, "Game": game}, context_instance=RequestContext(request))   
 
 
 

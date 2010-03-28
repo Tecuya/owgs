@@ -20,6 +20,9 @@ function NetClient(session_key) {
     // our send queue
     this.sendq = Array();
 
+    // the game_id of the game we are viewing, when applicable
+    this.game_id = false;
+
     this.start = function() { 
 
         if(NetClient_debug) {
@@ -27,31 +30,40 @@ function NetClient(session_key) {
             this.debug("NetClient.start\n");
         }
                 
-        tcp = new Orbited.TCPSocket();
-        tcp.open('127.0.0.1',8002,false);
+        tcp = new LineProtocol(new Orbited.TCPSocket());
+        tcp.open('mirrormere.longstair.com',8002,false);
 
         // theres gotta be a cleaner way to do this!
         tcp.onopen = NetClient_onopen_wrapper;
-        tcp.onread = NetClient_onread_wrapper;
+        tcp.onlinereceived = NetClient_onlinereceived_wrapper;
         tcp.onclose = NetClient_onclose_wrapper;
     }
 
-    this.onread = function(data) { 
-        this.debug("RECV: " + data + "\n");
+    this.onlinereceived = function(line) { 
+        this.debug("RECV: " + line + "\n");
 
-        dataAr = JSON.parse(data);
-
-        this.debug("RECV PARSE: " + JSON.stringify(dataAr) + "\n");
+        dataAr = JSON.parse(line);
 
         // if there are pending messages, then paste them 
         if(dataAr[0] == "CTS") {
+            this.cts = true;
             if(this.sendq.length > 0) { 
-                this.cts = true;
                 this.send( this.sendq.pop() );
             }
 
         } else if(dataAr[0] == "JOIN") { 
             
+            part_select = document.getElementById("ParticipantSelect");
+            if( part_select != null ) {
+                // text value defaultSelected selected
+                part_select.options[1] = new Option(dataAr[2], dataAr[1]);
+            }
+
+        } else if(dataAr[0] == "CHAT") {
+
+            chat_textarea = document.getElementById("ChatTextarea");
+            chat_textarea.value += '<' + dataAr[1] + '> ' + dataAr[2] + "\r\n";
+
         }
     }
 
@@ -91,13 +103,25 @@ function NetClient(session_key) {
         curdate = new Date();
         document.getElementById("NetClient_debug").value += curdate.toLocaleString() + ": " + msg;
     }
-    
+
+    /////////////////////////////////////////
+    // higher level commands
+
+    this.joingame = function(game_id) { 
+        this.game_id = game_id
+        this.sendq.push( ["JOIN", this.game_id] );
+    }
+
+    this.chat = function(msg) {
+        this.send( ["CHAT", this.game_id, msg] );
+    }
+
 }
 
 
 // annoying wrappers for tcpsocket event handlers
 function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
-function NetClient_onread_wrapper(data) { NetClient_instance.onread(data); }
+function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
 
 // init funcs
@@ -114,7 +138,7 @@ function NetClient_preload(session_key) { NetClient_instance = new NetClient(ses
 // XXX this assumes the lines are UTF-8 encoded.
 // XXX this assumes the lines are terminated with a single NL ("\n") character.
 LineProtocol = function(transport) {
-    var log = getStompLogger("LineProtocol");
+    // var log = getStompLogger("LineProtocol");
     var self = this;
     var buffer = null;
     var isLineMode = true;
@@ -139,7 +163,7 @@ LineProtocol = function(transport) {
     };
 
     transport.onread = function(data) {
-        log.debug("transport.onread: enter isLineMode=", isLineMode, " buffer[", buffer.length, "]=", buffer, " data[", data.length, "]=", data);
+        // log.debug("transport.onread: enter isLineMode=", isLineMode, " buffer[", buffer.length, "]=", buffer, " data[", data.length, "]=", data);
 
         if (isLineMode) {
             buffer += data;
@@ -154,7 +178,7 @@ LineProtocol = function(transport) {
                 var bytes = buffer.slice(start, end);
                 // TODO do not depend on Orbited.
                 var line = Orbited.utf8.decode(bytes)[0];
-                log.debug("fire onlinereceived line[", line.length, "]=", line);
+                // log.debug("fire onlinereceived line[", line.length, "]=", line);
                 self.onlinereceived(line);
                 start = end + 1;
             }
@@ -173,11 +197,11 @@ LineProtocol = function(transport) {
         }
 
         if (data.length > 0) {
-            log.debug("fire onrawdatareceived data[", data.length, "]=", data);
+            // log.debug("fire onrawdatareceived data[", data.length, "]=", data);
             self.onrawdatareceived(data);
         }
 
-        log.debug("transport.onread: leave");
+        // log.debug("transport.onread: leave");
     };
 
     //
@@ -185,7 +209,7 @@ LineProtocol = function(transport) {
     //
 
     self.setRawMode = function() {
-        log.debug("setRawMode");
+        // log.debug("setRawMode");
         isLineMode = false;
     };
 
@@ -194,24 +218,24 @@ LineProtocol = function(transport) {
     //      make onrawdatareceived return the number of consumed bytes
     //      (instead of making it comsume all the given data).
     self.setLineMode = function(extra) {
-        log.debug("setLineMode: extra=", extra);
+        // log.debug("setLineMode: extra=", extra);
         isLineMode = true;
         if (extra && extra.length > 0)
             transport.onread(extra);
     };
 
     self.send = function(data) {
-        log.debug("send: data=", data);
+        // log.debug("send: data=", data);
         return transport.send(data);
     };
 
     self.open = function(host, port, isBinary) {
-        log.debug("open: host=", host, ':', port, ' isBinary=', isBinary);
+        // log.debug("open: host=", host, ':', port, ' isBinary=', isBinary);
         transport.open(host, port, isBinary);
     };
 
     self.close = function() {
-        log.debug("close");
+        // log.debug("close");
         transport.close();
     };
     self.reset = function() {

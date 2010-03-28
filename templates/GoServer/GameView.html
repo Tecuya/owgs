@@ -1,15 +1,10 @@
 {% extends "Skin.html" %}
 
 {% block head %}
-
-<script> document.domain = document.domain; </script>
-<script type="text/javascript" src="http://localhost:8001/static/Orbited.js"></script>
-<script type="text/javascript" src="/static/NetClient.js"></script>
-<script> 
-NetClient_preload("{{ request.session.session_key }}");
-window.addEventListener("load", NetClient_start, false); 
+{% include "GoServer/HeaderJavascript.html" %}
+<script>
+NetClient_instance.joingame( {{ Game.id }} );
 </script>
-
 {% endblock %}
 
 {% block content %}
@@ -27,18 +22,25 @@ View Game #{{ Game.id }}
  This game is waiting for another player.  Use the form below to make a request to join this game.
  <form method="post">
  {{ GameForm.as_p }}
+ <input type=submit value="Join">
+ </form>
+</div>
 
 {% endif %}
 
 <div id="Participants">
  <h2>Participants</h2>
- <ul>
- {% for GameParticipant in GameParticipants %}
- <li>{{ GameParticipant.Participant.username }} (<b>{{ GameParticipant.State }}</b>)</li>
- {% endfor %}
+ <select multiple size=4 id="ParticipantSelect">
+   <option value="Loading...">
+ </select>
  </ul>
 </div>
 
+<div id="Chat">
+ <h2>Chat</h2>
+ <textarea cols=80 rows=7 id="ChatTextarea" readonly></textarea>
+ <input size=60 type=text id="ChatLine"><button type=button onClick="NetClient_instance.chat( document.getElementById('ChatLine').value );">Send</button>
+</div>
 
 {% endblock %}
 

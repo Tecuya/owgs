@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 class Game(models.Model):
     import datetime
      
+    Owner = models.ForeignKey(User)
     StartDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
     BoardSize = models.CharField(max_length=10, choices=(('19x19','19 x 19'),
                                                          ('13x13','13 x 13'),
@@ -19,10 +20,11 @@ class Game(models.Model):
     def __unicode__(self):
         return u'Size: %s | Time: %s | Komi: %s ' % (self.BoardSize, self.MainTime, self.Komi)
 
+    
 class GameForm(ModelForm):
     class Meta:
         model = Game
-        exclude = ('StartDate', 'PlayersAssigned')
+        exclude = ('Owner', 'StartDate', 'PlayersAssigned')
 
 
 class GameParticipant(models.Model):
@@ -30,8 +32,10 @@ class GameParticipant(models.Model):
 
     Game = models.ForeignKey(Game)
     Participant = models.ForeignKey(User)
+
     JoinDate = models.DateTimeField('Participant Join Date', default=datetime.datetime.now)
     LeaveDate = models.DateTimeField('Participant Leave Date', default=datetime.datetime.now)    
+
     Originator = models.BooleanField('Game Originator')
     Winner = models.BooleanField('Winner')
     State = models.CharField('State', max_length=1, choices=(('W', 'White'),
