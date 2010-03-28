@@ -28,15 +28,21 @@ class GoServerProtocol(basic.LineReceiver):
    
    session_key = False
 
+   game_id = False
+
    user = False
 
    def debug(self, msg):
-      print '%s %d %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
+      print '%s Fac %04d | %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
       
    def connectionMade(self):
       self.debug('Connection opened')
    
    def connectionLost(self, reason):
+
+      # unregister this user from the game
+      self.factory.delFromConnectionDB(self, self.game_id)
+
       self.debug('Connection lost: '+str(reason))
 
    def lineReceived(self, data):
@@ -68,10 +74,10 @@ class GoServerProtocol(basic.LineReceiver):
          # join game command ; index 1 is a game name
          elif(cmd[0] == 'JOIN'):        
 
-            game_id = cmd[1]
+            self.game_id = cmd[1]
 
             # load the game object
-            game = Game.objects.get(pk = game_id)
+            game = Game.objects.get(pk = self.game_id)
 
             # determine if this user is the owner or what
             if game.id == self.user.id:
@@ -81,31 +87,35 @@ class GoServerProtocol(basic.LineReceiver):
 
             # TODO insert a validation thing to make sure user has perm to join this game
 
-            # make a participant entry to tie this user to the game in the database
+            # tell the newcomer all the other people who are in this game
+            for part in GameParticipant.objects.filter(Game = game):
+               # TODO should probably use a JOIN here.. however you do that with django :O
+               this_user = User.objects.get(pk = part.Participant.id)
+               self.writeToTransport(["JOIN", this_user.id, this_user.username])
+
+            # now make a participant entry to tie this user to the game in the database
             newparticipant = GameParticipant( Participant=self.user, Game=game, State=newstate )
             newparticipant.save()
             
             # register this connection as being associated with this game in the factory.             
-            self.factory.addToConnectionDB(self, game_id)
+            self.factory.addToConnectionDB(self, self.game_id)
 
-            # now find all connections associated with this game and tell them about the newcomer
-            for (conn_game_id,connection) in self.factory.connectionList:
-               if conn_game_id == game_id:
+            # now find all connections associated with this game and tell them about the newcomer 
+            for (conn_game_id, connection) in self.factory.connectionList:
+               if conn_game_id == self.game_id:
                   self.writeToTransport(["JOIN", self.user.id, self.user.username], transport = connection.transport)
 
             response = CTS
 
 
          elif(cmd[0] == 'CHAT'):
-            game_id = cmd[1]
-            message = cmd[2]
+            message = cmd[1]
             
-            # TODO insert a validation thing to make sure user has perm to chat this game
-
             # now find all connections associated with this game and tell them about the newcomer
             for (conn_game_id,connection) in self.factory.connectionList:
-               if conn_game_id == game_id:
+               if conn_game_id == self.game_id:
                   self.writeToTransport(["CHAT", self.user.username, message], transport = connection.transport)
+
             response = CTS
 
 
@@ -132,10 +142,10 @@ class GoServerProtocol(basic.LineReceiver):
 
       out_json = json.dumps(response)
 
-      self.debug('> '+out_json)
+      self.debug('%d> %s' % (transport.sessionno, out_json))
 
       transport.write(out_json + "\r\n")
-
+      
 
 class GoServerFactory(protocol.ServerFactory):
    protocol = GoServerProtocol
@@ -149,9 +159,13 @@ class GoServerFactory(protocol.ServerFactory):
    def addToConnectionDB(self, connection, game_id):
       self.connectionList.append( [game_id, connection] )
 
-
-
-
+   def delFromConnectionDB(self, connection, game_id):
+      for i in range(0,len(self.connectionList)): 
+         (db_game_id,db_connection) = self.connectionList[i]
+         
+         if connection.transport.sessionno == db_connection.transport.sessionno:
+            del self.connectionList[i];
+            break
 
 reactor.listenTCP(8002, GoServerFactory())
 reactor.run()

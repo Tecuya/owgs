@@ -56,7 +56,7 @@ function NetClient(session_key) {
             part_select = document.getElementById("ParticipantSelect");
             if( part_select != null ) {
                 // text value defaultSelected selected
-                part_select.options[1] = new Option(dataAr[2], dataAr[1]);
+                part_select.options[ part_select.options.length ] = new Option(dataAr[2], dataAr[1]);
             }
 
         } else if(dataAr[0] == "CHAT") {
@@ -85,11 +85,12 @@ function NetClient(session_key) {
         } else if (tcp.readyState > 3 ) {
             this.debug("ERR: Disconnect(ed)(ing)\n");
         } else {
-            this.debug("SEND: " + data + "\n");
+            json_out = JSON.stringify(data);
+            this.debug("SEND: " + json_out + "\n");
             this.cts = false;
 
             // JSON is imported by orbited
-            tcp.send(JSON.stringify(data) + "\r\n");
+            tcp.send(json_out + "\r\n");
         }
     }
 
@@ -113,7 +114,7 @@ function NetClient(session_key) {
     }
 
     this.chat = function(msg) {
-        this.send( ["CHAT", this.game_id, msg] );
+        this.send( ["CHAT", msg] );
     }
 
 }
