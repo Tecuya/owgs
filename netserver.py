@@ -87,7 +87,7 @@ class GoServerProtocol(basic.LineReceiver):
 
             # TODO insert a validation thing to make sure user has perm to join this game
 
-            # tell the newcomer all the other people who are in this game
+            # tell the newcomer all the people who are already in this game
             for part in GameParticipant.objects.filter(Game = game):
                # TODO should probably use a JOIN here.. however you do that with django :O
                this_user = User.objects.get(pk = part.Participant.id)
@@ -149,12 +149,14 @@ class GoServerProtocol(basic.LineReceiver):
 
 class GoServerFactory(protocol.ServerFactory):
    protocol = GoServerProtocol
-      
-
-   
+         
    def __init__(self):      
       # this maps connections to user IDs
       self.connectionList = []
+      
+      # TODO register an every-XX-second call for us to perform a ping
+      # self.lc = task.LoopingCall(self.announce)
+      # self.lc.start(30)
 
    def addToConnectionDB(self, connection, game_id):
       self.connectionList.append( [game_id, connection] )
