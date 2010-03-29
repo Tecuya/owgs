@@ -28,9 +28,11 @@ class GoServerProtocol(basic.LineReceiver):
    
    session_key = False
 
-   game_id = False
+   game = False
 
    user = False
+
+   already_unloaded = False
 
    def debug(self, msg):
       print '%s Fac %04d | %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
@@ -38,12 +40,42 @@ class GoServerProtocol(basic.LineReceiver):
    def connectionMade(self):
       self.debug('Connection opened')
    
-   def connectionLost(self, reason):
+   def connectionLost(self, reason, client_initiated=False):
+
+      # client_initiated means this was from a PART command
+      if client_initiated:
+
+         self.debug('Client-initiated connection close: '+str(reason))
+
+      # not client initiated means the connection just dropped
+      else:
+
+         # if we already handled it (there was already a clean PART) then we are done
+         if self.already_unloaded:
+            self.debug('Connection was already cleanly unloaded.')
+            return
+
+         # if we have't already handled it then.. we better handle it!
+         else:
+            self.debug('Connection was NOT cleanly unloaded.')
+            
+         
+      self.debug('Unregistering where game=%d and user=%s' % (self.game.id, self.user.username) )
 
       # unregister this user from the game
-      self.factory.delFromConnectionDB(self, self.game_id)
+      GameParticipant.objects.filter( Game = self.game, Participant = self.user )
 
-      self.debug('Connection lost: '+str(reason))
+      # delete connection from connection list
+      self.factory.delFromConnectionDB(self, self.game.id)
+
+      # inform all clients that this user left
+      for (conn_game_id, connection) in self.factory.connectionList:
+         if conn_game_id == self.game.id:
+            self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
+
+      # ok, we are unloaded
+      self.already_unloaded = True
+      
 
    def lineReceived(self, data):
 
@@ -74,36 +106,43 @@ class GoServerProtocol(basic.LineReceiver):
          # join game command ; index 1 is a game name
          elif(cmd[0] == 'JOIN'):        
 
-            self.game_id = cmd[1]
-
             # load the game object
-            game = Game.objects.get(pk = self.game_id)
+            self.game = Game.objects.get(pk = cmd[1])
 
             # determine if this user is the owner or what
-            if game.id == self.user.id:
+            if self.game.id == self.user.id:
                newstate = 'O'
             else:
                newstate = 'U'
 
             # TODO insert a validation thing to make sure user has perm to join this game
-
+            is_dupe_user = False
+               
             # tell the newcomer all the people who are already in this game
-            for part in GameParticipant.objects.filter(Game = game):
+            for part in GameParticipant.objects.filter(Game = self.game):
                # TODO should probably use a JOIN here.. however you do that with django :O
                this_user = User.objects.get(pk = part.Participant.id)
+
+               # if this *is* the current user, then they are in the game twice?  make a note of that..
+               is_dupe_user = is_dupe_user or (part.Participant.id == self.user.id)
+
                self.writeToTransport(["JOIN", this_user.id, this_user.username])
-
-            # now make a participant entry to tie this user to the game in the database
-            newparticipant = GameParticipant( Participant=self.user, Game=game, State=newstate )
-            newparticipant.save()
-            
+               
             # register this connection as being associated with this game in the factory.             
-            self.factory.addToConnectionDB(self, self.game_id)
+            self.factory.addToConnectionDB(self, self.game.id)
+            
+            # if the user was not already in the game participant list, we need to let everyone know that now they are!
+            if not is_dupe_user:
 
-            # now find all connections associated with this game and tell them about the newcomer 
-            for (conn_game_id, connection) in self.factory.connectionList:
-               if conn_game_id == self.game_id:
-                  self.writeToTransport(["JOIN", self.user.id, self.user.username], transport = connection.transport)
+               # now make a participant entry to tie this user to the game in the database
+               newparticipant = GameParticipant( Participant=self.user, Game=self.game, State=newstate )
+               newparticipant.save()
+
+
+               # now find all connections associated with this game and tell them about the newcomer 
+               for (conn_game_id, connection) in self.factory.connectionList:
+                  if conn_game_id == self.game.id:
+                     self.writeToTransport(["JOIN", self.user.id, self.user.username], transport = connection.transport)
 
             response = CTS
 
@@ -113,7 +152,7 @@ class GoServerProtocol(basic.LineReceiver):
             
             # now find all connections associated with this game and tell them about the newcomer
             for (conn_game_id,connection) in self.factory.connectionList:
-               if conn_game_id == self.game_id:
+               if conn_game_id == self.game.id:
                   self.writeToTransport(["CHAT", self.user.username, message], transport = connection.transport)
 
             response = CTS
@@ -121,6 +160,8 @@ class GoServerProtocol(basic.LineReceiver):
 
          # part command ; index 1 is a channel name
          elif(cmd[0] == 'PART'):
+            self.already_unloaded = True
+            self.connectionLost()
             response = CTS
 
             
@@ -142,7 +183,12 @@ class GoServerProtocol(basic.LineReceiver):
 
       out_json = json.dumps(response)
 
-      self.debug('%d> %s' % (transport.sessionno, out_json))
+      if transport.sessionno != self.transport.sessionno:
+         pre_char = transport.sessionno
+      else:
+         pre_char = '-'
+
+      self.debug('%s> %s' % (pre_char, out_json))
 
       transport.write(out_json + "\r\n")
       

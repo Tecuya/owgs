@@ -6,7 +6,7 @@
 
 <ul>
  {% for Game in GameList %}
- <li> {{Game}} {% if not Game.PlayersAssigned %}<a href="/games/join/{{ Game.id }}">Join</a>{% endif %}</li>
+ <li> {{Game}} <a href="/games/view/{{ Game.id }}">{% if not Game.PlayersAssigned %}Join{% else %}View{% endif %}</a></li>
  {% endfor %}
 </ul>
 

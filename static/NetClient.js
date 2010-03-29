@@ -52,18 +52,31 @@ function NetClient(session_key) {
             }
 
         } else if(dataAr[0] == "JOIN") { 
-            
             part_select = document.getElementById("ParticipantSelect");
-            if( part_select != null ) {
-                // text value defaultSelected selected
-                part_select.options[ part_select.options.length ] = new Option(dataAr[2], dataAr[1]);
+
+            // remove the initial "Loading..." message if it is present
+            if(part_select.options[0].value == 0) { 
+                part_select.remove(0);
             }
+            
+            part_select.options.add( new Option(dataAr[2], dataAr[1]) );
+
+            this.updatechat('*** '+dataAr[2]+' has joined the game');
+
+        } else if(dataAr[0] == "PART") { 
+
+            part_select = document.getElementById("ParticipantSelect");
+            
+            for(var i=0 ; i < part_select.options.length ; i++) { 
+                if(part_select.options[i].value == dataAr[1]) { 
+                    part_select.remove(i);
+                }
+            }
+            
+            this.updatechat('*** '+dataAr[2]+' has left the game');
 
         } else if(dataAr[0] == "CHAT") {
-
-            chat_textarea = document.getElementById("ChatTextarea");
-            chat_textarea.value += '<' + dataAr[1] + '> ' + dataAr[2] + "\r\n";
-
+            this.updatechat('<'+dataAr[1]+'> '+dataAr[2]);
         }
     }
 
@@ -99,6 +112,11 @@ function NetClient(session_key) {
         
         this.send( ["SESS", this.session_key] );
     }
+
+    this.unload = function() { 
+        // this doesnt seem to work for whatever reason..
+        this.send( ["PART"] );
+    }
     
     this.debug = function(msg) { 
         curdate = new Date();
@@ -117,6 +135,10 @@ function NetClient(session_key) {
         this.send( ["CHAT", msg] );
     }
 
+    this.updatechat = function(msg) { 
+        chat_textarea = document.getElementById("ChatTextarea");
+        chat_textarea.value += msg + "\r\n";
+    }
 }
 
 
@@ -126,9 +148,16 @@ function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinerecei
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
 
 // init funcs
-function NetClient_start() { NetClient_instance.start(); }
+function NetClient_start() { 
+    // window.onunload = NetClient_unload
+    // addEventListener("unload", NetClient_unload, false);
+    NetClient_instance.start(); 
+}
 function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
+function NetClient_unload() { 
+    NetClient_instance.unload();
+}
 
 
 
