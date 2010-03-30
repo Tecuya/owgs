@@ -26,10 +26,19 @@ function NetClient(session_key) {
     this.start = function() { 
 
         if(NetClient_debug) {
-            document.body.innerHTML += "<textarea cols=100 rows=8 id=\"NetClient_debug\"></textarea>";
+            // TODO .. this breaks eidogo.... odd.. i guess it pisses off DOM enough that eidogo can no longer function....?
+            debug_textarea = document.createElement("TEXTAREA");
+            debug_textarea.setAttribute("cols", 80);
+            debug_textarea.setAttribute("rows", 20);
+            debug_textarea.setAttribute("id", "NetClient_debug");
+
+            document.body.appendChild(debug_textarea);
+
+            // innerHTML += "<textarea cols=100 rows=8 id=\"NetClient_debug\"></textarea>";
+
             this.debug("NetClient.start\n");
         }
-                
+
         tcp = new LineProtocol(new Orbited.TCPSocket());
         tcp.open('mirrormere.longstair.com',8002,false);
 
@@ -136,8 +145,7 @@ function NetClient(session_key) {
     }
 
     this.updatechat = function(msg) { 
-        chat_textarea = document.getElementById("ChatTextarea");
-        chat_textarea.value += msg + "\r\n";
+        document.getElementById("ChatTextarea").value += msg + "\r\n";
     }
 }
 
@@ -158,6 +166,42 @@ function NetClient_preload(session_key) { NetClient_instance = new NetClient(ses
 function NetClient_unload() { 
     NetClient_instance.unload();
 }
+
+NetClient_eidogo_player = null
+
+
+// Load Eidogo
+function initEidogo() { 
+    var NetClient_eidogo_player = new eidogo.Player({
+        container:       "eidogo",
+        theme:           "standard",
+        // sgfUrl:          "/static/eidogo/sgf/example.sgf",
+        sgf:             eidogo_sgf_data,
+        sgfPath:         "/static/eidogo/sgf/",
+        mode:            "play",
+        loadPath:        [0, 0],
+        showComments:    true,
+        showPlayerInfo:  true,
+        showGameInfo:    true,
+        showTools:       true,
+        showOptions:     true,
+        markCurrent:     true,
+        markVariations:  true,
+        markNext:        false,
+        enableShortcuts: false,
+        problemMode:     false
+    });
+
+    // convenient alias to keep me sane TODO cleanup
+    n = NetClient_eidogo_player;
+    
+    n.createMove('ab');
+    n.createMove('de');
+
+}
+
+
+
 
 
 
@@ -282,4 +326,6 @@ LineProtocol = function(transport) {
     self.onlinereceived = function(line) {};
     self.onrawdatareceived = function(data) {};
 };
+
+
 

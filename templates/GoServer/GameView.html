@@ -13,52 +13,41 @@
 <script type="text/javascript" src="/static/eidogo/js/player.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/init.js"></script> 
 <script>
+
 NetClient_instance.joingame( {{ Game.id }} );
+
+{% if Game.PlayersAssigned %}
+
+
+eidogo_sgf_data = {_children: [{
+SZ: 19,
+KM: {{ Game.Komi }},
+PW: "{{ UserWhite.username }}",
+PB: "{{ UserBlack.username }}",
+_children: []}]};
+
+window.addEventListener("load", initEidogo, false);
+
+
+{% endif %}
+
 </script>
+
 {% endblock %}
 
 {% block content %}
 
 <p><h2>Game #{{ Game.id }}</h2></p>
 
-{% if Game.PlayersAssigned %}
- 
+{% if Game.PlayersAssigned %} 
+<div id="eidogo"></div>     
 
-<div id="eidogo" style="float:left;"></div> 
- 
-<script type="text/javascript">  
-var player = new eidogo.Player({
-  container:       "eidogo",
-  theme:           "standard",
-  // sgfUrl:          "sgf/" + (location.search ? location.search.substring(1) : "example.sgf"),
-  sgfPath:      "sgf/",
-  mode: "play",
-  loadPath:        [0, 0],
-  showComments:    true,
-  showPlayerInfo:  true,
-  showGameInfo:    true,
-  showTools:       true,
-  showOptions:     true,
-  markCurrent:     true,
-  markVariations:  true,
-  markNext:        false,
-  enableShortcuts: false,
-  problemMode:     false
-});
-
-player.loadSgf();
-
-</script> 
-{% endif %}
-
-
+{% else %}
 <div>
  <h3>Game Info</h3>
  <p>{{ Game }}</p>
 </div>
 
- 
-{% if not Game.PlayersAssigned %}
 <div>
  <h3>Join Game</h3>
  <form method="post">
@@ -70,21 +59,25 @@ player.loadSgf();
 
 {% endif %}
 
-<div id="Participants">
+<div id="Participants" style="float:right;">
  <h3>Participants</h3>
  <form method="post">
  <select multiple size=4 id="ParticipantSelect">
    <option value=0>Loading...</option>
  </select>
  <input type=hidden name="action" value="play"
+
+ {% if not Game.PlayersAssigned %}
  <input type=submit value="Play!">
+ {% endif %}
+
  </form>
  </ul>
 </div>
 
-<div id="Chat" style="clear:both;">
+<div id="Chat" style="">
  <h3>Chat</h3>
- <textarea cols=80 rows=7 id="ChatTextarea" readonly></textarea><br>
+ <textarea cols=60 rows=7 id="ChatTextarea" readonly></textarea><br>
  <input size=60 type=text id="ChatLine">
  <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatLine').value );">
   Send
