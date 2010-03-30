@@ -849,7 +849,8 @@ eidogo.Player.prototype = {
         if (!this.cursor.node) return;
     
         if (!noRender) {
-            this.dom.comments.innerHTML = "";
+            // TODO determine what to do here.. temporarily disabled clearing comments on move change so chat persists
+            // this.dom.comments.innerHTML = "";
             this.board.clearMarkers();
             this.moveNumber = this.cursor.getMoveNumber();
         }

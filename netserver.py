@@ -62,16 +62,29 @@ class GoServerProtocol(basic.LineReceiver):
          
       self.debug('Unregistering where game=%d and user=%s' % (self.game.id, self.user.username) )
 
-      # unregister this user from the game
-      GameParticipant.objects.filter( Game = self.game, Participant = self.user )
 
       # delete connection from connection list
-      self.factory.delFromConnectionDB(self, self.game.id)
+      oldentry = self.factory.delFromConnectionDB(self, self.game.id)
+
+      # determine if this was the last connection from this user
+      lastconnection = True
+      for (connection, conn_game_id, user_id) in self.factory.connectionList:
+         if user_id == oldentry[2]:
+            lastconnection = False
+            break
 
       # inform all clients that this user left
-      for (conn_game_id, connection) in self.factory.connectionList:
-         if conn_game_id == self.game.id:
-            self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
+      if lastconnection:
+         # unregister this user from the game
+         gp = GameParticipant.objects.filter( Game = self.game, Participant = self.user )
+         if len(gp):
+            gp[0].delete()
+            gp[0].save()
+
+         self.debug('This was the last connection for this user notifying all users associated to game')
+         for (connection, conn_game_id, user_id) in self.factory.connectionList:
+            if conn_game_id == self.game.id:
+               self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
 
       # ok, we are unloaded
       self.already_unloaded = True
@@ -129,7 +142,7 @@ class GoServerProtocol(basic.LineReceiver):
                self.writeToTransport(["JOIN", this_user.id, this_user.username])
                
             # register this connection as being associated with this game in the factory.             
-            self.factory.addToConnectionDB(self, self.game.id)
+            self.factory.addToConnectionDB(self, self.game.id, self.user.id)
             
             # if the user was not already in the game participant list, we need to let everyone know that now they are!
             if not is_dupe_user:
@@ -140,7 +153,7 @@ class GoServerProtocol(basic.LineReceiver):
 
 
                # now find all connections associated with this game and tell them about the newcomer 
-               for (conn_game_id, connection) in self.factory.connectionList:
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                   if conn_game_id == self.game.id:
                      self.writeToTransport(["JOIN", self.user.id, self.user.username], transport = connection.transport)
 
@@ -150,7 +163,7 @@ class GoServerProtocol(basic.LineReceiver):
          elif(cmd[0] == 'CHAT'):
             message = cmd[1]
             
-            for (conn_game_id,connection) in self.factory.connectionList:
+            for (connection,conn_game_id, conn_user_id) in self.factory.connectionList:
                if conn_game_id == self.game.id:
                   self.writeToTransport(["CHAT", self.user.username, message], transport = connection.transport)
 
@@ -161,7 +174,7 @@ class GoServerProtocol(basic.LineReceiver):
             coord = cmd[1]
             color = cmd[2]
             
-            for (conn_game_id,connection) in self.factory.connectionList:
+            for (connection,conn_game_id, conn_user_id) in self.factory.connectionList:
                # send it to all players associated with the current game.. but not the user who made the move
                # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
                if conn_game_id == self.game.id and self.transport.sessionno != connection.transport.sessionno:
@@ -216,16 +229,18 @@ class GoServerFactory(protocol.ServerFactory):
       # self.lc = task.LoopingCall(self.announce)
       # self.lc.start(30)
 
-   def addToConnectionDB(self, connection, game_id):
-      self.connectionList.append( [game_id, connection] )
+   def addToConnectionDB(self, connection, game_id, user_id):
+      self.connectionList.append( [connection, game_id, user_id] )
 
    def delFromConnectionDB(self, connection, game_id):
+      """Delete an entry from the connection database.  Return the entry itself as it was before being deleted."""
       for i in range(0,len(self.connectionList)): 
-         (db_game_id,db_connection) = self.connectionList[i]
+         (db_connection,db_game_id,db_user_id) = self.connectionList[i]
          
          if connection.transport.sessionno == db_connection.transport.sessionno:
+            oldentry = self.connectionList[i]
             del self.connectionList[i];
-            break
+            return oldentry
 
 reactor.listenTCP(8002, GoServerFactory())
 reactor.run()

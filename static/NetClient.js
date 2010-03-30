@@ -146,12 +146,17 @@ function NetClient(session_key) {
         this.sendq.push( ["JOIN", this.game_id] );
     }
 
-    this.chat = function(msg) {
-        this.send( ["CHAT", msg] );
+    this.chat = function(chatinput) {
+        this.send( ["CHAT", chatinput.value] );
+        chatinput.value = '';
     }
 
     this.updatechat = function(msg) { 
-        document.getElementById("ChatTextarea").value += msg + "\r\n";
+        if(ta = document.getElementById("ChatTextarea"))
+            ta.value += msg + "\r\n";
+
+        if(NetClient_eidogo_player != null) 
+            NetClient_eidogo_player.dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";
     }
 
     this.onmove = function(data) { 

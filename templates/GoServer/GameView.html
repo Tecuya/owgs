@@ -31,7 +31,6 @@ eidogo_color = "{{ YouAre }}";
 
 window.addEventListener("load", initEidogo, false);
 
-
 {% endif %}
 
 </script>
@@ -44,8 +43,14 @@ window.addEventListener("load", initEidogo, false);
 
 {% if Game.PlayersAssigned %} 
 
-You are: {{ YouAre }}
-<div id="eidogo"></div>     
+<div>
+ <div id="eidogo"></div>     
+
+ <input size=60 type=text id="ChatInput">
+ <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
+  Chat
+ </button>
+</div>
 
 {% else %}
 <div>
@@ -64,15 +69,15 @@ You are: {{ YouAre }}
 
 {% endif %}
 
-<div id="Participants" style="float:right;">
+<div id="Participants">
  <h3>Participants</h3>
  <form method="post">
  <select multiple size=4 id="ParticipantSelect">
    <option value=0>Loading...</option>
  </select>
- <input type=hidden name="action" value="play"
 
  {% if not Game.PlayersAssigned %}
+ <input type=hidden name="action" value="play">
  <input type=submit value="Play!">
  {% endif %}
 
@@ -80,14 +85,16 @@ You are: {{ YouAre }}
  </ul>
 </div>
 
+ {% if not Game.PlayersAssigned %}
 <div id="Chat" style="">
  <h3>Chat</h3>
  <textarea cols=60 rows=7 id="ChatTextarea" readonly></textarea><br>
- <input size=60 type=text id="ChatLine">
- <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatLine').value );">
+ <input size=60 type=text id="ChatInput">
+ <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
   Send
  </button>
 </div>
+ {% endif %}
 
 {% endblock %}
 
