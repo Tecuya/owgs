@@ -26,15 +26,12 @@ function NetClient(session_key) {
     this.start = function() { 
 
         if(NetClient_debug) {
-            // TODO .. this breaks eidogo.... odd.. i guess it pisses off DOM enough that eidogo can no longer function....?
             debug_textarea = document.createElement("TEXTAREA");
             debug_textarea.setAttribute("cols", 80);
             debug_textarea.setAttribute("rows", 20);
             debug_textarea.setAttribute("id", "NetClient_debug");
 
             document.body.appendChild(debug_textarea);
-
-            // innerHTML += "<textarea cols=100 rows=8 id=\"NetClient_debug\"></textarea>";
 
             this.debug("NetClient.start\n");
         }
@@ -129,7 +126,6 @@ function NetClient(session_key) {
     }
 
     this.unload = function() { 
-        // this doesnt seem to work for whatever reason..
         this.send( ["PART"] );
     }
     
@@ -163,38 +159,43 @@ function NetClient(session_key) {
         coord = data[0];
         color = data[1];
         this.send( ["MOVE", coord, color] )
-        // alert("Got it: "+coord+ " "+color);
     }
 }
 
 
-// annoying wrappers for tcpsocket event handlers
+// annoying wrappers for various event handlers
+// TODO perhaps there's a better way of accessing NetClient_instance from event handlers?  some kind of singleton technique?
+
 function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
 function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
 function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
+function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 // init funcs
 function NetClient_start() { 
+    // TODO the unload event fires but the page always navigates away before orbited gets the PART message sent.. so this is useless until i figure out why
     // window.onunload = NetClient_unload
     // addEventListener("unload", NetClient_unload, false);
     NetClient_instance.start(); 
 }
-function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 function NetClient_unload() { 
     NetClient_instance.unload();
 }
 
-NetClient_eidogo_player = null
 
+/////////////////////////////////////////////////////////////////////////////
+// Eidogo loader
 
-// Load Eidogo
+// global var to hold the player
+var NetClient_eidogo_player = null;
+
+// attached to load event by GameView
 function initEidogo() { 
     NetClient_eidogo_player = new eidogo.Player({
         container:       "eidogo",
         theme:           "standard",
-        // sgfUrl:          "/static/eidogo/sgf/example.sgf",
         sgf:             eidogo_sgf_data,
         sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
@@ -218,8 +219,11 @@ function initEidogo() {
 
 
 
-
+////////////////////////////////////////////////////////////////////
 // This is lifted from orbited's stomp.js STOMP protocol example
+
+
+
 
 // NB: This is loosly based on twisted.protocols.basic.LineReceiver
 //     See http://twistedmatrix.com/documents/8.1.0/api/twisted.protocols.basic.LineReceiver.html

@@ -26,7 +26,7 @@ PW: "{{ UserWhite.username }}",
 PB: "{{ UserBlack.username }}",
 _children: []}]};
 
-// lets eidogo what color we are
+// lets eidogo know what color we are
 eidogo_color = "{{ YouAre }}";
 
 window.addEventListener("load", initEidogo, false);
@@ -53,6 +53,7 @@ window.addEventListener("load", initEidogo, false);
 </div>
 
 {% else %}
+
 <div>
  <h3>Game Info</h3>
  <p>{{ Game }}</p>

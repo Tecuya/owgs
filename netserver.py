@@ -22,16 +22,22 @@ from django.contrib.auth.models import User
 # our CTS command
 CTS = ['CTS']
 
+# port to listen on
+PORT = 8002
    
 
 class GoServerProtocol(basic.LineReceiver):
    
+   # session key of connected user
    session_key = False
 
+   # game this connection is related to
    game = False
 
+   # user this connection is related to
    user = False
 
+   # indicates if this connection had been cleanly unloaded
    already_unloaded = False
 
    def debug(self, msg):
@@ -58,10 +64,8 @@ class GoServerProtocol(basic.LineReceiver):
          # if we have't already handled it then.. we better handle it!
          else:
             self.debug('Connection was NOT cleanly unloaded.')
-            
-         
+                     
       self.debug('Unregistering where game=%d and user=%s' % (self.game.id, self.user.username) )
-
 
       # delete connection from connection list
       oldentry = self.factory.delFromConnectionDB(self, self.game.id)
@@ -73,13 +77,12 @@ class GoServerProtocol(basic.LineReceiver):
             lastconnection = False
             break
 
-      # inform all clients that this user left
+      # inform all clients that this user left if this was the last connection belonging to the user
       if lastconnection:
          # unregister this user from the game
-         gp = GameParticipant.objects.filter( Game = self.game, Participant = self.user )
-         if len(gp):
-            gp[0].delete()
-            gp[0].save()
+         for gp in GameParticipant.objects.filter( Game = self.game, Participant = self.user ):
+            gp.delete()
+            gp.save()
 
          self.debug('This was the last connection for this user notifying all users associated to game')
          for (connection, conn_game_id, user_id) in self.factory.connectionList:
@@ -92,7 +95,7 @@ class GoServerProtocol(basic.LineReceiver):
 
    def lineReceived(self, data):
 
-      response = "nil"
+      response = ["ERROR","Unspecified error"]
 
       try:
          
@@ -201,6 +204,7 @@ class GoServerProtocol(basic.LineReceiver):
 
       self.writeToTransport(response, self.transport)
 
+
    def writeToTransport(self, response, transport = False):
 
       if not transport:
@@ -242,6 +246,7 @@ class GoServerFactory(protocol.ServerFactory):
             del self.connectionList[i];
             return oldentry
 
-reactor.listenTCP(8002, GoServerFactory())
+
+reactor.listenTCP(PORT, GoServerFactory())
 reactor.run()
 
