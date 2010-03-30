@@ -18,13 +18,16 @@ NetClient_instance.joingame( {{ Game.id }} );
 
 {% if Game.PlayersAssigned %}
 
-
+// eidogo preliminary sgf data
 eidogo_sgf_data = {_children: [{
 SZ: 19,
 KM: {{ Game.Komi }},
 PW: "{{ UserWhite.username }}",
 PB: "{{ UserBlack.username }}",
 _children: []}]};
+
+// lets eidogo what color we are
+eidogo_color = "{{ YouAre }}";
 
 window.addEventListener("load", initEidogo, false);
 
@@ -40,6 +43,8 @@ window.addEventListener("load", initEidogo, false);
 <p><h2>Game #{{ Game.id }}</h2></p>
 
 {% if Game.PlayersAssigned %} 
+
+You are: {{ YouAre }}
 <div id="eidogo"></div>     
 
 {% else %}

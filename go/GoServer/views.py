@@ -89,23 +89,33 @@ def GameView(request, game_id):
             
             game.PlayersAssigned = True
             game.save()
-    
+
+    # unless we prove otherwise, you are a spectator!
+    you_are = 'S'
+
     # load white/black participants, if there are any
     if GameParticipant.objects.filter(Game = game, State='W').count() == 1:
         gp_w = GameParticipant.objects.filter(Game = game, State='W')[0]
         user_w = User.objects.get(pk = gp_w.Participant.id)
+        if gp_w.Participant == request.user:
+            you_are = 'W'
     else:
         user_w = {}
 
     if GameParticipant.objects.filter(Game = game, State='B').count() == 1:
         gp_b = GameParticipant.objects.filter(Game = game, State='B')[0]
         user_b = User.objects.get(pk = gp_b.Participant.id)
+        if gp_b.Participant == request.user:
+            you_are = 'B'
     else:
         user_b = {}
+        
+
 
     return render_to_response('GoServer/GameView.html', 
                               {"GameForm": form, 
                                "Game": game,
+                               "YouAre": you_are,
                                "UserBlack": user_b,
                                "UserWhite": user_w},
                               context_instance=RequestContext(request))   

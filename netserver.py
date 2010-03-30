@@ -150,10 +150,22 @@ class GoServerProtocol(basic.LineReceiver):
          elif(cmd[0] == 'CHAT'):
             message = cmd[1]
             
-            # now find all connections associated with this game and tell them about the newcomer
             for (conn_game_id,connection) in self.factory.connectionList:
                if conn_game_id == self.game.id:
                   self.writeToTransport(["CHAT", self.user.username, message], transport = connection.transport)
+
+            response = CTS
+
+
+         elif(cmd[0] == 'MOVE'):
+            coord = cmd[1]
+            color = cmd[2]
+            
+            for (conn_game_id,connection) in self.factory.connectionList:
+               # send it to all players associated with the current game.. but not the user who made the move
+               # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
+               if conn_game_id == self.game.id and self.transport.sessionno != connection.transport.sessionno:
+                  self.writeToTransport(["MOVE", coord, color], transport = connection.transport)
 
             response = CTS
 

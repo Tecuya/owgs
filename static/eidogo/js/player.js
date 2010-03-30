@@ -836,6 +836,9 @@ eidogo.Player.prototype = {
      *      considerations.
      */
     execNode: function(noRender, ignoreProgressive) {
+
+        // alert('execNode ' + this.cursor.node.toSgf());
+
         // don't execute a node while it's being loaded
         if (!ignoreProgressive && this.progressiveLoads > 0) {
             var me = this;
@@ -1604,7 +1607,20 @@ eidogo.Player.prototype = {
     /**
      * Create an as-yet unplayed move and go to it.
      */
-    createMove: function(coord) {
+    createMove: function(coord, is_remote_move) {
+        
+        if(is_remote_move === undefined) {
+
+            // do not allow creation of moves unless this.currentColor matches
+            // global eidogo_color
+            if(this.currentColor != eidogo_color) {
+                alert("Not your turn!");
+                return;
+            }
+            
+            this.hook("createMove", [coord, this.currentColor]);
+        }
+
         var props = {};
         props[this.currentColor] = coord;
         var varNode = new eidogo.GameNode(null, props);
@@ -1613,6 +1629,7 @@ eidogo.Player.prototype = {
         this.cursor.node.appendChild(varNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
+
     },
 
     /**

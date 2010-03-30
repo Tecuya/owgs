@@ -85,7 +85,13 @@ function NetClient(session_key) {
             this.updatechat('*** '+dataAr[2]+' has left the game');
 
         } else if(dataAr[0] == "CHAT") {
+
             this.updatechat('<'+dataAr[1]+'> '+dataAr[2]);
+
+        } else if(dataAr[0] == "MOVE") { 
+
+            NetClient_eidogo_player.createMove(dataAr[1], true);
+
         }
     }
 
@@ -147,6 +153,13 @@ function NetClient(session_key) {
     this.updatechat = function(msg) { 
         document.getElementById("ChatTextarea").value += msg + "\r\n";
     }
+
+    this.onmove = function(data) { 
+        coord = data[0];
+        color = data[1];
+        this.send( ["MOVE", coord, color] )
+        // alert("Got it: "+coord+ " "+color);
+    }
 }
 
 
@@ -154,6 +167,7 @@ function NetClient(session_key) {
 function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
 function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
+function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
 
 // init funcs
 function NetClient_start() { 
@@ -172,32 +186,27 @@ NetClient_eidogo_player = null
 
 // Load Eidogo
 function initEidogo() { 
-    var NetClient_eidogo_player = new eidogo.Player({
+    NetClient_eidogo_player = new eidogo.Player({
         container:       "eidogo",
         theme:           "standard",
         // sgfUrl:          "/static/eidogo/sgf/example.sgf",
         sgf:             eidogo_sgf_data,
         sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
+        hooks:           {"createMove": NetClient_onmove_wrapper},
         loadPath:        [0, 0],
         showComments:    true,
         showPlayerInfo:  true,
         showGameInfo:    true,
         showTools:       true,
         showOptions:     true,
+        showNavTree:     true,
         markCurrent:     true,
         markVariations:  true,
         markNext:        false,
         enableShortcuts: false,
         problemMode:     false
     });
-
-    // convenient alias to keep me sane TODO cleanup
-    n = NetClient_eidogo_player;
-    
-    n.createMove('ab');
-    n.createMove('de');
-
 }
 
 
