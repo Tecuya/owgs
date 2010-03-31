@@ -41,7 +41,7 @@ class GoServerProtocol(basic.LineReceiver):
    already_unloaded = False
 
    def debug(self, msg):
-      print '%s Fac %04d | %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
+      print '%s %04d | %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
       
    def connectionMade(self):
       self.debug('Connection opened')
@@ -97,6 +97,7 @@ class GoServerProtocol(basic.LineReceiver):
 
       response = ["ERROR","Unspecified error"]
 
+      # TODO clean up giant try block
       try:
          
          cmd = json.loads(data)
@@ -123,6 +124,7 @@ class GoServerProtocol(basic.LineReceiver):
          elif(cmd[0] == 'JOIN'):        
 
             # load the game object
+            # TODO use a shared copy in the factory
             self.game = Game.objects.get(pk = cmd[1])
 
             # determine if this user is the owner or what
@@ -176,8 +178,22 @@ class GoServerProtocol(basic.LineReceiver):
          elif(cmd[0] == 'MOVE'):
             coord = cmd[1]
             color = cmd[2]
+            parent_node = cmd[3]
+            comments = cmd[4]
             
-            for (connection,conn_game_id, conn_user_id) in self.factory.connectionList:
+            # TODO once we have a timer, hook this up to the proper value
+            time_left = 0
+
+            # TODO validate the move, if its invalid alert the players that they need 
+            # to reload their boards to resync with the server.  The idea is that eidogo, once
+            # properly modified, will NEVER allow an illegal move.  If it does we assume the 
+            # player is somehow desynced (which shouldn't happen either)
+            
+            # Now store the move in the database
+            self.factory.storeMove(self.game.id, coord, color, parent_node, comments, time_left)
+            
+
+            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                # send it to all players associated with the current game.. but not the user who made the move
                # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
                if conn_game_id == self.game.id and self.transport.sessionno != connection.transport.sessionno:
@@ -228,7 +244,10 @@ class GoServerFactory(protocol.ServerFactory):
    def __init__(self):      
       # this maps connections to user IDs
       self.connectionList = []
-      
+
+      # this contains all the games which the server is currently tracking.
+      self.games = {}
+
       # TODO register an every-XX-second call for us to perform a ping
       # self.lc = task.LoopingCall(self.announce)
       # self.lc.start(30)
@@ -245,6 +264,12 @@ class GoServerFactory(protocol.ServerFactory):
             oldentry = self.connectionList[i]
             del self.connectionList[i];
             return oldentry
+
+   def storeMove(game_id, coord, color, parentNode, comments, time_left):
+      """
+      Store a move and any related data in to the GameNode / GameProperty Tables
+      """
+      pass
 
 
 reactor.listenTCP(PORT, GoServerFactory())

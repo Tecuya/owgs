@@ -26,6 +26,25 @@ class GameForm(ModelForm):
         model = Game
         exclude = ('Owner', 'StartDate', 'PlayersAssigned')
 
+class GameNode(models.Model):
+    """ 
+    This model represents an SGF node.  
+    Nodes exist in a parent/child tree.
+    When ParentNode is unset, this is the root node of the collection.
+    """
+    Game = models.ForeignKey(Game)
+
+    # TODO will django allow me to have this unset (for root nodes)
+    ParentNode = models.ForeignKey('self')
+
+class GameProperty(models.Model):
+    """
+    This model represents an SGF property.
+    Multiple properties can exist under any single node.
+    """
+    Node = models.ForeignKey(GameNode)
+    Property = models.CharField('SGF Property Name')
+    Value = models.TextField('SGF Property Value')
 
 class GameParticipant(models.Model):
     import datetime

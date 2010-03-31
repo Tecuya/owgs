@@ -151,14 +151,23 @@ function NetClient(session_key) {
         if(ta = document.getElementById("ChatTextarea"))
             ta.value += msg + "\r\n";
 
+        
         if(NetClient_eidogo_player != null) 
             NetClient_eidogo_player.dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";
+            
     }
 
     this.onmove = function(data) { 
         coord = data[0];
         color = data[1];
-        this.send( ["MOVE", coord, color] )
+
+        // TODO support getting the parent node from eidogo to enable variations!
+        parent_node = 0;
+        
+        // TODO support getting a copy of all the comments made since the last move from eidogo
+        comments = "";
+
+        this.send( ["MOVE", coord, color, parent_node, comments] )
     }
 }
 
@@ -195,7 +204,7 @@ var NetClient_eidogo_player = null;
 function initEidogo() { 
     NetClient_eidogo_player = new eidogo.Player({
         container:       "eidogo",
-        theme:           "standard",
+        theme:           "compact", // TODO standard or compact should be a player pref or something
         sgf:             eidogo_sgf_data,
         sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",

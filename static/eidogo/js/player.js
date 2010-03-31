@@ -837,7 +837,7 @@ eidogo.Player.prototype = {
      */
     execNode: function(noRender, ignoreProgressive) {
 
-        // alert('execNode ' + this.cursor.node.toSgf());
+        alert('execNode ' + this.cursor.node.toSgf());
 
         // don't execute a node while it's being loaded
         if (!ignoreProgressive && this.progressiveLoads > 0) {
