@@ -19,6 +19,8 @@ from go.GoServer.models import Game, GameParticipant
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User
 
+from django.db.models import F
+
 # our CTS command
 CTS = ['CTS']
 
@@ -37,8 +39,6 @@ class GoServerProtocol(basic.LineReceiver):
    # user this connection is related to
    user = False
 
-   # indicates if this connection had been cleanly unloaded
-   already_unloaded = False
 
    def debug(self, msg):
       print '%s %04d | %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
@@ -46,24 +46,7 @@ class GoServerProtocol(basic.LineReceiver):
    def connectionMade(self):
       self.debug('Connection opened')
    
-   def connectionLost(self, reason, client_initiated=False):
-
-      # client_initiated means this was from a PART command
-      if client_initiated:
-
-         self.debug('Client-initiated connection close: '+str(reason))
-
-      # not client initiated means the connection just dropped
-      else:
-
-         # if we already handled it (there was already a clean PART) then we are done
-         if self.already_unloaded:
-            self.debug('Connection was already cleanly unloaded.')
-            return
-
-         # if we have't already handled it then.. we better handle it!
-         else:
-            self.debug('Connection was NOT cleanly unloaded.')
+   def connectionLost(self, reason):
                      
       self.debug('Unregistering where game=%d and user=%s' % (self.game.id, self.user.username) )
 
@@ -71,27 +54,24 @@ class GoServerProtocol(basic.LineReceiver):
       oldentry = self.factory.delFromConnectionDB(self, self.game.id)
 
       # determine if this was the last connection from this user
-      lastconnection = True
+      users_other_conns = 0
       for (connection, conn_game_id, user_id) in self.factory.connectionList:
          if user_id == oldentry[2]:
-            lastconnection = False
-            break
+            users_other_conns += 1
+      
+      self.debug('User has %d other connections on this game' % users_other_conns)
 
-      # inform all clients that this user left if this was the last connection belonging to the user
-      if lastconnection:
+      # inform others that this user left if this was the last connection belonging to the user
+      if users_other_conns == 0:
+
          # unregister this user from the game
-         for gp in GameParticipant.objects.filter( Game = self.game, Participant = self.user ):
-            gp.delete()
-            gp.save()
-
-         self.debug('This was the last connection for this user notifying all users associated to game')
+         self.debug('Deleting user game participant row')
+         GameParticipant.objects.filter( Game = self.game, Participant = self.user ).delete()
+         
          for (connection, conn_game_id, user_id) in self.factory.connectionList:
             if conn_game_id == self.game.id:
                self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
 
-      # ok, we are unloaded
-      self.already_unloaded = True
-      
 
    def lineReceived(self, data):
 
@@ -128,7 +108,7 @@ class GoServerProtocol(basic.LineReceiver):
             self.game = Game.objects.get(pk = cmd[1])
 
             # determine if this user is the owner or what
-            if self.game.id == self.user.id:
+            if self.game.Owner.id == self.user.id:
                newstate = 'O'
             else:
                newstate = 'U'
@@ -144,7 +124,7 @@ class GoServerProtocol(basic.LineReceiver):
                # if this *is* the current user, then they are in the game twice?  make a note of that..
                is_dupe_user = is_dupe_user or (part.Participant.id == self.user.id)
 
-               self.writeToTransport(["JOIN", this_user.id, this_user.username])
+               self.writeToTransport(["JOIN", this_user.id, this_user.username, part.State])
                
             # register this connection as being associated with this game in the factory.             
             self.factory.addToConnectionDB(self, self.game.id, self.user.id)
@@ -156,11 +136,10 @@ class GoServerProtocol(basic.LineReceiver):
                newparticipant = GameParticipant( Participant=self.user, Game=self.game, State=newstate )
                newparticipant.save()
 
-
                # now find all connections associated with this game and tell them about the newcomer 
                for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                   if conn_game_id == self.game.id:
-                     self.writeToTransport(["JOIN", self.user.id, self.user.username], transport = connection.transport)
+                     self.writeToTransport(["JOIN", self.user.id, self.user.username, newparticipant.State], transport = connection.transport)
 
             response = CTS
 
@@ -174,7 +153,7 @@ class GoServerProtocol(basic.LineReceiver):
 
             response = CTS
 
-
+         
          elif(cmd[0] == 'MOVE'):
             coord = cmd[1]
             color = cmd[2]
@@ -192,7 +171,6 @@ class GoServerProtocol(basic.LineReceiver):
             # Now store the move in the database
             self.factory.storeMove(self.game.id, coord, color, parent_node, comments, time_left)
             
-
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                # send it to all players associated with the current game.. but not the user who made the move
                # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
@@ -200,20 +178,37 @@ class GoServerProtocol(basic.LineReceiver):
                   self.writeToTransport(["MOVE", coord, color], transport = connection.transport)
 
             response = CTS
+            
+
+         # ignore any BEGN that doesnt come from the game owner
+         elif cmd[0] == 'BEGN' and self.game.owner == self.user:
+            
+            # Determine which player is to be changed to what color and change them
+            
 
 
-         # part command ; index 1 is a channel name
-         elif(cmd[0] == 'PART'):
-            self.already_unloaded = True
-            self.connectionLost()
-            response = CTS
+            # Set the game to PlayersAssigned = true
+            self.game.PlayersAssigned = True
+            self.game.save()
+            
+            # Send a message to all participants notifying them that the game has begun
+            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               self.writeToTransport(["BEGN"], transport = connection.transport)
 
             
-         # channel say ; index 1 is a channel name  index 2 is the message
-         elif(cmd[0] == 'SAY'):
+            # TODO maybe rather than a reload we should just have eidogo dynamically drawn here by JS.. moving
+            # that logic out of the view
+
+            
+         elif cmd[0] == 'OFFR':
+            
+            # Send a message to all participants notifying them about your offer
+            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               self.writeToTransport(["OFFR", cmd[1], cmd[2], cmd[3], cmd[4], self.user.id, self.user.username], transport = connection.transport)
+
             response = CTS
-
-
+            
+            
       except Exception, e:
          self.debug( 'Cmd receive exception: %s' % e )
          response = ['ERROR', e]

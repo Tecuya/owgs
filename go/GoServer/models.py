@@ -43,7 +43,7 @@ class GameProperty(models.Model):
     Multiple properties can exist under any single node.
     """
     Node = models.ForeignKey(GameNode)
-    Property = models.CharField('SGF Property Name')
+    Property = models.CharField('SGF Property Name', max_length=10)
     Value = models.TextField('SGF Property Value')
 
 class GameParticipant(models.Model):

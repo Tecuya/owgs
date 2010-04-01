@@ -13,7 +13,6 @@
 <script type="text/javascript" src="/static/eidogo/js/player.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/init.js"></script> 
 <script>
-
 NetClient_instance.joingame( {{ Game.id }} );
 
 {% if Game.PlayersAssigned %}
@@ -27,67 +26,80 @@ PB: "{{ UserBlack.username }}",
 _children: []}]};
 
 // lets eidogo know what color we are
-eidogo_color = "{{ YouAre }}";
+eidogo_color = "{{ YouAreColor }}";
 
 window.addEventListener("load", initEidogo, false);
 
 {% endif %}
-
 </script>
-
+<style type="text/css">
+  .gamebox { border: solid black 1px; padding: 5px; margin: 5px; float:left; };
+</style>
 {% endblock %}
 
 {% block content %}
 
-<p><h2>Game #{{ Game.id }}</h2></p>
+<p>
+ <h2>Game #{{ Game.id }}</h2>
+ {% if YouAreOwner %}You{% else %}The owner{% endif %} suggested parameters: <b>{{ Game }}</b>
+</p>
 
 {% if Game.PlayersAssigned %} 
-
-<div>
+<div class="gamebox">
  <div id="eidogo"></div>     
-
  <input size=60 type=text id="ChatInput">
  <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
   Chat
  </button>
 </div>
-
-{% else %}
-
-<div>
- <h3>Game Info</h3>
- <p>{{ Game }}</p>
-</div>
-
-<div>
- <h3>Join Game</h3>
- <form method="post">
- <input type=hidden name="action" value="params">
- {{ GameForm.as_p }}
- <input type=submit value="Change Game Parameters">
- </form>
-</div>
-
 {% endif %}
 
-<div id="Participants">
+
+<div id="Participants" class="gamebox" >
  <h3>Participants</h3>
  <form method="post">
  <select multiple size=4 id="ParticipantSelect">
    <option value=0>Loading...</option>
  </select>
 
- {% if not Game.PlayersAssigned %}
- <input type=hidden name="action" value="play">
- <input type=submit value="Play!">
+ {% if YouAreOwner and not Game.PlayersAssigned %}
+ <p>
+  <button type=button onClick="NetClient_instance.startgame();">Accept Selected Offer</button>
+ </p>
  {% endif %}
 
  </form>
  </ul>
 </div>
 
- {% if not Game.PlayersAssigned %}
-<div id="Chat" style="">
+
+{% if not Game.PlayersAssigned and not YouAreOwner %}
+<div class="gamebox">
+ <h3>Offer to Join This Game</h3>
+
+ <p><label for="offer_BoardSize">BoardSize:</label> 
+    <select name="BoardSize" id="offer_BoardSize">
+     <option value="19x19">19 x 19</option>
+     <option value="13x13">13 x 13</option>
+     <option value="9x9">9 x 9</option>
+    </select></p>
+
+<p><label for="offer_MainTime">Main Time:</label> <input value="{{ Game.MainTime }}" id="offer_MainTime" type="text"></p>
+
+<p><label for="offer_Komi">Komi:</label> <input value="{{ Game.Komi }}" id="offer_Komi" type="text"></p>
+
+<p><label for="offer_Color">Color:</label> 
+   <select id="offer_Color">
+    <option value="B">I'm black, owner is white</option>
+    <option value="W">I'm white, owner is black</option>
+   </select></p>
+
+ <button type=button onClick="NetClient_instance.makeoffer();" id="SuggestButton">Offer to Play</button>
+</div>
+{% endif %}
+
+{% if not Game.PlayersAssigned %}
+<div id="Chat" class="gamebox">
  <h3>Chat</h3>
  <textarea cols=60 rows=7 id="ChatTextarea" readonly></textarea><br>
  <input size=60 type=text id="ChatInput">
@@ -95,7 +107,7 @@ window.addEventListener("load", initEidogo, false);
   Send
  </button>
 </div>
- {% endif %}
+{% endif %}
 
 {% endblock %}
 

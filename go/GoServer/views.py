@@ -61,38 +61,20 @@ def GameEdit(request, game_id):
 
 
 def GameView(request, game_id):
-    from GoServer.models import GameForm, Game, GameParticipant
+    from GoServer.models import Game, GameParticipant
     from django.contrib.auth.models import User
 
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
 
     game = Game.objects.get(pk = game_id)
-    form = GameForm(instance=game)
     
+    # determine if we are the owner of this game or not
+    you_are_owner = (game.Owner == request.user)
 
-    if request.method == 'POST':
-        
-        if request.POST['action'] == 'params':
-            # game variables changed?
-            pass
-        elif request.POST['action'] == 'play':
-            # TOOD we arent smart enough to set player colors or anything like that so we'll just do it totally randomly WEE
-            parts = GameParticipant.objects.filter(Game = game)
-            
-            gp = parts[0]
-            gp.State = 'W'
-            gp.save()
-        
-            gp = parts[1]
-            gp.State = 'B'
-            gp.save()
-            
-            game.PlayersAssigned = True
-            game.save()
+    you_are = 'U'
 
-    # unless we prove otherwise, you are a spectator!
-    you_are = 'S'
+    # TODO clean this up!  use more advanced model queries
 
     # load white/black participants, if there are any
     if GameParticipant.objects.filter(Game = game, State='W').count() == 1:
@@ -111,17 +93,18 @@ def GameView(request, game_id):
     else:
         user_b = {}
         
-
-
     return render_to_response('GoServer/GameView.html', 
-                              {"GameForm": form, 
-                               "Game": game,
-                               "YouAre": you_are,
+                              {"Game": game,
+                               "YouAreColor": you_are,
+                               "YouAreOwner": you_are_owner,
                                "UserBlack": user_b,
                                "UserWhite": user_w},
                               context_instance=RequestContext(request))   
 
 
+
+def NetClientUnloadWrapper():
+    pass
 
 def PlayerProfile(request):
     return render_to_response('GoServer/PlayerProfile.html', context_instance=RequestContext(request))

@@ -14,6 +14,9 @@ function NetClient(session_key) {
     // to hold our TCPSocket object
     this.tcp = null;
 
+    // to hold our LineReceiver object
+    this.line = null;
+
     // clear to send flag
     this.cts = true;
 
@@ -36,13 +39,14 @@ function NetClient(session_key) {
             this.debug("NetClient.start\n");
         }
 
-        tcp = new LineProtocol(new Orbited.TCPSocket());
-        tcp.open('mirrormere.longstair.com',8002,false);
+        this.tcp = new Orbited.TCPSocket();
+        this.line = new LineProtocol(this.tcp);
+        this.line.open('mirrormere.longstair.com',8002,false);
 
         // theres gotta be a cleaner way to do this!
-        tcp.onopen = NetClient_onopen_wrapper;
-        tcp.onlinereceived = NetClient_onlinereceived_wrapper;
-        tcp.onclose = NetClient_onclose_wrapper;
+        this.line.onopen = NetClient_onopen_wrapper;
+        this.line.onlinereceived = NetClient_onlinereceived_wrapper;
+        this.line.onclose = NetClient_onclose_wrapper;
     }
 
     this.onlinereceived = function(line) { 
@@ -60,12 +64,11 @@ function NetClient(session_key) {
         } else if(dataAr[0] == "JOIN") { 
             part_select = document.getElementById("ParticipantSelect");
 
-            // remove the initial "Loading..." message if it is present
             if(part_select.options[0].value == 0) { 
                 part_select.remove(0);
             }
             
-            part_select.options.add( new Option(dataAr[2], dataAr[1]) );
+            part_select.options.add( new Option(dataAr[2] + ' ('+dataAr[3]+')', dataAr[1]) );
 
             this.updatechat('*** '+dataAr[2]+' has joined the game');
 
@@ -89,6 +92,10 @@ function NetClient(session_key) {
 
             NetClient_eidogo_player.createMove(dataAr[1], true);
 
+        } else if(dataAr[0] == "OFFR") { 
+
+            this.receivedoffer(dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5], dataAr[6]);
+
         }
     }
 
@@ -105,9 +112,10 @@ function NetClient(session_key) {
             return;
         }
         
-        if (tcp.readyState < 3) {
-            this.debug("ERR: Not Connected - ready state " + tcp.readyState + "\n");
-        } else if (tcp.readyState > 3 ) {
+
+        if (this.tcp.readyState < 3) {
+            this.debug("ERR: Not Connected - ready state " + this.tcp.readyState + "\n");
+        } else if (this.tcp.readyState > 3 ) {
             this.debug("ERR: Disconnect(ed)(ing)\n");
         } else {
             json_out = JSON.stringify(data);
@@ -115,7 +123,7 @@ function NetClient(session_key) {
             this.cts = false;
 
             // JSON is imported by orbited
-            tcp.send(json_out + "\r\n");
+            this.tcp.send(json_out + "\r\n");
         }
     }
 
@@ -126,7 +134,8 @@ function NetClient(session_key) {
     }
 
     this.unload = function() { 
-        this.send( ["PART"] );
+        // reset our tcpsocket when we unload so the server can notify others that we left
+        this.tcp.reset();
     }
     
     this.debug = function(msg) { 
@@ -169,6 +178,37 @@ function NetClient(session_key) {
 
         this.send( ["MOVE", coord, color, parent_node, comments] )
     }
+
+    // this func is called when the game owner decides he's ready to start the game
+    this.startgame = function(data) { 
+        
+        this.send( ["BEGN"] )
+    }
+
+    // this func is called when challenders click the "Offer to Play" button
+    this.makeoffer = function() { 
+        board_size = document.getElementById("offer_BoardSize").value;
+        main_time = document.getElementById("offer_MainTime").value;
+        komi = document.getElementById("offer_Komi").value;
+        my_color = document.getElementById("offer_Color").value;
+        
+        this.send( ["OFFR", board_size, main_time, komi, my_color] )
+    }
+
+    // this func is called when an offer is received
+    this.receivedoffer = function(board_size, main_time, komi, color, user_id, username) { 
+
+        // remove the previous participant select entry
+        for(var i=0 ; i < part_select.options.length ; i++) { 
+            if(part_select.options[i].value == user_id) { 
+                part_select.remove(i);
+            }
+        }
+
+        part_select.options.add( new Option(username + ' ' + ' ' + board_size + ' ' + main_time + ' ' + komi + ' ' + color , user_id) );
+        
+        
+    }
 }
 
 
@@ -185,7 +225,7 @@ function NetClient_preload(session_key) { NetClient_instance = new NetClient(ses
 function NetClient_start() { 
     // TODO the unload event fires but the page always navigates away before orbited gets the PART message sent.. so this is useless until i figure out why
     // window.onunload = NetClient_unload
-    // addEventListener("unload", NetClient_unload, false);
+    addEventListener("unload", NetClient_unload, false);
     NetClient_instance.start(); 
 }
 
