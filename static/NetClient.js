@@ -96,6 +96,10 @@ function NetClient(session_key) {
 
             this.receivedoffer(dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5], dataAr[6]);
 
+        } else if(dataAr[0] == "BEGN") { 
+
+            window.location.reload();
+
         }
     }
 
@@ -181,8 +185,10 @@ function NetClient(session_key) {
 
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 
-        
-        this.send( ["BEGN"] )
+        parts = document.getElementById('ParticipantSelect');
+        selected_user = parts.options[ parts.selectedIndex ].value;
+
+        this.send( ["BEGN", selected_user ] )
     }
 
     // this func is called when challenders click the "Offer to Play" button

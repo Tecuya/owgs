@@ -181,27 +181,59 @@ class GoServerProtocol(basic.LineReceiver):
             
 
          # ignore any BEGN that doesnt come from the game owner
-         elif cmd[0] == 'BEGN' and self.game.owner == self.user:
-            
-            # Determine which player is to be changed to what color and change them
-            
+         elif cmd[0] == 'BEGN' and self.game.Owner == self.user:
 
+            # TODO prevent BEGN messages on games which are already PlayersAssigned = True
 
-            # Set the game to PlayersAssigned = true
-            self.game.PlayersAssigned = True
-            self.game.save()
+            accepted_user = int(cmd[1])
             
-            # Send a message to all participants notifying them that the game has begun
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-               self.writeToTransport(["BEGN"], transport = connection.transport)
+            if self.factory.user_game_offers.has_key( accepted_user ):
+               (board_size, main_time, komi, color) = self.factory.user_game_offers[ accepted_user ]
+               
+               # Set the game to PlayersAssigned = true, set game variables as dictated by the offer
+               self.game.PlayersAssigned = True
+               self.game.BoardSize = board_size
+               self.game.MainTime = main_time
+               self.game.Komi = komi
+               self.game.save()
 
-            
-            # TODO maybe rather than a reload we should just have eidogo dynamically drawn here by JS.. moving
-            # that logic out of the view
+               # Determine which player is to be changed to what color and change them
+               if color == 'W':
+                  other_color = 'B'
+               else:
+                  other_color = 'W'
+
+               print 'acc user',accepted_user
+               print 'owner',self.game.Owner.id
+
+               for part in GameParticipant.objects.filter( Game = self.game, Participant__in = [ self.game.Owner.id, accepted_user ] ):
+                  print 'it',part.Participant
+                  if part.Participant.id == accepted_user:
+                     print part,' is ',color
+                     part.State = color
+                     part.save()
+
+                  elif part.Participant.id == self.game.Owner.id:
+                     print part,' is ',color
+                     part.State = other_color
+                     part.save()
+
+               # Send a message to all participants notifying them that the game has begun
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  self.writeToTransport(["BEGN"], transport = connection.transport)
+
+               response = CTS
+
+            else:
+               
+               response = ["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[1]) ]
 
             
          elif cmd[0] == 'OFFR':
-            
+
+            # store the offer in the factory offer database for referencing later
+            self.factory.user_game_offers[ int(self.user.id) ] = [ cmd[1], cmd[2], cmd[3], cmd[4] ]
+
             # Send a message to all participants notifying them about your offer
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                self.writeToTransport(["OFFR", cmd[1], cmd[2], cmd[3], cmd[4], self.user.id, self.user.username], transport = connection.transport)
@@ -242,6 +274,10 @@ class GoServerFactory(protocol.ServerFactory):
 
       # this contains all the games which the server is currently tracking.
       self.games = {}
+
+      # this is a dict storing the offers users make to play games
+      # { user_id: [ board size, main time, komi, color ], .... } 
+      self.user_game_offers = {}
 
       # TODO register an every-XX-second call for us to perform a ping
       # self.lc = task.LoopingCall(self.announce)
