@@ -66,7 +66,7 @@ class GoServerProtocol(basic.LineReceiver):
 
          # unregister this user from the game
          self.debug('Deleting user game participant row')
-         GameParticipant.objects.filter( Game = self.game, Participant = self.user ).delete()
+         GameParticipant.objects.filter( Game = self.game, Participant = self.user).delete()
          
          for (connection, conn_game_id, user_id) in self.factory.connectionList:
             if conn_game_id == self.game.id:
@@ -203,18 +203,12 @@ class GoServerProtocol(basic.LineReceiver):
                else:
                   other_color = 'W'
 
-               print 'acc user',accepted_user
-               print 'owner',self.game.Owner.id
-
                for part in GameParticipant.objects.filter( Game = self.game, Participant__in = [ self.game.Owner.id, accepted_user ] ):
-                  print 'it',part.Participant
                   if part.Participant.id == accepted_user:
-                     print part,' is ',color
                      part.State = color
                      part.save()
 
                   elif part.Participant.id == self.game.Owner.id:
-                     print part,' is ',color
                      part.State = other_color
                      part.save()
 
@@ -279,10 +273,6 @@ class GoServerFactory(protocol.ServerFactory):
       # { user_id: [ board size, main time, komi, color ], .... } 
       self.user_game_offers = {}
 
-      # TODO register an every-XX-second call for us to perform a ping
-      # self.lc = task.LoopingCall(self.announce)
-      # self.lc.start(30)
-
    def addToConnectionDB(self, connection, game_id, user_id):
       self.connectionList.append( [connection, game_id, user_id] )
 
@@ -296,7 +286,7 @@ class GoServerFactory(protocol.ServerFactory):
             del self.connectionList[i];
             return oldentry
 
-   def storeMove(game_id, coord, color, parentNode, comments, time_left):
+   def storeMove(self, game_id, coord, color, parentNode, comments, time_left):
       """
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
