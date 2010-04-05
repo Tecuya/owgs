@@ -15,7 +15,7 @@ from go import settings
 
 setup_environ(settings)
 
-from go.GoServer.models import Game, GameParticipant
+from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User
 
@@ -103,7 +103,7 @@ class GoServerProtocol(basic.LineReceiver):
       elif(cmd[0] == 'JOIN'):        
 
          # load the game object
-         # TODO use a shared copy in the factory
+         # TODO use a shared copy in the factory cache
          self.game = Game.objects.get(pk = cmd[1])
 
          # TODO insert a validation thing to make sure user has perm to join this game
@@ -292,7 +292,16 @@ class GoServerFactory(protocol.ServerFactory):
       """
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
-      pass
+
+      # TODO Support variations! 
+
+      game = Game.objects.get(pk = game_id)
+
+      node = GameNode(Game = game)
+      node.save()
+
+      move_prop = GameProperty(Node = node, Property = color, Value = coord)
+      move_prop.save()
 
 
 reactor.listenTCP(PORT, GoServerFactory())

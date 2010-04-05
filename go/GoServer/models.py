@@ -34,8 +34,10 @@ class GameNode(models.Model):
     """
     Game = models.ForeignKey(Game)
 
-    # TODO will django allow me to have this unset (for root nodes)
-    ParentNode = models.ForeignKey('self')
+    # muhuk #django/FreeNode sez:
+    #  <muhuk> if I had a hierarcy, I wouldn't want blank=True, null=True on my FK. So I'd use a hack for the exception; the root node.
+    # so consider that!  for now i'm being lazy and making this blank/null
+    ParentNode = models.ForeignKey('self', null=True, blank=True)
 
 class GameProperty(models.Model):
     """
@@ -72,4 +74,13 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User)
     activation_key = models.CharField(max_length=40)
     key_expires = models.DateTimeField()
+
+
+# this is a non-django model but it seems to me that it *does* belong in models...
+# This class provides the ability to dump a game in to raw SGF data
+class GameSGF:
+
+    def __init__(self, game_id):
+        """ Load a game, dump it to SGF... """        
+        pass
 
