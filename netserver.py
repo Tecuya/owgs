@@ -64,10 +64,11 @@ class GoServerProtocol(basic.LineReceiver):
       # inform others that this user left if this was the last connection belonging to the user
       if users_other_conns == 0:
 
-         # unregister this user from the game
-         self.debug('Deleting user game participant row')
-         GameParticipant.objects.filter( Game = self.game, Participant = self.user).delete()
+         # mark this user as not-present
+         self.debug('Marking user game participant row Present=False')
+         GameParticipant.objects.filter( Game = self.game, Participant = self.user).update( Present = False )
          
+         # let everyone in this game know
          for (connection, conn_game_id, user_id) in self.factory.connectionList:
             if conn_game_id == self.game.id:
                self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
@@ -77,167 +78,168 @@ class GoServerProtocol(basic.LineReceiver):
 
       response = ["ERROR","Unspecified error"]
 
-      # TODO clean up giant try block
-      try:
-         
-         cmd = json.loads(data)
 
-         self.debug( '< '+str(cmd) )
+      cmd = json.loads(data)
 
-         # connect command ; index 1 is a session_key
-         if(cmd[0] == 'SESS'):
-            self.session_key = cmd[1]
+      self.debug( '< '+str(cmd) )
 
-            # load up the session's user object
-            session = Session.objects.get(session_key = self.session_key)
-            uid = session.get_decoded().get('_auth_user_id')
-            self.user = User.objects.get(pk=uid)
-            response = CTS
+      # connect command ; index 1 is a session_key
+      if(cmd[0] == 'SESS'):
+         self.session_key = cmd[1]
+
+         # load up the session's user object
+         session = Session.objects.get(session_key = self.session_key)
+         uid = session.get_decoded().get('_auth_user_id')
+         self.user = User.objects.get(pk=uid)
+         response = CTS
 
 
-         # we arent connected and we dont have a session? not allowed!
-         elif( self.session_key == False ):
-            response = ['ERROR','No session_key; you must SESS first.']
+      # we arent connected and we dont have a session? not allowed!
+      elif( self.session_key == False ):
+         response = ['ERROR','No session_key; you must SESS first.']
 
 
-         # join game command ; index 1 is a game name
-         elif(cmd[0] == 'JOIN'):        
+      # join game command ; index 1 is a game name
+      elif(cmd[0] == 'JOIN'):        
 
-            # load the game object
-            # TODO use a shared copy in the factory
-            self.game = Game.objects.get(pk = cmd[1])
+         # load the game object
+         # TODO use a shared copy in the factory
+         self.game = Game.objects.get(pk = cmd[1])
 
-            # determine if this user is the owner or what
+         # TODO insert a validation thing to make sure user has perm to join this game
+
+         # assume user is new
+         new_user = True
+
+         # this should really never return more than one row....
+         for part_that_joined in GameParticipant.objects.filter(Game = self.game, Participant=self.user):
+            new_user = False
+            part_that_joined.Present = True
+            part_that_joined.save()
+
+         # TODO .. can't figure out why this next line does not work the same as the preceeding 'for' block.. but it doesn't.. i dunno
+         # new_user = ( GameParticipant.objects.filter(Game = self.game, Participant=self.user).update(Present = True) != 0 )
+
+         # inform new user about all present participants besides himself (that'll happen latter when we broadcast this join to *everyone*)
+         for part in GameParticipant.objects.filter(Game = self.game, Present=True):
+            if part.Participant.id != self.user.id:
+               self.writeToTransport(["JOIN", part.Participant.id, part.Participant.username, part.State])
+
+         # if the user was not already in the game participant list, we need to let everyone know that now they are!
+         if new_user:
+
+            # get the state which we will use in the new row
             if self.game.Owner.id == self.user.id:
                newstate = 'O'
             else:
                newstate = 'U'
 
-            # TODO insert a validation thing to make sure user has perm to join this game
-            is_dupe_user = False
-               
-            # tell the newcomer all the people who are already in this game
-            for part in GameParticipant.objects.filter(Game = self.game):
-               # TODO should probably use a JOIN here.. however you do that with django :O
-               this_user = User.objects.get(pk = part.Participant.id)
+            # now make a participant entry to tie this user to the game in the database
+            part_that_joined = GameParticipant( Participant=self.user, Game=self.game, State=newstate, Present=True )
+            part_that_joined.save()
 
-               # if this *is* the current user, then they are in the game twice?  make a note of that..
-               is_dupe_user = is_dupe_user or (part.Participant.id == self.user.id)
+         # register this connection as being associated with this game in the factory.             
+         self.factory.addToConnectionDB(self, self.game.id, self.user.id)
 
-               self.writeToTransport(["JOIN", this_user.id, this_user.username, part.State])
-               
-            # register this connection as being associated with this game in the factory.             
-            self.factory.addToConnectionDB(self, self.game.id, self.user.id)
-            
-            # if the user was not already in the game participant list, we need to let everyone know that now they are!
-            if not is_dupe_user:
+         # now find all connections associated with this game and tell them about the newcomer 
+         for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            if conn_game_id == self.game.id:
+               self.writeToTransport(["JOIN", self.user.id, self.user.username, part_that_joined.State], transport = connection.transport)
 
-               # now make a participant entry to tie this user to the game in the database
-               newparticipant = GameParticipant( Participant=self.user, Game=self.game, State=newstate )
-               newparticipant.save()
-
-               # now find all connections associated with this game and tell them about the newcomer 
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-                  if conn_game_id == self.game.id:
-                     self.writeToTransport(["JOIN", self.user.id, self.user.username, newparticipant.State], transport = connection.transport)
-
-            response = CTS
+         response = CTS
 
 
-         elif(cmd[0] == 'CHAT'):
-            message = cmd[1]
-            
-            for (connection,conn_game_id, conn_user_id) in self.factory.connectionList:
-               if conn_game_id == self.game.id:
-                  self.writeToTransport(["CHAT", self.user.username, message], transport = connection.transport)
+      elif(cmd[0] == 'CHAT'):
+         message = cmd[1]
 
-            response = CTS
+         for (connection,conn_game_id, conn_user_id) in self.factory.connectionList:
+            if conn_game_id == self.game.id:
+               self.writeToTransport(["CHAT", self.user.username, message], transport = connection.transport)
 
-         
-         elif(cmd[0] == 'MOVE'):
-            coord = cmd[1]
-            color = cmd[2]
-            parent_node = cmd[3]
-            comments = cmd[4]
-            
-            # TODO once we have a timer, hook this up to the proper value
-            time_left = 0
+         response = CTS
 
-            # TODO validate the move, if its invalid alert the players that they need 
-            # to reload their boards to resync with the server.  The idea is that eidogo, once
-            # properly modified, will NEVER allow an illegal move.  If it does we assume the 
-            # player is somehow desynced (which shouldn't happen either)
-            
-            # Now store the move in the database
-            self.factory.storeMove(self.game.id, coord, color, parent_node, comments, time_left)
-            
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-               # send it to all players associated with the current game.. but not the user who made the move
-               # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
-               if conn_game_id == self.game.id and self.transport.sessionno != connection.transport.sessionno:
-                  self.writeToTransport(["MOVE", coord, color], transport = connection.transport)
 
-            response = CTS
-            
+      elif(cmd[0] == 'MOVE'):
+         coord = cmd[1]
+         color = cmd[2]
+         parent_node = cmd[3]
+         comments = cmd[4]
 
-         # ignore any BEGN that doesnt come from the game owner
-         elif cmd[0] == 'BEGN' and self.game.Owner == self.user:
+         # TODO once we have a timer, hook this up to the proper value
+         time_left = 0
 
-            # TODO prevent BEGN messages on games which are already PlayersAssigned = True
+         # TODO validate the move, if its invalid alert the players that they need 
+         # to reload their boards to resync with the server.  The idea is that eidogo, once
+         # properly modified, will NEVER allow an illegal move.  If it does we assume the 
+         # player is somehow desynced (which shouldn't happen either)
 
-            accepted_user = int(cmd[1])
-            
-            if self.factory.user_game_offers.has_key( accepted_user ):
-               (board_size, main_time, komi, color) = self.factory.user_game_offers[ accepted_user ]
-               
-               # Set the game to PlayersAssigned = true, set game variables as dictated by the offer
-               self.game.PlayersAssigned = True
-               self.game.BoardSize = board_size
-               self.game.MainTime = main_time
-               self.game.Komi = komi
-               self.game.save()
+         # Now store the move in the database
+         self.factory.storeMove(self.game.id, coord, color, parent_node, comments, time_left)
 
-               # Determine which player is to be changed to what color and change them
-               if color == 'W':
-                  other_color = 'B'
-               else:
-                  other_color = 'W'
+         for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            # send it to all players associated with the current game.. but not the user who made the move
+            # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
+            if conn_game_id == self.game.id and self.transport.sessionno != connection.transport.sessionno:
+               self.writeToTransport(["MOVE", coord, color], transport = connection.transport)
 
-               for part in GameParticipant.objects.filter( Game = self.game, Participant__in = [ self.game.Owner.id, accepted_user ] ):
-                  if part.Participant.id == accepted_user:
-                     part.State = color
-                     part.save()
+         response = CTS
 
-                  elif part.Participant.id == self.game.Owner.id:
-                     part.State = other_color
-                     part.save()
 
-               # Send a message to all participants notifying them that the game has begun
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-                  self.writeToTransport(["BEGN"], transport = connection.transport)
+      # ignore any BEGN that doesnt come from the game owner
+      elif cmd[0] == 'BEGN' and self.game.Owner == self.user:
 
-               response = CTS
+         # TODO prevent BEGN messages on games which are already PlayersAssigned = True
 
+         accepted_user = int(cmd[1])
+
+         if self.factory.user_game_offers.has_key( accepted_user ):
+            (board_size, main_time, komi, color) = self.factory.user_game_offers[ accepted_user ]
+
+            # Set the game to PlayersAssigned = true, set game variables as dictated by the offer
+            self.game.PlayersAssigned = True
+            self.game.BoardSize = board_size
+            self.game.MainTime = main_time
+            self.game.Komi = komi
+            self.game.save()
+
+            # Determine which player is to be changed to what color and change them
+            if color == 'W':
+               other_color = 'B'
             else:
-               
-               response = ["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[1]) ]
+               other_color = 'W'
 
-            
-         elif cmd[0] == 'OFFR':
+            for part in GameParticipant.objects.filter( Game = self.game, Participant__in = [ self.game.Owner.id, accepted_user ] ):
+               if part.Participant.id == accepted_user:
+                  part.State = color
+                  part.save()
 
-            # store the offer in the factory offer database for referencing later
-            self.factory.user_game_offers[ int(self.user.id) ] = [ cmd[1], cmd[2], cmd[3], cmd[4] ]
+               elif part.Participant.id == self.game.Owner.id:
+                  part.State = other_color
+                  part.save()
 
-            # Send a message to all participants notifying them about your offer
+            # Send a message to all participants notifying them that the game has begun
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-               self.writeToTransport(["OFFR", cmd[1], cmd[2], cmd[3], cmd[4], self.user.id, self.user.username], transport = connection.transport)
+               self.writeToTransport(["BEGN"], transport = connection.transport)
 
             response = CTS
+
+         else:
+
+            response = ["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[1]) ]
+
+
+      elif cmd[0] == 'OFFR':
+
+         # store the offer in the factory offer database for referencing later
+         self.factory.user_game_offers[ int(self.user.id) ] = [ cmd[1], cmd[2], cmd[3], cmd[4] ]
+
+         # Send a message to all participants notifying them about your offer
+         for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            self.writeToTransport(["OFFR", cmd[1], cmd[2], cmd[3], cmd[4], self.user.id, self.user.username], transport = connection.transport)
+
+         response = CTS
+
             
-            
-      except Exception, e:
-         self.debug( 'Cmd receive exception: %s' % e )
-         response = ['ERROR', e]
 
       self.writeToTransport(response, self.transport)
 

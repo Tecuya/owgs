@@ -11,6 +11,7 @@ eidogo.i18n = eidogo.i18n || {
     'tool':             'Tool',
     'view':             'Jump to Move',
     'play':             'Play',
+    'score':            'Scoring',
     'region':           'Select Region',
     'add_b':            'Black Stone',
     'add_w':            'White Stone',

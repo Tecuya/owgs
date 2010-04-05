@@ -2132,6 +2132,7 @@ eidogo.Player.prototype = {
                 <div id='tools-label' class='tools-label'>" + t['tool'] + ":</div>\
                 <select id='tools-select' class='tools-select'>\
                     <option value='play'>&#9658; " + t['play'] + "</option>\
+                    <option value='score'>&#9658; " + t['score'] + "</option>\
                     <option value='view'>&#8594; " + t['view'] + "</option>\
                     <option value='add_b'>&#9679; " + t['add_b'] + "</option>\
                     <option value='add_w'>&#9675; " + t['add_w'] + "</option>\

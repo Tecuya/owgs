@@ -19,7 +19,7 @@ NetClient_instance.joingame( {{ Game.id }} );
 
 // eidogo preliminary sgf data
 eidogo_sgf_data = {_children: [{
-SZ: 19,
+SZ: {{ Game.size }},
 KM: {{ Game.Komi }},
 PW: "{{ UserWhite.username }}",
 PB: "{{ UserBlack.username }}",
@@ -39,9 +39,12 @@ window.addEventListener("load", initEidogo, false);
 
 {% block content %}
 
+
 <p>
  <h2>Game #{{ Game.id }}</h2>
+ {% if not Game.PlayersAssigned %} 
  {% if YouAreOwner %}You{% else %}The owner{% endif %} suggested parameters: <b>{{ Game }}</b>
+ {% endif %}
 </p>
 
 {% if Game.PlayersAssigned %} 

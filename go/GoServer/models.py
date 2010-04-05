@@ -56,12 +56,14 @@ class GameParticipant(models.Model):
     LeaveDate = models.DateTimeField('Participant Leave Date', default=datetime.datetime.now)    
 
     Originator = models.BooleanField('Game Originator')
+    Present = models.BooleanField('Present')
     Winner = models.BooleanField('Winner')
     State = models.CharField('State', max_length=1, choices=(('W', 'White'),
                                                              ('B', 'Black'),
                                                              ('O', 'Owner'),
                                                              ('S', 'Spectator'),
                                                              ('U', 'Unset')), default='U')
+    
 
     def __unicode__(self):
         return '%s (%s)' % (self.Participant.username, self.State)
