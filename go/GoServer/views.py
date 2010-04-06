@@ -36,6 +36,19 @@ def GameCreate(request):
     return render_to_response('GoServer/GameCreate.html', {"GameForm": form}, context_instance=RequestContext(request))   
 
 
+
+def GameMakeSGF(request, game_id):
+    from GoServer.models import SGF
+    
+    # check if they are logged in and bail if they arent
+    if request.user.is_anonymous():
+        return HttpResponseRedirect('/accounts/login')
+    
+    sgf = SGF( game_id ).dumpSGF()
+
+    return HttpResponse(sgf)
+
+
 def GameEdit(request, game_id):
     from GoServer.models import GameForm, Game, GameParticipant
 
@@ -61,7 +74,7 @@ def GameEdit(request, game_id):
 
 
 def GameView(request, game_id):
-    from GoServer.models import Game, GameParticipant
+    from GoServer.models import Game, GameParticipant, SGF
     from django.contrib.auth.models import User
 
     if request.user.is_anonymous():
@@ -98,9 +111,12 @@ def GameView(request, game_id):
             you_are = 'B'
     else:
         user_b = {}
+
+    sgf = SGF( game.id ).dumpSGF()
         
     return render_to_response('GoServer/GameView.html', 
                               {"Game": game,
+                               "SGF": sgf,
                                "YouAreColor": you_are,
                                "YouAreOwner": you_are_owner,
                                "UserBlack": user_b,

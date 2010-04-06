@@ -293,12 +293,25 @@ class GoServerFactory(protocol.ServerFactory):
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
 
-      # TODO Support variations! 
+      # TODO we should determine the parent from eidogo, not like this!
+      if not self.games.has_key(game_id):
+         self.games[game_id] = {}
+
+      if not self.games[game_id].has_key('last_move'):
+         self.games[game_id]['last_move'] = False;
 
       game = Game.objects.get(pk = game_id)
 
-      node = GameNode(Game = game)
+      if self.games[game_id]['last_move']:
+         pnode = GameNode.objects.get(pk = self.games[game_id]['last_move'])
+         node = GameNode(Game = game, ParentNode = pnode )
+      else:
+         node = GameNode(Game = game)
+
       node.save()
+
+      # register the last moves ID
+      self.games[game_id]['last_move'] = node.id
 
       move_prop = GameProperty(Node = node, Property = color, Value = coord)
       move_prop.save()

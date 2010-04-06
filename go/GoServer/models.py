@@ -19,7 +19,6 @@ class Game(models.Model):
 
     def __unicode__(self):
         return u'Size: %s | Time: %s | Komi: %s ' % (self.BoardSize, self.MainTime, self.Komi)
-
     
 class GameForm(ModelForm):
     class Meta:
@@ -38,6 +37,7 @@ class GameNode(models.Model):
     #  <muhuk> if I had a hierarcy, I wouldn't want blank=True, null=True on my FK. So I'd use a hack for the exception; the root node.
     # so consider that!  for now i'm being lazy and making this blank/null
     ParentNode = models.ForeignKey('self', null=True, blank=True)
+
 
 class GameProperty(models.Model):
     """
@@ -76,11 +76,93 @@ class UserProfile(models.Model):
     key_expires = models.DateTimeField()
 
 
-# this is a non-django model but it seems to me that it *does* belong in models...
-# This class provides the ability to dump a game in to raw SGF data
-class GameSGF:
+
+
+
+# find all nodes with current parent, and all that node's peers
+# if a node has children, recurse for given parent
+# add each node to a list, and return to caller
+
+
+class SGF:
+    """ This class provides all our SGF functionality """
 
     def __init__(self, game_id):
-        """ Load a game, dump it to SGF... """        
-        pass
+        self.game_id = game_id
 
+    def dumpSGF(self):
+
+        nodeList = self.getNodes()
+
+
+        def makeCollection(items):
+            # TODO this is ugly as sin, should be cleaned
+            outSGF = u''
+
+            itemsIsNode = False
+
+            for item in items:                
+                # if this is a property
+                if len(item) == 2 and type(item[0]) == unicode:
+                    itemsIsNode = True
+                    # then we should just be rendering this as a property list.. bail!
+                    break
+                else:
+                    # if it is apparent that the item is not just a prop list, then we () it
+                    if len(item) and len(item[0]) and type(item[0][0]) != unicode:
+                        outSGF += u'(%s)' % makeCollection(item)
+                    else:
+                        outSGF += makeCollection(item)
+            
+            if itemsIsNode:
+                outSGF += ';'
+                for item in items:
+                    outSGF += u'%s[%s]' % (item[0], item[1])
+            
+            return outSGF
+                    
+        ret = u'(%s)' % makeCollection(nodeList)
+        return ret
+
+        
+    def getNodes(self, parentNode = 0):
+
+        # our return value list
+        ret = []
+
+        # define a func to get node list for this parentnode; this way we can use is_null or node num
+        if parentNode == 0:
+            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode__isnull = True)
+        else:
+            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode = parentNode)
+            
+        childcount = len(nodes.all())
+
+        for node in nodes:
+
+            noderet = []
+
+            propList = []
+            for prop in node.gameproperty_set.all():
+                propList.append( [prop.Property, prop.Value] )
+
+            # add all this nodes properties to the ret list
+            noderet.append(propList)
+
+            # add all the children nodes properties to the ret list
+            noderet.extend( self.getNodes( node.id ) )
+
+            if childcount > 1:
+                ret.append(noderet)
+            else:
+                ret = noderet
+
+        return ret
+
+                
+            
+
+            
+        
+
+    
