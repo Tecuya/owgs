@@ -250,8 +250,9 @@ var NetClient_eidogo_player = null;
 function initEidogo() { 
     NetClient_eidogo_player = new eidogo.Player({
         container:       "eidogo",
-        theme:           "compact", // TODO standard or compact should be a player pref or something
-        // sgf:             eidogo_sgf_data,
+        // theme:           "compact", // TODO standard or compact should be a player pref or something
+        theme:           "standard", // TODO standard or compact should be a player pref or something
+        sgf:             eidogo_SGF,
         sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
         hooks:           {"createMove": NetClient_onmove_wrapper},
@@ -270,7 +271,7 @@ function initEidogo() {
     });
     
     
-    NetClient_eidogo_player.loadSgf({'sgf': eidogo_SGF});
+    // NetClient_eidogo_player.loadSgf( {'sgf': eidogo_SGF} );
     NetClient_eidogo_player.last();
 }
 

@@ -17,14 +17,7 @@ NetClient_instance.joingame( {{ Game.id }} );
 
 {% if Game.PlayersAssigned %}
 
-// eidogo preliminary sgf data
-eidogo_sgf_data = {_children: [{
-SZ: {{ Game.size }},
-KM: {{ Game.Komi }},
-PW: "{{ UserWhite.username }}",
-PB: "{{ UserBlack.username }}",
-_children: []}]};
-
+// load whatever server-provided sgf data 
 eidogo_SGF = "{{ SGF }}";
 
 // lets eidogo know what color we are

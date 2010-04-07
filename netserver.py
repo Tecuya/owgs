@@ -19,7 +19,7 @@ from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User
 
-from django.db.models import F
+from django.db.models import F, Max, Min, Count
 
 # our CTS command
 CTS = ['CTS']
@@ -208,15 +208,47 @@ class GoServerProtocol(basic.LineReceiver):
             else:
                other_color = 'W'
 
+            username = {}
+
             for part in GameParticipant.objects.filter( Game = self.game, Participant__in = [ self.game.Owner.id, accepted_user ] ):
                if part.Participant.id == accepted_user:
                   part.State = color
                   part.save()
+                  username[ color ] = part.Participant.username
 
                elif part.Participant.id == self.game.Owner.id:
                   part.State = other_color
                   part.save()
+                  username[ other_color ] = part.Participant.username
+            
+            # set up the game-info node
+            gi_node = GameNode(Game = self.game)
+            gi_node.save()
 
+            # translate to SGF sizes
+            translate_game_size = {'19x19': '19',
+                                   '13x13': '13',
+                                   '9x9': '9'}
+            
+            size = translate_game_size[ self.game.BoardSize ]
+
+            print size,',',self.game.BoardSize
+
+            # TODO support handicaps
+            # TODO export our version to AP property
+            for (prop, value) in [ ['GM', 1],
+                                   ['FF', 4],
+                                   ['AP', 'owgs:git'],
+                                   ['SZ', size],
+                                   ['HA', 0],
+                                   ['KM', komi],
+                                   ['PB', username['B']],
+                                   ['PW', username['W']],
+                                   ['CA', 'UTF-8'] ]:
+               prop = GameProperty(Node = gi_node, Property = prop, Value = value)
+               prop.save()
+                                   
+                                   
             # Send a message to all participants notifying them that the game has begun
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                self.writeToTransport(["BEGN"], transport = connection.transport)
@@ -288,31 +320,31 @@ class GoServerFactory(protocol.ServerFactory):
             del self.connectionList[i];
             return oldentry
 
+
    def storeMove(self, game_id, coord, color, parentNode, comments, time_left):
       """
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
-
-      # TODO we should determine the parent from eidogo, not like this!
-      if not self.games.has_key(game_id):
-         self.games[game_id] = {}
-
-      if not self.games[game_id].has_key('last_move'):
-         self.games[game_id]['last_move'] = False;
-
+      
+      # TODO cache these or something
       game = Game.objects.get(pk = game_id)
 
-      if self.games[game_id]['last_move']:
-         pnode = GameNode.objects.get(pk = self.games[game_id]['last_move'])
-         node = GameNode(Game = game, ParentNode = pnode )
-      else:
+      # TODO get the true position in the game tree from eidogo.. right now we just assume
+      # every move is the latest move and there is only the main line
+      # parent_node = GameNode.objects.filter(Game = game).aggregate(Max('id'))['id__max']
+      parent_node = GameNode.objects.filter(Game = game).order_by('-id')[0]
+
+      # create the node
+      if parent_node:
+         node = GameNode(Game = game, ParentNode = parent_node )
+      else:         
+         # this shouldnt ever happen because before players have a chance to move we've created
+         # the game-info node
          node = GameNode(Game = game)
 
       node.save()
 
-      # register the last moves ID
-      self.games[game_id]['last_move'] = node.id
-
+      # create the property
       move_prop = GameProperty(Node = node, Property = color, Value = coord)
       move_prop.save()
 

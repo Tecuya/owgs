@@ -82,12 +82,6 @@ def GameView(request, game_id):
 
     game = Game.objects.get(pk = game_id)
 
-    translate_game_size = {'19x19': '19',
-                           '13x13': '13',
-                           '9x9': '9'}
-
-    game.size = translate_game_size[ game.BoardSize ]
-
     # determine if we are the owner of this game or not
     you_are_owner = (game.Owner == request.user)
 

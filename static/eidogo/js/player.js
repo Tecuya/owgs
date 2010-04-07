@@ -1167,6 +1167,9 @@ eidogo.Player.prototype = {
                 show(this.dom.searchButton, "inline");
                 stopEvent(e);
             }
+        } else if (this.mode == "score") { 
+            alert('Hello score mode');
+            
         } else {
             // place black stone, white stone, labels
             var prop;
@@ -1181,7 +1184,7 @@ eidogo.Player.prototype = {
                     prop = "AW";
                 } else if (this.board.getStone({x:x,y:y}) != this.board.EMPTY && !deleted) {
                     prop = "AE";
-                }
+                }              
             } else {
                 switch (this.mode) {
                     case "tr": prop = "TR"; break;
@@ -1765,6 +1768,8 @@ eidogo.Player.prototype = {
             this.startEditComment();
         } else if (tool == "gameinfo") {
             this.startEditGameInfo();
+        } else if (tool == "score") { 
+            this.preScore();
         } else {
             cursor = "default";
             this.regionBegun = false;
@@ -2133,7 +2138,7 @@ eidogo.Player.prototype = {
                 <div id='tools-label' class='tools-label'>" + t['tool'] + ":</div>\
                 <select id='tools-select' class='tools-select'>\
                     <option value='play'>&#9658; " + t['play'] + "</option>\
-                    <option value='score'>&#9658; " + t['score'] + "</option>\
+                    <option value='score'>&#167; " + t['score'] + "</option>\
                     <option value='view'>&#8594; " + t['view'] + "</option>\
                     <option value='add_b'>&#9679; " + t['add_b'] + "</option>\
                     <option value='add_w'>&#9675; " + t['add_w'] + "</option>\
@@ -2510,6 +2515,11 @@ eidogo.Player.prototype = {
                 msg.replace(/\n/g, "<br />") + "</div>";
             this.croaked = true;
         }
+    },
+
+    preScore: function() { 
+        
+        alert("Pre Score");
     }
 };
     
