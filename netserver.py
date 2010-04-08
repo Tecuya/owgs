@@ -17,7 +17,7 @@ setup_environ(settings)
 
 from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode
 from django.contrib.sessions.models import Session
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 
 from django.db.models import F, Max, Min, Count
 
@@ -90,7 +90,12 @@ class GoServerProtocol(basic.LineReceiver):
          # load up the session's user object
          session = Session.objects.get(session_key = self.session_key)
          uid = session.get_decoded().get('_auth_user_id')
-         self.user = User.objects.get(pk=uid)
+         if uid == None:
+            # TODO support anonymous users
+            self.user = AnonymousUser()
+         else:
+            self.user = User.objects.get(pk=uid)
+
          response = CTS
 
 

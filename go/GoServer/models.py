@@ -18,7 +18,12 @@ class Game(models.Model):
     PlayersAssigned = models.BooleanField('Players Assigned')
 
     def __unicode__(self):
-        return u'Size: %s | Time: %s | Komi: %s ' % (self.BoardSize, self.MainTime, self.Komi)
+        player_list = []
+
+        for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
+            player_list.append(part.Participant.username)
+
+        return u'%s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.BoardSize, self.MainTime, self.Komi)
     
 class GameForm(ModelForm):
     class Meta:
