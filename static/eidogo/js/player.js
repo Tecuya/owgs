@@ -2518,7 +2518,13 @@ eidogo.Player.prototype = {
     },
 
     preScore: function() { 
-        
+        bs = this.board.boardSize;
+        for(var x=0 ; x < bs ; x++) { 
+            for(var y=0 ; y < bs ; y++) { 
+                NetClient_instance.debug(x + ' ' + y + ' ' + this.board.getMarker(x * bs + y) + "\n");
+            }
+        }
+
         alert("Pre Score");
     }
 };
