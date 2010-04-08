@@ -2640,6 +2640,7 @@ eidogo.Player.prototype = {
                 this.groupPoints.push( checkCoord );
 
             } else if(borderStone == 2) { 
+                // a stone mismatch was already detected so just continue in the loop so the rest of the connected points can be marked as processed
                 continue;
 
             } else if(stone == this.board.WHITE) {
