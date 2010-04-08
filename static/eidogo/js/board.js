@@ -18,6 +18,8 @@ eidogo.Board = function() {
 eidogo.Board.prototype = {
     WHITE: 1,
     BLACK: -1,
+    W_REMOVED: 2,
+    B_REMOVED: -2,
     EMPTY: 0,
     /**
      * @constructor

@@ -1168,8 +1168,36 @@ eidogo.Player.prototype = {
                 stopEvent(e);
             }
         } else if (this.mode == "score") { 
-            alert('Hello score mode');
             
+            newstone = false;
+
+            pt = {'x': x, 'y': y}
+
+            stone = this.board.getStone( pt );
+
+            if(stone == this.board.WHITE) { 
+                this.cursor.node.pushProperty('AE', coord);
+                this.cursor.node.pushProperty('AW', coord);
+                newstone = this.board.W_REMOVED;
+            } else if(stone == this.board.BLACK) { 
+                this.cursor.node.pushProperty('AE', coord);
+                this.cursor.node.pushProperty('AB', coord);
+                newstone = this.board.B_REMOVED;
+            } else if(stone == this.board.W_REMOVED) { 
+                this.cursor.node.deletePropertyValue('AE', coord);
+                this.cursor.node.deletePropertyValue('AW', coord);
+                newstone = this.board.WHITE;
+            } else if(stone == this.board.B_REMOVED) { 
+                this.cursor.node.deletePropertyValue('AE', coord);
+                this.cursor.node.deletePropertyValue('AB', coord);
+                newstone = this.board.BLACK;
+            }
+
+            if(newstone) { 
+                this.board.stones[y*this.board.boardSize+x] = newstone;
+                this.preScore();
+            }
+
         } else {
             // place black stone, white stone, labels
             var prop;
@@ -2547,15 +2575,12 @@ eidogo.Player.prototype = {
                     owner = this.findTerritoryOwner(thisPt);
 
                     if((owner != 0) && (owner != 2)) { 
-
                         translate_territory = {'1': 'TW', '-1': 'TB'};
                         prop = translate_territory[ owner ];
                         
                         for( var j=0; j < this.groupPoints.length; j++ ) { 
                             this.cursor.node.pushProperty(prop, this.pointToSgfCoord( this.groupPoints[j] ));
                         }
-
-                        // NetClient_instance.debug('Pt: '+ thisPt.x + ':' + thisPt.y + ' owner: ' + owner + "\n");
                     }
 
                 }
@@ -2571,23 +2596,16 @@ eidogo.Player.prototype = {
 
     findTerritoryOwner: function(pt, borderStone, recursing) { 
 
-        // make this true to debug scoring algorithm with pretty marker nodes
-        scoredebug = false; 
-
-        // ok, we've processed this point, never do again!
-        this.processedPoints.push( pt );
-        
         // if this is the first call, clear the borderStone, and reset the groupPoints array
         if(!recursing) { 
             var borderStone = this.board.EMPTY;
             this.groupPoints = Array(pt);
-
-            // Good debug method for determining entry point
-            scoredebug && this.cursor.node.pushProperty('SQ', this.pointToSgfCoord( pt ));
         }
-        
+
+        // ok, we've processed this point, never do again!
+        this.processedPoints.push( pt );
+                
         // queue up all adjacent spaces which are in the confines of the board
-        var candidateLiberties = Array();
         var checkLiberties = Array();
         if(pt.x > 0) checkLiberties.push( {'x': pt.x-1, 'y': pt.y} );
         if(pt.y > 0) checkLiberties.push( {'x': pt.x, 'y': pt.y-1} );
@@ -2614,57 +2632,32 @@ eidogo.Player.prototype = {
             // get the stone status of this adjacent point
             stone = this.board.getStone( checkCoord );
 
-            if(stone == this.board.EMPTY) { 
-
-                // Good debug method for finding checked points
-                scoredebug && this.cursor.node.pushProperty('CR', this.pointToSgfCoord( checkCoord ));
-
+            if((stone == this.board.EMPTY) || 
+               (stone == this.board.W_REMOVED) ||
+               (stone == this.board.B_REMOVED)) { 
                 // borderstone is whatever we get back from our recursive checks
-                borderStone = this.findTerritoryOwner(checkCoord, borderStone, true);
-                
+                borderStone = this.findTerritoryOwner(checkCoord, borderStone, true);                
                 this.groupPoints.push( checkCoord );
 
             } else if(borderStone == 2) { 
-
-                // if we already got a borderstone 2 there is no need to do anything about this stone
-                scoredebug && this.cursor.node.pushProperty('TR', this.pointToSgfCoord( checkCoord ));
                 continue;
 
             } else if(stone == this.board.WHITE) {
-
                 // if borderStone is unset, then set it to the color we just came up with
                 if((borderStone == this.board.EMPTY) || (borderStone == this.board.WHITE)) { 
                     borderStone = this.board.WHITE;
-
-                    // Good debug method for finding checked points
-                    // scoredebug && this.cursor.node.pushProperty('MA', this.pointToSgfCoord( checkCoord ));
-
                 } else if(borderStone == this.board.BLACK) { 
                     // a stone mismatch!
-                    // set it to special value 2 which instructs this func to terminate
                     borderStone = 2;
-
-                    // Good debug method for finding checked points
-                    scoredebug && this.cursor.node.pushProperty('MA', this.pointToSgfCoord( checkCoord ));
                 } 
 
             } else if(stone == this.board.BLACK) { 
-
                 // if borderStone is unset, then set it to the color we just came up with
                 if((borderStone == this.board.EMPTY) || (borderStone == this.board.BLACK)) { 
                     borderStone = this.board.BLACK;
-
-                    // Good debug method for finding checked points
-                    // scoredebug && this.cursor.node.pushProperty('MA', this.pointToSgfCoord( checkCoord ));
-
                 } else if(borderStone == this.board.WHITE) { 
-
                     // a stone mismatch!
-                    // set it to special value 2 which instructs this func to terminate
                     borderStone = 2;
-
-                    // Good debug method for finding checked points
-                    scoredebug && this.cursor.node.pushProperty('MA', this.pointToSgfCoord( checkCoord ));
                 }
             }             
         }
