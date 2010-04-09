@@ -2592,11 +2592,24 @@ eidogo.Player.prototype = {
         
         var root = this.cursor.getGameRoot();
 
+        score_w = (this.board.captures.W + prisoners_b + parseFloat(root.KM) + territory_w.length);
+        score_b = (this.board.captures.B + prisoners_w + territory_b.length);
+
+        if(score_w > score_b) { 
+            result = 'W+' + (score_w - score_b);
+        } else if(score_b > score_w) { 
+            result = 'B+' + (score_b - score_w);
+        } else { 
+            // todo
+            result = 'Tie';
+        }
+
         comment = "Game finished.\n\n" + 
             "White: " + territory_w.length + " territory, " + this.board.captures.W + " captures, " + prisoners_b + " prisoners, " + root.KM + " komi\n" +
-            "White Total: " + (this.board.captures.W + prisoners_b + parseFloat(root.KM) + territory_w.length) + "\n\n" +
+            "White Total: " + score_w + "\n\n" +
             "Black: " + territory_b.length + " territory, " + this.board.captures.B + " captures, " + prisoners_w + " prisoners\n" +
-            "Black Total: " + (this.board.captures.B + prisoners_w + territory_b.length) + "\n";
+            "Black Total: " + score_b + "\n\n" + 
+            "Result: " + result + "\n";
         
         var resultNode = new eidogo.GameNode(null, {'C': comment,
                                                     'TW': territory_w,
@@ -2606,7 +2619,6 @@ eidogo.Player.prototype = {
         this.cursor.node.appendChild(resultNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
-        this.refresh();
     },
 
     preScore: function() { 
