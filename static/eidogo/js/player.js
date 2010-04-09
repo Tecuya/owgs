@@ -1168,35 +1168,39 @@ eidogo.Player.prototype = {
                 stopEvent(e);
             }
         } else if (this.mode == "score") { 
-            
-            pt = {'x': x, 'y': y}
+                     
+            pt = {'x': x, 'y': y};
+            color = this.board.getStoneDeadOrAlive(pt);
+            this.findStoneGroup(pt, color);
 
-            stone = this.board.getStone( pt );
+            for(var j=0;j<this.groupPoints.length;j++) { 
 
-            offset = y * this.board.boardSize + x;
+                pt = this.groupPoints[j];
+                offset = pt.y * this.board.boardSize + pt.x;
 
-            if(stone == this.board.WHITE) { 
-                this.board.renderer.renderStone( pt, "white-dead" );
-                this.board.deadstones[offset] = this.board.WHITE;
-                this.board.stones[offset] = this.board.EMPTY;                
-            } else if(stone == this.board.BLACK) { 
-                this.board.renderer.renderStone( pt, "black-dead" );
-                this.board.deadstones[offset] = this.board.BLACK;
-                this.board.stones[offset] = this.board.EMPTY;                
-            } else if( (stone == this.board.EMPTY) && (this.board.deadstones[offset] == this.board.WHITE) ) { 
-                // resurrect white stone
-                this.board.renderer.renderStone( pt, "white" );
-                this.board.deadstones[offset] = this.board.EMPTY;
-                this.board.stones[offset] = this.board.WHITE;                                
-                this.board.renderer.renderMarker(pt, "empty"); // we also need to remove any marker from this stone.. this wont be done by prescore because it only unmarks empty space!
-            } else if( (stone == this.board.EMPTY) && (this.board.deadstones[offset] == this.board.BLACK) ) { 
-                // resurrect black stone
-                this.board.renderer.renderStone( pt, "black" );
-                this.board.deadstones[offset] = this.board.EMPTY;
-                this.board.stones[offset] = this.board.BLACK;                                
-                this.board.renderer.renderMarker(pt, "empty"); // we also need to remove any marker from this stone.. this wont be done by prescore because it only unmarks empty space!
+                if(this.board.stones[offset] == this.board.WHITE) { 
+                    this.board.renderer.renderStone( pt, "white-dead" );
+                    this.board.deadstones[offset] = this.board.WHITE;
+                    this.board.stones[offset] = this.board.EMPTY;                
+                } else if(this.board.stones[offset] == this.board.BLACK) { 
+                    this.board.renderer.renderStone( pt, "black-dead" );
+                    this.board.deadstones[offset] = this.board.BLACK;
+                    this.board.stones[offset] = this.board.EMPTY;                
+                }  else if(this.board.deadstones[offset] == this.board.WHITE) { 
+                    // resurrect white stone
+                    this.board.renderer.renderStone( pt, "white" );
+                    this.board.deadstones[offset] = this.board.EMPTY;
+                    this.board.stones[offset] = this.board.WHITE;                                
+                    this.board.renderer.renderMarker(pt, "empty"); // we also need to remove any marker from this stone.. this wont be done by prescore because it only unmarks empty space!
+                } else if(this.board.deadstones[offset] == this.board.BLACK) { 
+                    // resurrect black stone
+                    this.board.renderer.renderStone( pt, "black" );
+                    this.board.deadstones[offset] = this.board.EMPTY;
+                    this.board.stones[offset] = this.board.BLACK;                                
+                    this.board.renderer.renderMarker(pt, "empty"); // we also need to remove any marker from this stone.. this wont be done by prescore because it only unmarks empty space!
+                }  
             }
-            
+
             this.preScore();
 
             prop = null;
@@ -2590,7 +2594,7 @@ eidogo.Player.prototype = {
 
         comment = "Game finished.\n\n" + 
             "White: " + territory_w.length + " territory, " + this.board.captures.W + " captures, " + prisoners_b + " prisoners, " + root.KM + " komi\n" +
-            "White Total: " + (this.board.captures.W + prisoners_b + parseInt(root.KM) + territory_w.length) + "\n\n" +
+            "White Total: " + (this.board.captures.W + prisoners_b + parseFloat(root.KM) + territory_w.length) + "\n\n" +
             "Black: " + territory_b.length + " territory, " + this.board.captures.B + " captures, " + prisoners_w + " prisoners\n" +
             "Black Total: " + (this.board.captures.B + prisoners_w + territory_b.length) + "\n";
         
@@ -2598,15 +2602,10 @@ eidogo.Player.prototype = {
                                                     'TW': territory_w,
                                                     'TB': territory_b} );
 
+        resultNode._cached = true;     
         this.cursor.node.appendChild(resultNode);
-
         this.unsavedChanges = true;
-        
-        this.cursor.next();
-
-        // this.variation(this.cursor.node._children.length-1);
-
-        this.refresh();                               
+        this.variation(this.cursor.node._children.length-1);
     },
 
     preScore: function() { 
@@ -2621,7 +2620,7 @@ eidogo.Player.prototype = {
             for(var x=0 ; x < bs ; x++) { 
 
                 thisPt = {'x': x, 'y': y};
-                
+                                
                 // if this point was already processed in a previous territory examination, skip it
                 for(var j=0; j < this.processedPoints.length ; j++) { 
                     if( ( thisPt.x == this.processedPoints[j].x ) &&
@@ -2637,6 +2636,8 @@ eidogo.Player.prototype = {
 
                     owner = this.findTerritoryOwner(thisPt);
 
+                    // this.board.renderer.renderMarker(thisPt, "square");
+
                     if(owner != 2) { 
                         trans_color_marker = {'1': 'territory-white', '-1': 'territory-black'};                        
                         for( var j=0; j < this.groupPoints.length; j++ ) { 
@@ -2649,8 +2650,8 @@ eidogo.Player.prototype = {
                             this.board.renderer.renderMarker(this.groupPoints[j], "empty");
                         }                   
                     }
-
                 }
+
             }
         }
     },
@@ -2665,34 +2666,39 @@ eidogo.Player.prototype = {
         if(!recursing) { 
             var borderStone = this.board.EMPTY;
             this.groupPoints = Array(pt);
-        }
+        } 
 
-        // ok, we've processed this point, never do again!
         this.processedPoints.push( pt );
-                
+
         // queue up all adjacent spaces which are in the confines of the board
-        var checkLiberties = Array();
-        if(pt.x > 0) checkLiberties.push( {'x': pt.x-1, 'y': pt.y} );
-        if(pt.y > 0) checkLiberties.push( {'x': pt.x, 'y': pt.y-1} );
-        if(pt.x < bs-1) checkLiberties.push( {'x': pt.x+1, 'y': pt.y} );
-        if(pt.y < bs-1) checkLiberties.push( {'x': pt.x, 'y': pt.y+1} );
+        var checkPoints = Array();
+        if(pt.x > 0) checkPoints.push( {'x': pt.x-1, 'y': pt.y} );
+        if(pt.y > 0) checkPoints.push( {'x': pt.x, 'y': pt.y-1} );
+        if(pt.x < bs-1) checkPoints.push( {'x': pt.x+1, 'y': pt.y} );
+        if(pt.y < bs-1) checkPoints.push( {'x': pt.x, 'y': pt.y+1} );
 
         // iterate through the adjacent spaces
         iterate_liberties_loop:
-        for(var i=0 ; i < checkLiberties.length ; i++) { 
-            
+        for(var i=0 ; i < checkPoints.length ; i++) { 
+
             // see if this points already been checked, and skip it if it has
             for(var j=0; j < this.processedPoints.length ; j++) { 
-                if( ( checkLiberties[i].x == this.processedPoints[j].x ) &&
-                    ( checkLiberties[i].y == this.processedPoints[j].y ) ) { 
+                if( ( checkPoints[i].x == this.processedPoints[j].x ) &&
+                    ( checkPoints[i].y == this.processedPoints[j].y ) ) { 
                     continue iterate_liberties_loop;
                 }
             }
 
-            var checkCoord = checkLiberties[i];
+            var checkCoord = checkPoints[i];
 
             // mark that we've examined this point so it is skipped in the future
-            this.processedPoints.push( checkCoord );
+            if(this.board.getStone(checkCoord) == this.board.EMPTY) { 
+                // we prevent adding color stones to the processedPoints list; there subtle is a bug introduced if we allow this
+                // imagine a corner group with two eyes, one at s2 and one at t1.  if s2 is scanned before t1, all t1's surrounding stones
+                // are marked processed and the t1 scan cannot find any colors, so it returns EMPTY
+                // this does slow down the algorithm significantly so TODO maybe find a better way to handle this edge case!
+                this.processedPoints.push( checkCoord );
+            }
 
             // get the stone status of this adjacent point
             stone = this.board.getStone( checkCoord );
@@ -2708,7 +2714,7 @@ eidogo.Player.prototype = {
 
             } else if(stone == this.board.WHITE) {
                 // if borderStone is unset, then set it to the color we just came up with
-                if((borderStone == this.board.EMPTY) || (borderStone == this.board.WHITE)) { 
+                if(borderStone == this.board.EMPTY) { 
                     borderStone = this.board.WHITE;
                 } else if(borderStone == this.board.BLACK) { 
                     // a stone mismatch!
@@ -2717,7 +2723,7 @@ eidogo.Player.prototype = {
 
             } else if(stone == this.board.BLACK) { 
                 // if borderStone is unset, then set it to the color we just came up with
-                if((borderStone == this.board.EMPTY) || (borderStone == this.board.BLACK)) { 
+                if(borderStone == this.board.EMPTY) { 
                     borderStone = this.board.BLACK;
                 } else if(borderStone == this.board.WHITE) { 
                     // a stone mismatch!
@@ -2728,7 +2734,66 @@ eidogo.Player.prototype = {
 
         // return the current borderStone
         return borderStone;
+    },
+
+
+    findStoneGroup: function(pt, color, recursing) { 
+        
+        if(!color) { 
+            color = this.board.getStoneDeadOrAlive(pt);
+        }
+
+        if(!recursing) { 
+            this.processedPoints = Array();
+            this.groupPoints = Array(pt);
+        }
+
+        // we got pointed at an empty point?  no stones returned
+        if(color == this.board.EMPTY) return [];
+
+        // ok, we've processed this point, never do again!
+        this.processedPoints.push( pt );
+        
+        // queue up all adjacent spaces which are in the confines of the board
+        var checkPoints = Array();
+        if(pt.x > 0) checkPoints.push( {'x': pt.x-1, 'y': pt.y} );
+        if(pt.y > 0) checkPoints.push( {'x': pt.x, 'y': pt.y-1} );
+        if(pt.x < bs-1) checkPoints.push( {'x': pt.x+1, 'y': pt.y} );
+        if(pt.y < bs-1) checkPoints.push( {'x': pt.x, 'y': pt.y+1} );
+
+        // iterate through the adjacent spaces
+        iterate_liberties_loop:
+        for(var i=0 ; i < checkPoints.length ; i++) { 
+            
+            // see if this points already been checked, and skip it if it has
+            for(var j=0; j < this.processedPoints.length ; j++) { 
+                if( ( checkPoints[i].x == this.processedPoints[j].x ) &&
+                    ( checkPoints[i].y == this.processedPoints[j].y ) ) { 
+                    continue iterate_liberties_loop;
+                }
+            }
+
+            var checkCoord = checkPoints[i];
+
+            // mark that we've examined this point so it is skipped in the future
+            this.processedPoints.push( checkCoord );
+
+            // get the stone status of this adjacent point
+            stone = this.board.getStoneDeadOrAlive( checkCoord );
+
+            if(stone == color) { 
+                // borderstone is whatever we get back from our recursive checks
+                this.findStoneGroup(checkCoord, stone, true);
+                this.groupPoints.push( checkCoord );
+            } else { 
+                continue;
+            }
+        }
+
+        // return the current borderStone
+        return true;
     }
+
 };
     
 })();

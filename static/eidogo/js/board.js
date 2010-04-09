@@ -108,6 +108,12 @@ eidogo.Board.prototype = {
     getStone: function(pt) {
         return this.stones[pt.y * this.boardSize + pt.x];
     },
+    getStoneDeadOrAlive: function(pt) { 
+        alive = this.stones[pt.y * this.boardSize + pt.x];
+        if(alive != this.EMPTY) return alive;
+        else return this.deadstones[pt.y * this.boardSize + pt.x];
+    },
+
     getRegion: function(t, l, w, h) {
         var region = [].setLength(w * h, this.EMPTY);
         var offset;
