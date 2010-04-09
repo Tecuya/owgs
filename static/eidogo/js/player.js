@@ -2606,6 +2606,7 @@ eidogo.Player.prototype = {
         this.cursor.node.appendChild(resultNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
+        this.refresh();
     },
 
     preScore: function() { 
