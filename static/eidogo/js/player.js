@@ -1169,34 +1169,37 @@ eidogo.Player.prototype = {
             }
         } else if (this.mode == "score") { 
             
-            newstone = false;
-
             pt = {'x': x, 'y': y}
 
             stone = this.board.getStone( pt );
 
-            if(stone == this.board.WHITE) { 
-                this.cursor.node.pushProperty('AE', coord);
-                this.cursor.node.pushProperty('AW', coord);
-                newstone = this.board.W_REMOVED;
-            } else if(stone == this.board.BLACK) { 
-                this.cursor.node.pushProperty('AE', coord);
-                this.cursor.node.pushProperty('AB', coord);
-                newstone = this.board.B_REMOVED;
-            } else if(stone == this.board.W_REMOVED) { 
-                this.cursor.node.deletePropertyValue('AE', coord);
-                this.cursor.node.deletePropertyValue('AW', coord);
-                newstone = this.board.WHITE;
-            } else if(stone == this.board.B_REMOVED) { 
-                this.cursor.node.deletePropertyValue('AE', coord);
-                this.cursor.node.deletePropertyValue('AB', coord);
-                newstone = this.board.BLACK;
-            }
+            offset = y * this.board.boardSize + x;
 
-            if(newstone) { 
-                this.board.stones[y*this.board.boardSize+x] = newstone;
-                this.preScore();
+            if(stone == this.board.WHITE) { 
+                this.board.renderer.renderStone( pt, "white-dead" );
+                this.board.deadstones[offset] = this.board.WHITE;
+                this.board.stones[offset] = this.board.EMPTY;                
+            } else if(stone == this.board.BLACK) { 
+                this.board.renderer.renderStone( pt, "black-dead" );
+                this.board.deadstones[offset] = this.board.BLACK;
+                this.board.stones[offset] = this.board.EMPTY;                
+            } else if( (stone == this.board.EMPTY) && (this.board.deadstones[offset] == this.board.WHITE) ) { 
+                // resurrect white stone
+                this.board.renderer.renderStone( pt, "white" );
+                this.board.deadstones[offset] = this.board.EMPTY;
+                this.board.stones[offset] = this.board.WHITE;                                
+                this.board.renderer.renderMarker(pt, "empty"); // we also need to remove any marker from this stone.. this wont be done by prescore because it only unmarks empty space!
+            } else if( (stone == this.board.EMPTY) && (this.board.deadstones[offset] == this.board.BLACK) ) { 
+                // resurrect black stone
+                this.board.renderer.renderStone( pt, "black" );
+                this.board.deadstones[offset] = this.board.EMPTY;
+                this.board.stones[offset] = this.board.BLACK;                                
+                this.board.renderer.renderMarker(pt, "empty"); // we also need to remove any marker from this stone.. this wont be done by prescore because it only unmarks empty space!
             }
+            
+            this.preScore();
+
+            prop = null;
 
         } else {
             // place black stone, white stone, labels
@@ -1654,6 +1657,14 @@ eidogo.Player.prototype = {
             
             this.hook("createMove", [coord, this.currentColor]);
         }
+        
+        otherColor = this.currentColor == 'W' ? 'B' : 'W';
+        
+        if((this.cursor.node[otherColor] == "tt") && (coord == "tt")) { 
+            // ("Please click on dead stones to remove them.");
+            this.dom.toolsSelect.value = "score";
+            this.selectTool("score");
+        }
 
         var props = {};
         props[this.currentColor] = coord;
@@ -1797,8 +1808,9 @@ eidogo.Player.prototype = {
             this.startEditComment();
         } else if (tool == "gameinfo") {
             this.startEditGameInfo();
-        } else if (tool == "score") { 
+        } else if (tool == "score") {
             this.preScore();
+            show(this.dom.scoreDone, "inline");
         } else {
             cursor = "default";
             this.regionBegun = false;
@@ -2184,6 +2196,7 @@ eidogo.Player.prototype = {
                     <option value='clear'>&#9617; " + t['clear'] + "</option>\
                 </select>\
                 <input type='button' id='score-est' class='score-est-button' value='" + t['score est'] + "' />\
+                <input type='button' id='score-done' class='score-done-button' value='" + t['score done'] + "' />\
                 <select id='search-algo' class='search-algo'>\
                     <option value='corner'>" + t['search corner'] + "</option>\
                     <option value='center'>" + t['search center'] + "</option>\
@@ -2275,6 +2288,7 @@ eidogo.Player.prototype = {
          ['controlLast',      'last'],
          ['controlPass',      'pass'],
          ['scoreEst',         'fetchScoreEstimate'],
+         ['scoreDone',        'postScore'],
          ['searchButton',     'searchRegion'],
          ['searchResults',    'loadSearchResult'],
          ['searchClose',      'closeSearch'],
@@ -2546,13 +2560,62 @@ eidogo.Player.prototype = {
         }
     },
 
+    postScore: function() { 
+        
+        prisoners_w = 0;
+        prisoners_b = 0;
+        territory_w = [];
+        territory_b = [];
+
+        for(var i=0 ; i<this.board.deadstones.length ; i++) { 
+            if(this.board.deadstones[i] == this.board.WHITE) { 
+                prisoners_w++;
+            } else if(this.board.deadstones[i] == this.board.BLACK) { 
+                prisoners_b++;
+            }
+        }
+        
+        bs = this.board.boardSize
+        for (y = 0; y < bs; y++) {
+            for (x = 0; x < bs; x++) {                
+                if(this.board.markers[y*bs+x] == "territory-white") {
+                    territory_w.push( this.pointToSgfCoord( {'x':x, 'y':y} ) );
+                } else if(this.board.markers[y*bs+x] == "territory-black") {
+                    territory_b.push( this.pointToSgfCoord( {'x':x, 'y':y} ) );
+                }
+            }
+        }
+        
+        var root = this.cursor.getGameRoot();
+
+        comment = "Game finished.\n\n" + 
+            "White: " + territory_w.length + " territory, " + this.board.captures.W + " captures, " + prisoners_b + " prisoners, " + root.KM + " komi\n" +
+            "White Total: " + (this.board.captures.W + prisoners_b + parseInt(root.KM) + territory_w.length) + "\n\n" +
+            "Black: " + territory_b.length + " territory, " + this.board.captures.B + " captures, " + prisoners_w + " prisoners\n" +
+            "Black Total: " + (this.board.captures.B + prisoners_w + territory_b.length) + "\n";
+        
+        var resultNode = new eidogo.GameNode(null, {'C': comment,
+                                                    'TW': territory_w,
+                                                    'TB': territory_b} );
+
+        this.cursor.node.appendChild(resultNode);
+
+        this.unsavedChanges = true;
+        
+        this.cursor.next();
+
+        // this.variation(this.cursor.node._children.length-1);
+
+        this.refresh();                               
+    },
+
     preScore: function() { 
 
         // reset processedPoints property
         this.processedPoints = Array();
 
         bs = this.board.boardSize;
-        
+
         for(var y=0 ; y < bs ; y++) { 
             point_iterate:
             for(var x=0 ; x < bs ; x++) { 
@@ -2574,20 +2637,22 @@ eidogo.Player.prototype = {
 
                     owner = this.findTerritoryOwner(thisPt);
 
-                    if((owner != 0) && (owner != 2)) { 
-                        translate_territory = {'1': 'TW', '-1': 'TB'};
-                        prop = translate_territory[ owner ];
-                        
+                    if(owner != 2) { 
+                        trans_color_marker = {'1': 'territory-white', '-1': 'territory-black'};                        
                         for( var j=0; j < this.groupPoints.length; j++ ) { 
-                            this.cursor.node.pushProperty(prop, this.pointToSgfCoord( this.groupPoints[j] ));
+                            pt = this.groupPoints[j];
+                            this.board.markers[ pt.y * bs + pt.x ] = trans_color_marker[ owner ];
+                            this.board.renderer.renderMarker(pt, trans_color_marker[ owner ]);
                         }
+                    } else if(owner == 2) { 
+                        for( var j=0; j < this.groupPoints.length; j++ ) { 
+                            this.board.renderer.renderMarker(this.groupPoints[j], "empty");
+                        }                   
                     }
 
                 }
             }
         }
-        this.unsavedChanges = true;
-        this.refresh();
     },
 
 
@@ -2632,9 +2697,7 @@ eidogo.Player.prototype = {
             // get the stone status of this adjacent point
             stone = this.board.getStone( checkCoord );
 
-            if((stone == this.board.EMPTY) || 
-               (stone == this.board.W_REMOVED) ||
-               (stone == this.board.B_REMOVED)) { 
+            if(stone == this.board.EMPTY) { 
                 // borderstone is whatever we get back from our recursive checks
                 borderStone = this.findTerritoryOwner(checkCoord, borderStone, true);                
                 this.groupPoints.push( checkCoord );

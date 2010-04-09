@@ -28,6 +28,7 @@ eidogo.i18n = eidogo.i18n || {
     'clear':            'Clear Marker',
     'score':            'Score', // as in score tool
     'score est':        'Score Estimate',
+    'score done':       'Done Scoring',
     'search':           'Search',
     'search corner':    'Corner Search',
     'search center':    'Center Search',

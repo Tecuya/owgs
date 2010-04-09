@@ -18,8 +18,6 @@ eidogo.Board = function() {
 eidogo.Board.prototype = {
     WHITE: 1,
     BLACK: -1,
-    W_REMOVED: 2,
-    B_REMOVED: -2,
     EMPTY: 0,
     /**
      * @constructor
@@ -31,6 +29,7 @@ eidogo.Board.prototype = {
     init: function(renderer, boardSize) {
         this.boardSize = boardSize || 19;
         this.stones = this.makeBoardArray(this.EMPTY);
+        this.deadstones = this.makeBoardArray(this.EMPTY);
         this.markers = this.makeBoardArray(this.EMPTY);
         this.captures = {};
         this.captures.W = 0;

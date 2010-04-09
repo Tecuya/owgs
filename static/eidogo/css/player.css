@@ -182,7 +182,7 @@
     color: #a88;
     cursor: default;
 }
-.eidogo-player .search-button, .eidogo-player .score-est-button {
+.eidogo-player .search-button, .eidogo-player .score-est-button, .eidogo-player .score-done-button {
     margin: 0 0 0 5px;
     color: #800;
     font-size: 11px;
@@ -464,6 +464,12 @@
 }
 .eidogo-player .board .point.stone.white {
 	background: url(../images/w.png);
+}
+.eidogo-player .board .point.stone.white-dead {
+	background: url(../images/w-dead.png);
+}
+.eidogo-player .board .point.stone.black-dead {
+	background: url(../images/b-dead.png);
 }
 .eidogo-player .board .point.marker {
 	z-index: 2;
