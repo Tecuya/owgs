@@ -1,0 +1,8 @@
+<script> document.domain = document.domain; </script>
+<script type="text/javascript" src="/static/Orbited.js"></script>
+<script type="text/javascript" src="/static/NetClient.js"></script>
+<script> 
+NetClient_preload("{{ request.session.session_key }}");
+window.addEventListener("load", NetClient_start, false); 
+window.addEventListener("unload", NetClient_unload, false); 
+</script>
