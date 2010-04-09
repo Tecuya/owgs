@@ -2619,6 +2619,10 @@ eidogo.Player.prototype = {
         this.cursor.node.appendChild(resultNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
+        
+        // TODO if I leave this out, the dead stones disappear because
+        // we never wrote AE/AB type properties.  If i leave it in, it scres up variations
+        this.refresh();
     },
 
     preScore: function() { 
