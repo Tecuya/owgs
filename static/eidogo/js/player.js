@@ -1181,7 +1181,7 @@ eidogo.Player.prototype = {
                 if(this.board.stones[offset] == this.board.WHITE) { 
                     this.board.renderer.renderStone( pt, "white-dead" );
                     this.board.deadstones[offset] = this.board.WHITE;
-                    this.board.stones[offset] = this.board.EMPTY;                
+                    this.board.stones[offset] = this.board.WHITE;
                 } else if(this.board.stones[offset] == this.board.BLACK) { 
                     this.board.renderer.renderStone( pt, "black-dead" );
                     this.board.deadstones[offset] = this.board.BLACK;
@@ -1650,7 +1650,7 @@ eidogo.Player.prototype = {
     createMove: function(coord, is_remote_move) {
         
         // when is_remote_move is true it means we got the move from NetClient and therefore do not need to validate it or make sure its the proper turn
-        if(is_remote_move === undefined) {
+        if(eidogo_color && (is_remote_move === undefined)) {
 
             // do not allow creation of moves unless this.currentColor matches
             // global eidogo_color
@@ -2568,18 +2568,23 @@ eidogo.Player.prototype = {
         
         prisoners_w = 0;
         prisoners_b = 0;
-        territory_w = [];
-        territory_b = [];
 
+        // iterate through deadstones and count territory.  as we go, add stones back to the stones array so the board can properly render again
         for(var i=0 ; i<this.board.deadstones.length ; i++) { 
             if(this.board.deadstones[i] == this.board.WHITE) { 
                 prisoners_w++;
+                this.board.stones[i] = this.board.WHITE;                
             } else if(this.board.deadstones[i] == this.board.BLACK) { 
                 prisoners_b++;
+                this.board.stones[i] = this.board.BLACK;
             }
+            this.board.deadstones[i] = this.board.EMPTY;
         }
-        
+
+        territory_w = [];
+        territory_b = [];
         bs = this.board.boardSize
+
         for (y = 0; y < bs; y++) {
             for (x = 0; x < bs; x++) {                
                 if(this.board.markers[y*bs+x] == "territory-white") {
@@ -2614,18 +2619,21 @@ eidogo.Player.prototype = {
         var resultNode = new eidogo.GameNode(null, {'C': comment,
                                                     'TW': territory_w,
                                                     'TB': territory_b} );
+        
+        // TODO write result to root node!
 
-        resultNode._cached = true;     
+        resultNode._cached = false;     
         this.cursor.node.appendChild(resultNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
         
-        // TODO if I leave this out, the dead stones disappear because
-        // we never wrote AE/AB type properties.  If i leave it in, it scres up variations
-        this.refresh();
+        this.selectTool("play");
     },
 
     preScore: function() { 
+
+        // clear any markers in prep for scoring
+        this.board.clearMarkers();
 
         // reset processedPoints property
         this.processedPoints = Array();
