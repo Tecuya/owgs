@@ -31,7 +31,6 @@ eidogo.Board.prototype = {
     init: function(renderer, boardSize) {
         this.boardSize = boardSize || 19;
         this.stones = this.makeBoardArray(this.EMPTY);
-        this.deadstones = this.makeBoardArray(this.EMPTY);
         this.markers = this.makeBoardArray(this.EMPTY);
         this.captures = {};
         this.captures.W = 0;
@@ -110,11 +109,6 @@ eidogo.Board.prototype = {
     getStone: function(pt) {
         return this.stones[pt.y * this.boardSize + pt.x];
     },
-    getStoneDeadOrAlive: function(pt) { 
-        alive = this.stones[pt.y * this.boardSize + pt.x];
-        if(alive != this.EMPTY) return alive;
-        else return this.deadstones[pt.y * this.boardSize + pt.x];
-    },
 
     getRegion: function(t, l, w, h) {
         var region = [].setLength(w * h, this.EMPTY);
@@ -163,11 +157,19 @@ eidogo.Board.prototype = {
                 }
                 if (stones[offset] == null) {
                     continue;
-                } else if (stones[offset] == this.EMPTY) {
+                } 
+                stone = stones[offset];
+                if(stone == this.EMPTY) {
                     color = "empty";
-                } else {
-                    color = (stones[offset] == this.WHITE ? "white" : "black");
-                }
+                } else if (stone == this.WHITE) { 
+                    color = "white";
+                } else if (stone == this.BLACK) { 
+                    color = "black";
+                } else if (stone == this.WHITE_DEAD) { 
+                    color = "white-dead";
+                } else if (stone == this.BLACK_DEAD) { 
+                    color = "black-dead";
+                } 
                 this.renderer.renderStone({x: x, y: y}, color);
                 this.lastRender.stones[offset] = stones[offset];
             }
