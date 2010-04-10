@@ -17,7 +17,9 @@ eidogo.Board = function() {
 };
 eidogo.Board.prototype = {
     WHITE: 1,
+    WHITE_DEAD: 2,
     BLACK: -1,
+    BLACK_DEAD: -2,
     EMPTY: 0,
     /**
      * @constructor
