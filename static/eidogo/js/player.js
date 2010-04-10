@@ -1885,6 +1885,7 @@ eidogo.Player.prototype = {
     selectTool: function(tool) {
         var cursor;
         hide(this.dom.scoreEst);
+        hide(this.dom.scoreDone);
         if (tool == "region") {
             cursor = "crosshair";
         } else if (tool == "comment") {
