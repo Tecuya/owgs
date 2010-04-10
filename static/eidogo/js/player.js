@@ -1727,7 +1727,8 @@ eidogo.Player.prototype = {
      * Create an as-yet unplayed move and go to it.
      */
     createMove: function(coord, is_remote_move) {
-        
+
+        /*
         // when is_remote_move is true it means we got the move from NetClient and therefore do not need to validate it or make sure its the proper turn
         if(eidogo_color && (is_remote_move === undefined)) {
 
@@ -1739,7 +1740,7 @@ eidogo.Player.prototype = {
             }
             
             this.hook("createMove", [coord, this.currentColor]);
-        }
+        }*/
         
         otherColor = this.currentColor == 'W' ? 'B' : 'W';
         
