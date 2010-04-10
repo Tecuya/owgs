@@ -5,14 +5,14 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.template import RequestContext
 
 def GameList(request):
-    from GoServer.models import GameForm, Game, GameParticipant
+    from go.GoServer.models import GameForm, Game, GameParticipant
 
     return render_to_response('GoServer/GameList.html', 
                               {'GameList': Game.objects.order_by('StartDate')},
                               context_instance=RequestContext(request))
 
 def GameCreate(request):
-    from GoServer.models import GameForm, Game, GameParticipant
+    from go.GoServer.models import GameForm, Game, GameParticipant
     
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -38,7 +38,7 @@ def GameCreate(request):
 
 
 def GameMakeSGF(request, game_id):
-    from GoServer.models import SGF
+    from go.GoServer.models import SGF
     
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -50,7 +50,7 @@ def GameMakeSGF(request, game_id):
 
 
 def GameEdit(request, game_id):
-    from GoServer.models import GameForm, Game, GameParticipant
+    from go.GoServer.models import GameForm, Game, GameParticipant
 
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -74,7 +74,7 @@ def GameEdit(request, game_id):
 
 
 def GameView(request, game_id):
-    from GoServer.models import Game, GameParticipant, SGF
+    from go.GoServer.models import Game, GameParticipant, SGF
     from django.contrib.auth.models import User
 
     if request.user.is_anonymous():

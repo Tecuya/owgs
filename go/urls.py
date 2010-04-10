@@ -7,7 +7,7 @@ admin.autodiscover()
 urlpatterns = patterns('',
 
                        url(r'^$', 'go.GoServer.views.Index', name='site-homepage'),
-                       url(r'^static/(?P<path>.*)$', 'django.views.static.serve', {'document_root':'/home/sean/code/go/django_code/static'}),
+                       url(r'^static/(?P<path>.*)$', 'django.views.static.serve', {'document_root':'/home/sean/sites/owgs.org/owgs/static'}),
                        url(r'^games/new', 'go.GoServer.views.GameCreate', name='game-create'),
                        url(r'^games/edit/(?P<game_id>\d+)', 'go.GoServer.views.GameEdit', name='game-edit'),
                        url(r'^games/view/(?P<game_id>\d+)', 'go.GoServer.views.GameView', name='game-view'),
