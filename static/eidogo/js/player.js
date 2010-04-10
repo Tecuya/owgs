@@ -2713,7 +2713,9 @@ eidogo.Player.prototype = {
 
         // clear any markers in prep for scoring
         this.board.clearMarkers();
-
+        
+        this.board.render();
+        
         // reset processedPoints property
         this.processedPoints = Array();
 
