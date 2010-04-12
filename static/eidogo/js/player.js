@@ -1175,109 +1175,37 @@ eidogo.Player.prototype = {
             if(color == this.board.EMPTY) { 
                 return;
             }
+                        
+            // reset processedPoints property - findTerritoryOnwer requires the caller handle clearing this manually.. annoying, really TODO clean that up
+            this.processedPoints = Array();
+
+            // do a findTerritory on the clicked spot instructing it to ignore stones of the clicked color.  
+            this.findTerritoryOwner(pt, this.board.EMPTY, false, color);
             
-            // translate the stone color.. this is for the mismatch points stuff later
-            var color_translate = {'1': 'w', '2': 'w', '-1': 'b', '-2': 'b'};
-            var color_index = color_translate[ color ];
-
-            // get all points in the clicked group
-            this.findStoneGroup(pt, color);
-
-            // copy the group points object for iteration
-            var clickedPoints = this.groupPoints.slice();
-
-            // this will hold the final list of stones to remove
-            var togglePoints = [];
-
-            // for each point in the clicked group
-            for(var j=0;j<clickedPoints.length;j++) { 
+            // iterate through the points returned and mark dead all stones which occupy one of those spaces
+            for(var i=0 ; i<this.groupPoints.length ; i++) { 
                 
-                // get the clicked point
-                pt = clickedPoints[j];
-
-                var found_in_preScore = false;
-                var relatedPoints = [];
-                
-                // try to find this point in preScoreInfo ; if we can find it, we'll be able to find all other groups that should be removed along with this one from the relatedPoints list
-                find_in_preScore_loop:
-                for(var i=0;i<this.preScoreInfo.length;i++) {                     
-                    for(var k=0;k<this.preScoreInfo[i][color_index].length;k++) {                         
-                        // hey we found it!
-                        if( (pt.x == this.preScoreInfo[i][color_index][k].x) && 
-                            (pt.y == this.preScoreInfo[i][color_index][k].y) ) { 
-                            relatedPoints = this.preScoreInfo[i][color_index];
-                            found_in_preScore = true;
-                            break find_in_preScore_loop;
-                        }
-                    }
-                }
-                
-                if(found_in_preScore) { 
-                    
-                    for(var i=0;i<relatedPoints.length;i++) { 
-                        
-                        // find all the points in this relatedPoints group
-                        this.findStoneGroup(relatedPoints[i], color);
-                        
-                        // iterate all the points it found                        
-                        for(var k=0;k<this.groupPoints.length;k++) { 
-                            
-                            already_added = false;
-
-                            // if this point is not already on the togglePoints list, add it.
-                            for(var l=0;l<togglePoints.length;l++) { 
-                                if( (this.groupPoints[k].x == togglePoints[l].x) && 
-                                    (this.groupPoints[k].y == togglePoints[l].y) ) { 
-                                    already_added = true;
-                                    break;
-                                }
-                            }
-                            
-                            if(!already_added) { 
-                                togglePoints.push( this.groupPoints[k] );
-                            }
-
-                        }
-                        
-                    } 
-                } else { 
-                    
-                    // point wasnt in preScore.. just fall back on toggling the status of the point (unless we already have it set to toggle)
-                    already_added = false;
-                    for(var l=0;l<togglePoints.length;l++) { 
-                        if( (pt.x == togglePoints[l].x) && 
-                            (pt.y == togglePoints[l].y) ) { 
-                            already_added = true;
-                            break;
-                        }
-                    }
-
-                    if(!already_added) togglePoints.push(pt);
-                }
-            }
-            
-            for(var j=0;j<togglePoints.length;j++) { 
-
-                pt = togglePoints[j];
+                pt = this.groupPoints[i];
                 offset = pt.y * this.board.boardSize + pt.x;
 
-                if( (color == this.board.WHITE) && (this.board.stones[offset] == this.board.WHITE) ) { 
-                    this.board.renderer.renderStone( pt, "white-dead" );
-                    this.board.stones[offset] = this.board.WHITE_DEAD;
-                } else if( ( color == this.board.BLACK ) && (this.board.stones[offset] == this.board.BLACK) ) { 
-                    this.board.renderer.renderStone( pt, "black-dead" );
-                    this.board.stones[offset] = this.board.BLACK_DEAD;                
-                }  else if( ( color == this.board.WHITE_DEAD ) && (this.board.stones[offset] == this.board.WHITE_DEAD) ) { 
-                    // resurrect white stone
-                    this.board.renderer.renderStone( pt, "white" );
-                    this.board.stones[offset] = this.board.WHITE;  
-                    this.board.renderer.renderMarker(pt, "empty"); 
-                } else if( ( color == this.board.BLACK_DEAD) && (this.board.stones[offset] == this.board.BLACK_DEAD) ) { 
-                    // resurrect black stone
-                    this.board.renderer.renderStone( pt, "black" );
-                    this.board.stones[offset] = this.board.BLACK;  
-                    this.board.renderer.renderMarker(pt, "empty"); 
-                }  
+                if(this.board.getStone(pt) == color) { 
+                    
+                    if( color == this.board.WHITE ) { 
+                        this.board.renderer.renderStone( pt, "white-dead" );
+                        this.board.addStone( pt, this.board.WHITE_DEAD );
+                    } else if( color == this.board.BLACK ) { 
+                        this.board.renderer.renderStone( pt, "black-dead" );
+                        this.board.addStone( pt, this.board.BLACK_DEAD );
+                    } else if( color == this.board.WHITE_DEAD ) { 
+                        this.board.renderer.renderStone( pt, "white" );
+                        this.board.addStone( pt, this.board.WHITE );
+                        this.board.renderer.renderMarker(pt, "empty"); 
+                    } else if( color == this.board.BLACK_DEAD ) { 
+                        this.board.renderer.renderStone( pt, "black" );
+                        this.board.addStone( pt, this.board.BLACK );
+                        this.board.renderer.renderMarker(pt, "empty"); 
+                    }
+                }
             }
 
             this.preScore(false);
@@ -2709,7 +2637,7 @@ eidogo.Player.prototype = {
         this.selectTool("play");
     },
 
-    preScore: function(updatePSI) { 
+    preScore: function() { 
 
         // clear any markers in prep for scoring
         this.board.clearMarkers();
@@ -2718,11 +2646,6 @@ eidogo.Player.prototype = {
         
         // reset processedPoints property
         this.processedPoints = Array();
-
-        if(updatePSI) { 
-            // reset preScoreInfo
-            this.preScoreInfo = Array();
-        }
 
         bs = this.board.boardSize;
 
@@ -2749,11 +2672,6 @@ eidogo.Player.prototype = {
 
                     owner = this.findTerritoryOwner(thisPt);
         
-                    if(updatePSI) { 
-                        // cache the mismatch points and the groupPoints so we can use them later when doing 'smart' dead stone removal
-                        this.preScoreInfo.push( this.relatedPoints );
-                    }
-
                     if(owner != 2) { 
                         trans_color_marker = {'1': 'territory-white', '-1': 'territory-black'};                        
                         for( var j=0; j < this.groupPoints.length; j++ ) { 
@@ -2778,13 +2696,12 @@ eidogo.Player.prototype = {
     preScoreInfo: Array(),
     relatedPoints: Object(),
     
-    findTerritoryOwner: function(pt, borderStone, recursing) { 
+    findTerritoryOwner: function(pt, borderStone, recursing, findColor) { 
 
         // if this is the first call, clear the borderStone, and reset the groupPoints array, and reset relatedPoints
         if(!recursing) { 
             var borderStone = this.board.EMPTY;
             this.groupPoints = Array(pt);
-            this.relatedPoints = { 'w': [], 'b': [] }; 
         } 
 
         this.processedPoints.push( pt );
@@ -2813,10 +2730,24 @@ eidogo.Player.prototype = {
             // get the stone status of this adjacent point
             stone = this.board.getStone( checkCoord );
 
+            // if we are marking somethign dead/not dead
+            if(findColor) { 
+                
+                // if we are findColor we treat color as an empty space; we are finding all instances of color in this empty territory...
+                if( (stone == this.board.EMPTY) || (stone == findColor) ) { 
 
-            if( (stone == this.board.EMPTY) || 
-                (stone == this.board.WHITE_DEAD) || 
-                (stone == this.board.BLACK_DEAD) ) { 
+                    this.processedPoints.push( checkCoord );
+                    
+                    // borderstone is whatever we get back from our recursive checks
+                    borderStone = this.findTerritoryOwner(checkCoord, borderStone, true, findColor);
+                    
+                    this.groupPoints.push( checkCoord );
+
+                }
+
+            } else if( (stone == this.board.EMPTY) || 
+                       (stone == this.board.WHITE_DEAD) || 
+                       (stone == this.board.BLACK_DEAD) ) { 
 
                 // we prevent adding color stones to the processedPoints list; there subtle is a bug introduced if we allow this
                 // imagine a corner group with two eyes, one at s2 and one at t1.  if s2 is scanned before t1, all t1's surrounding stones
@@ -2825,11 +2756,11 @@ eidogo.Player.prototype = {
                 this.processedPoints.push( checkCoord );
 
                 // borderstone is whatever we get back from our recursive checks
-                borderStone = this.findTerritoryOwner(checkCoord, borderStone, true);                
+                borderStone = this.findTerritoryOwner(checkCoord, borderStone, true);
+
                 this.groupPoints.push( checkCoord );
 
             } else if(stone == this.board.WHITE) {
-                this.relatedPoints['w'].push(checkCoord);
 
                 // if borderStone is unset, then set it to the color we just came up with
                 if(borderStone == this.board.EMPTY) { 
@@ -2840,7 +2771,6 @@ eidogo.Player.prototype = {
                 } 
 
             } else if(stone == this.board.BLACK) { 
-                this.relatedPoints['b'].push(checkCoord);
 
                 // if borderStone is unset, then set it to the color we just came up with
                 if(borderStone == this.board.EMPTY) { 
