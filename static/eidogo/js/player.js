@@ -51,6 +51,10 @@ eidogo.Player.prototype = {
     init: function(cfg) {
     
         cfg = cfg || {};
+
+        // import rules from config - to be passed to Rules class later
+        this.cfgRules = {'allowSuicide': (typeof cfg.allowSuicide != 'undefined' ? cfg.allowSuicide : false),
+                         'koRule': (typeof cfg.koRule != 'undefined' ? cfg.koRule : 'simple')};
         
         // play, add_b, add_w, region, tr, sq, cr, label, number, score(?)
         this.mode = cfg.mode ? cfg.mode : "play";
@@ -229,7 +233,7 @@ eidogo.Player.prototype = {
     **/
     reset: function(cfg) {
         this.gameName = "";
-        
+                
         // Multiple games can be contained in collectionRoot. We default
         // to the first (collectionRoot._children[0])
         // See http://www.red-bean.com/sgf/sgf4.html 
@@ -533,7 +537,7 @@ eidogo.Player.prototype = {
         if (!this.board) {
             // first time
             this.createBoard(size);
-            this.rules = new eidogo.Rules(this.board);
+            this.rules = new eidogo.Rules(this.board, this.cfgRules);
         }
         this.unsavedChanges = false;
         this.resetCursor(true);
@@ -1172,6 +1176,7 @@ eidogo.Player.prototype = {
             var pt = {'x': x, 'y': y};
             var color = this.board.getStone(pt);
             
+            // empty point click has no meaning in score mode
             if(color == this.board.EMPTY) { 
                 return;
             }
@@ -1182,7 +1187,7 @@ eidogo.Player.prototype = {
             // do a findTerritory on the clicked spot instructing it to ignore stones of the clicked color.  
             this.findTerritoryOwner(pt, this.board.EMPTY, false, color);
             
-            // iterate through the points returned and mark dead all stones which occupy one of those spaces
+            // iterate through the points returned and toggle all target stones which occupy one of those spaces
             for(var i=0 ; i<this.groupPoints.length ; i++) { 
                 
                 pt = this.groupPoints[i];
@@ -1208,8 +1213,10 @@ eidogo.Player.prototype = {
                 }
             }
 
+            // run preScore
             this.preScore(false);
 
+            // no property
             prop = null;
 
         } else {
@@ -2784,65 +2791,8 @@ eidogo.Player.prototype = {
 
         // return the current borderStone
         return borderStone;
-    },
-
-
-    findStoneGroup: function(pt, color, recursing) { 
-        
-        if(!color) { 
-            color = this.board.getStoneDeadOrAlive(pt);
-        }
-
-        if(!recursing) { 
-            this.processedPoints = Array();
-            this.groupPoints = Array(pt);
-        }
-
-        // we got pointed at an empty point?  no stones returned
-        if(color == this.board.EMPTY) return [];
-
-        // ok, we've processed this point, never do again!
-        this.processedPoints.push( pt );
-        
-        // queue up all adjacent spaces which are in the confines of the board
-        var checkPoints = Array();
-        if(pt.x > 0) checkPoints.push( {'x': pt.x-1, 'y': pt.y} );
-        if(pt.y > 0) checkPoints.push( {'x': pt.x, 'y': pt.y-1} );
-        if(pt.x < bs-1) checkPoints.push( {'x': pt.x+1, 'y': pt.y} );
-        if(pt.y < bs-1) checkPoints.push( {'x': pt.x, 'y': pt.y+1} );
-
-        // iterate through the adjacent spaces
-        iterate_liberties_loop:
-        for(var i=0 ; i < checkPoints.length ; i++) { 
-            
-            // see if this points already been checked, and skip it if it has
-            for(var j=0; j < this.processedPoints.length ; j++) { 
-                if( ( checkPoints[i].x == this.processedPoints[j].x ) &&
-                    ( checkPoints[i].y == this.processedPoints[j].y ) ) { 
-                    continue iterate_liberties_loop;
-                }
-            }
-
-            var checkCoord = checkPoints[i];
-
-            // mark that we've examined this point so it is skipped in the future
-            this.processedPoints.push( checkCoord );
-
-            // get the stone status of this adjacent point
-            stone = this.board.getStone( checkCoord );
-
-            if(stone == color) { 
-                // borderstone is whatever we get back from our recursive checks
-                this.findStoneGroup(checkCoord, stone, true);
-                this.groupPoints.push( checkCoord );
-            } else { 
-                continue;
-            }
-        }
-
-        // return the current borderStone
-        return true;
     }
+
 
 };
     

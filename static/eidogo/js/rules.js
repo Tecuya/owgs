@@ -8,28 +8,114 @@
 /**
  * @class Applies rules (capturing, ko, etc) to a board.
  */
-eidogo.Rules = function(board) {
-    this.init(board);
+eidogo.Rules = function(board, cfgRules) {
+    this.init(board, cfgRules);
 };
 eidogo.Rules.prototype = {
     /**
      * @constructor
      * @param {eidogo.Board} board The board to apply rules to
      */
-    init: function(board) {
+    init: function(board, cfgRules) {
         this.board = board;
+        this.cfgRules = cfgRules;
         this.pendingCaptures = [];
+        this.koImmune = false;
     },
     /**
      * Called to see whether a stone may be placed at a given point
     **/
-    check: function(pt, color) {
+    check: function(pt, colorLetter) {
         // already occupied?
         if (this.board.getStone(pt) != this.board.EMPTY) {
             return false;
         }
-        // TODO: check for suicide? (allowed in certain rulesets)    
-        // TODO: ko
+
+        var color = ( colorLetter == 'B' ? this.board.BLACK : this.board.WHITE );
+        
+        // simulate the stone being added .. this is used for both suicide and ko checks, will be undone later
+        this.board.addStone(pt, color);
+        
+        // make a note of the opposite color 
+        other_color = color * -1;
+
+        violation = false;
+        
+        ///////////////
+        // check for suicide? (allowed in certain rulesets)
+        if(!this.cfgRules.allowSuicide) { 
+            
+            // first make sure this isnt actually a capturing move
+            checkPoints = Array({x: pt.x-1, y: pt.y},
+                                {x: pt.x+1, y: pt.y},
+                                {x: pt.x, y: pt.y-1},
+                                {x: pt.x, y: pt.y+1});
+            
+            var capturing = false;
+
+            check_capture_loop:
+            for(var i=0;i<checkPoints.length;i++) { 
+                if(this.board.getStone(checkPoints[i]) == other_color) { 
+                    groupPoints = this.board.findGroupPoints( checkPoints[i] );
+                    liberty_count = 0;
+                    for(j=0;j<groupPoints.length;j++) { 
+                        liberty_count += this.board.getStoneLiberties(groupPoints[j]).length;
+                    }
+                    if(liberty_count == 0) { 
+                        // a-ha! so this is a capturing move.  its not a suicide
+                        capturing = true;
+                        break check_capture_loop;
+                    }
+                }
+            }
+            
+            // we aren't capturing.. proceed checking if this is a suicide
+            if(!capturing) { 
+                groupPoints = this.board.findGroupPoints( pt );
+                liberty_count = 0;
+                for(i=0;i<groupPoints.length;i++) { 
+                    liberty_count += this.board.getStoneLiberties(groupPoints[i]).length;
+                }
+                if(liberty_count == 0) { 
+                    violation = 'Suicide';
+                }
+            }
+        }
+        
+        if(this.cfgRules.koRule == 'simple') { 
+            
+            // if a koImmune stone was set in a previous capture
+            if(this.koImmune) { 
+                groupPoints = this.board.findGroupPoints( this.koImmune );
+                
+                for(i=0;i<groupPoints.length;i++) 
+                    liberty_count += this.board.getStoneLiberties(groupPoints[i]).length;
+                
+                if(liberty_count == 0) { 
+                    violation = 'Ko';
+                }
+            }
+
+            // this koImmune is no longer a concern
+            if(!violation) 
+                this.koImmune = false;
+            
+        } else if(this.cfgRules.koRule == 'positional_superko') { 
+            // TODO
+            violation = 'Positional Superko Unimplemented';
+        } else if(this.cfgRules.koRule == 'situational_superko') { 
+            // TODO
+            violation = 'Situational Superko Unimplemented';
+        }
+          
+        // return the board to its true position
+        this.board.addStone(pt, this.board.EMPTY);
+
+        if(violation) { 
+            alert("Rule violation: "+violation);
+            return false;
+        }
+        
         return true;
     },
     /**
@@ -43,10 +129,28 @@ eidogo.Rules.prototype = {
      */
     doCaptures: function(pt, color) {
         var captures = 0;
-        captures += this.doCapture({x: pt.x-1, y: pt.y}, color);
-        captures += this.doCapture({x: pt.x+1, y: pt.y}, color);
-        captures += this.doCapture({x: pt.x, y: pt.y-1}, color);
-        captures += this.doCapture({x: pt.x, y: pt.y+1}, color);
+
+        // if only one capture was produced, mark pt as immuneByKo
+        
+        checkPoints = Array({x: pt.x-1, y: pt.y},
+                            {x: pt.x+1, y: pt.y},
+                            {x: pt.x, y: pt.y-1},
+                            {x: pt.x, y: pt.y+1});
+
+        potentialKo = Array();
+        for(var i=0;i<checkPoints.length;i++) { 
+            capCount = this.doCapture(checkPoints[i], color);
+            if(capCount == 1) { 
+                potentialKo.push(checkPoints[i]);
+            }
+            captures += capCount;
+        }
+        
+        // if we captured one single stone with this play, mark it as ko-immune for the next move
+        if(potentialKo.length == 1) { 
+            this.koImmune = potentialKo[0];
+        }
+
         // check for suicide
         captures -= this.doCapture(pt, -color);
         if (captures < 0) {

@@ -109,7 +109,6 @@ eidogo.Board.prototype = {
     getStone: function(pt) {
         return this.stones[pt.y * this.boardSize + pt.x];
     },
-
     getRegion: function(t, l, w, h) {
         var region = [].setLength(w * h, this.EMPTY);
         var offset;
@@ -127,6 +126,69 @@ eidogo.Board.prototype = {
     getMarker: function(pt) {
         return this.markers[pt.y * this.boardSize + pt.x];
     },
+
+    // start at the given point and return a list of all stones of the given color
+    findGroupPoints: function(pt, groupPoints) { 
+
+        // current color
+        color = this.getStone(pt);
+
+        if(!groupPoints) { 
+            groupPoints = Array();
+        }
+
+        groupPoints.push(pt);
+                
+        // queue up all adjacent spaces which are in the confines of the board
+        var checkPoints = Array();
+        if(pt.x > 0) checkPoints.push( {'x': pt.x-1, 'y': pt.y} );
+        if(pt.y > 0) checkPoints.push( {'x': pt.x, 'y': pt.y-1} );
+        if(pt.x < this.boardSize-1) checkPoints.push( {'x': pt.x+1, 'y': pt.y} );
+        if(pt.y < this.boardSize-1) checkPoints.push( {'x': pt.x, 'y': pt.y+1} );
+
+        // iterate through the adjacent spaces
+        iterate_liberties_loop:
+        for(var i=0 ; i < checkPoints.length ; i++) { 
+            
+            // see if this points already been checked, and skip it if it has
+            for(var j=0; j < groupPoints.length ; j++) { 
+                if( ( checkPoints[i].x == groupPoints[j].x ) &&
+                    ( checkPoints[i].y == groupPoints[j].y ) ) { 
+                    continue iterate_liberties_loop;
+                }
+            }
+
+            // get the stone status of this adjacent point
+            stone = this.getStone( checkPoints[i] );
+
+            if(stone == color) { 
+                groupPoints = groupPoints.concat( this.findGroupPoints(checkPoints[i], groupPoints) );
+            } else { 
+                continue;
+            }
+        }
+
+        return groupPoints;
+    },
+
+    getStoneLiberties: function(pt) { 
+                
+        var checkPoints = Array();
+        if(pt.x > 0) checkPoints.push( {'x': pt.x-1, 'y': pt.y} );
+        if(pt.y > 0) checkPoints.push( {'x': pt.x, 'y': pt.y-1} );
+        if(pt.x < this.boardSize-1) checkPoints.push( {'x': pt.x+1, 'y': pt.y} );
+        if(pt.y < this.boardSize-1) checkPoints.push( {'x': pt.x, 'y': pt.y+1} );
+        
+        var returnList = Array();
+        for(var i=0 ; i < checkPoints.length ; i++) { 
+            if( this.getStone(checkPoints[i]) == this.EMPTY) { 
+                returnList.push( checkPoints[i] );
+            }
+        }
+        
+        return returnList;
+    },
+
     render: function(complete) {
         var stones = this.makeBoardArray(null);
         var markers = this.makeBoardArray(null);
