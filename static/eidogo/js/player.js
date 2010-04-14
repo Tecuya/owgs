@@ -52,9 +52,14 @@ eidogo.Player.prototype = {
     
         cfg = cfg || {};
 
+        this.owgsNetMode = (typeof cfg.owgsNetMode != 'undefined' ? true : false);
+
         // import rules from config - to be passed to Rules class later
-        this.cfgRules = {'allowSuicide': (typeof cfg.allowSuicide != 'undefined' ? cfg.allowSuicide : false),
-                         'koRule': (typeof cfg.koRule != 'undefined' ? cfg.koRule : 'simple')};
+        this.cfgRules = {
+            'allowSuicide': (typeof cfg.allowSuicide != 'undefined' ? cfg.allowSuicide : false),
+            'koRule': (typeof cfg.koRule != 'undefined' ? cfg.koRule : 'simple'),
+            'owgsNetMode': this.owgsNetMode
+        };
         
         // play, add_b, add_w, region, tr, sq, cr, label, number, score(?)
         this.mode = cfg.mode ? cfg.mode : "play";
@@ -1140,17 +1145,9 @@ eidogo.Player.prototype = {
             if (!this.rules.check({x: x, y: y}, this.currentColor)) {
                 return;
             }
-            // play the move
-            if (coord) {
-                var nextMoves = this.cursor.getNextMoves();
-                if (nextMoves && coord in nextMoves) {
-                    // move already exists
-                    this.variation(nextMoves[coord]);
-                } else {
-                    // move doesn't exist yet
-                    this.createMove(coord);
-                }
-            }
+            
+            this.doMove( coord );
+
         } else if (this.mode == "region" && x >= -1 && y >= -1 && this.regionBegun) {
             if (this.regionTop == y && this.regionLeft == x && !this.regionClickSelect) {
                 // allow two-click selection in addition to click-and-drag (for iphone!)
@@ -1658,29 +1655,32 @@ eidogo.Player.prototype = {
         return ret;
     },
 
+    doMove: function(coord) { 
+        // play the move
+        if (coord) {
+            var nextMoves = this.cursor.getNextMoves();
+            if (nextMoves && coord in nextMoves) {
+                // move already exists
+                this.variation(nextMoves[coord]);
+            } else {
+                // move doesn't exist yet
+                this.createMove(coord);
+            }
+        }
+    },
+
     /**
      * Create an as-yet unplayed move and go to it.
      */
-    createMove: function(coord, is_remote_move) {
+    createMove: function(coord) {
 
-        /*
-        // when is_remote_move is true it means we got the move from NetClient and therefore do not need to validate it or make sure its the proper turn
-        if(eidogo_color && (is_remote_move === undefined)) {
-
-            // do not allow creation of moves unless this.currentColor matches
-            // global eidogo_color
-            if(this.currentColor != eidogo_color) {
-                alert("Not your turn!");
-                return;
-            }
-            
-            this.hook("createMove", [coord, this.currentColor]);
-        }*/
-        
         otherColor = this.currentColor == 'W' ? 'B' : 'W';
-        
+
+        // execute createMove hook
+        this.hook("createMove", [coord, this.currentColor]);
+
+        // if last move was a pass, and this move is a pass, move to score mode
         if((this.cursor.node[otherColor] == "tt") && (coord == "tt")) { 
-            // ("Please click on dead stones to remove them.");
             this.dom.toolsSelect.value = "score";
             this.selectTool("score");
         }
@@ -1693,7 +1693,6 @@ eidogo.Player.prototype = {
         this.cursor.node.appendChild(varNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
-
     },
 
     /**
@@ -2582,23 +2581,21 @@ eidogo.Player.prototype = {
 
     postScore: function() { 
         
+        // count prisoners
         prisoners_w = 0;
         prisoners_b = 0;
-        
         for(var i=0 ; i<this.board.stones.length ; i++) { 
             if(this.board.stones[i] == this.board.WHITE_DEAD) { 
                 prisoners_w++;
-                // this.board.stones[i] = this.board.WHITE;                
             } else if(this.board.stones[i] == this.board.BLACK_DEAD) { 
                 prisoners_b++;
-                // sthis.board.stones[i] = this.board.BLACK;
             }
         }
 
+        // count territory
+        bs = this.board.boardSize
         territory_w = [];
         territory_b = [];
-        bs = this.board.boardSize
-
         for (y = 0; y < bs; y++) {
             for (x = 0; x < bs; x++) {                
                 if(this.board.markers[y*bs+x] == "territory-white") {
@@ -2644,6 +2641,8 @@ eidogo.Player.prototype = {
         this.selectTool("play");
     },
 
+    // makeResult: function(komi, territory_w, captures_w, prisoners_w, territory_b, captures_b, prisoners_b) {  }
+    
     preScore: function() { 
 
         // clear any markers in prep for scoring

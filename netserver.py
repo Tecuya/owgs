@@ -262,7 +262,9 @@ class GoServerProtocol(basic.LineReceiver):
 
          else:
 
-            response = ["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[1]) ]
+            self.writeToTransport(["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[1]) ])
+
+            response = CTS
 
 
       elif cmd[0] == 'OFFR':

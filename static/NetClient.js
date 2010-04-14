@@ -90,7 +90,7 @@ function NetClient(session_key) {
 
         } else if(dataAr[0] == "MOVE") { 
 
-            NetClient_eidogo_player.createMove(dataAr[1], true);
+            NetClient_eidogo_player.doMove(dataAr[1]);
 
         } else if(dataAr[0] == "OFFR") { 
 
@@ -174,13 +174,18 @@ function NetClient(session_key) {
         coord = data[0];
         color = data[1];
 
-        // TODO support getting the parent node from eidogo to enable variations!
-        parent_node = 0;
-        
-        // TODO support getting a copy of all the comments made since the last move from eidogo
-        comments = "";
-
-        this.send( ["MOVE", coord, color, parent_node, comments] )
+        // we only relay moves that *we* made
+        if( ((eidogo_color == 'W') && (color == 'W')) ||
+            ((eidogo_color == 'B') && (color == 'B')) ) { 
+            
+            // TODO support getting the parent node from eidogo to enable variations!
+            parent_node = 0;
+            
+            // TODO support getting a copy of all the comments made since the last move from eidogo
+            comments = "";
+            
+            this.send( ["MOVE", coord, color, parent_node, comments] )
+        }
     }
 
     // this func is called when the game owner decides he's ready to start the game
@@ -267,7 +272,8 @@ function initEidogo() {
         markVariations:  true,
         markNext:        false,
         enableShortcuts: false,
-        problemMode:     false
+        problemMode:     false,
+        owgsNetMode:     true
     });
     
     

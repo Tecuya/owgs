@@ -17,6 +17,17 @@ class Game(models.Model):
     
     PlayersAssigned = models.BooleanField('Players Assigned')
 
+    Winner = models.CharField('Winning Color', max_length=1, choices=(('W', 'White'),
+                                                                      ('B', 'Black'),
+                                                                      ('U', 'Unset')), default='U')
+
+    WinType = models.CharField('Win Type', max_length=1, choices=(('S', 'Score'),
+                                                                  ('R', 'Resignation'),
+                                                                  ('F', 'Forfeit'),
+                                                                  ('U', 'Unset')), default='U')
+    
+    ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1)
+    
     def __unicode__(self):
         player_list = []
 
@@ -28,7 +39,7 @@ class Game(models.Model):
 class GameForm(ModelForm):
     class Meta:
         model = Game
-        exclude = ('Owner', 'StartDate', 'PlayersAssigned')
+        exclude = ('Owner', 'StartDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner')
 
 class GameNode(models.Model):
     """ 
@@ -75,12 +86,11 @@ class GameParticipant(models.Model):
     def __unicode__(self):
         return '%s (%s)' % (self.Participant.username, self.State)
 
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User)
     activation_key = models.CharField(max_length=40)
     key_expires = models.DateTimeField()
-
-
 
 
 

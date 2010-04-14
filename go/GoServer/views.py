@@ -20,7 +20,7 @@ def GameCreate(request):
 
     if request.method == 'POST':
 
-        game = Game( Owner = request.user)
+        game = Game( Owner = request.user, ScoreDelta=0)
         form = GameForm(request.POST, instance=game)
         
         if form.is_valid():

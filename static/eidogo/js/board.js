@@ -17,8 +17,8 @@ eidogo.Board = function() {
 };
 eidogo.Board.prototype = {
     WHITE: 1,
-    WHITE_DEAD: 2,
     BLACK: -1,
+    WHITE_DEAD: 2,
     BLACK_DEAD: -2,
     EMPTY: 0,
     /**
@@ -160,7 +160,6 @@ eidogo.Board.prototype = {
 
             // get the stone status of this adjacent point
             stone = this.getStone( checkPoints[i] );
-
             if(stone == color) { 
                 groupPoints = groupPoints.concat( this.findGroupPoints(checkPoints[i], groupPoints) );
             } else { 

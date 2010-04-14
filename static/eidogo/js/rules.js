@@ -40,10 +40,19 @@ eidogo.Rules.prototype = {
         other_color = color * -1;
 
         violation = false;
+
+        //////////////
+        // if this is owgsNetMode then
+        // check that this move color is in accord with the server position
+        if( this.cfgRules.owgsNetMode && 
+            (colorLetter != eidogo_color) ) {
+            violation = 'It is not your turn (Turn belongs to '+colorLetter+' but you are '+eidogo_color+')';            
+        }
+
         
         ///////////////
         // check for suicide? (allowed in certain rulesets)
-        if(!this.cfgRules.allowSuicide) { 
+        if( (!violation) && (!this.cfgRules.allowSuicide) ) { 
             
             // first make sure this isnt actually a capturing move
             checkPoints = Array({x: pt.x-1, y: pt.y},
@@ -92,7 +101,8 @@ eidogo.Rules.prototype = {
             }
         }
         
-
+        //////////////////////
+        // simple ko checking
         if( (!violation) && (this.cfgRules.koRule == 'simple') ) { 
             
             // if a koImmune stone was set in a previous capture
