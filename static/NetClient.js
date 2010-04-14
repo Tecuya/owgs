@@ -253,7 +253,7 @@ function initEidogo() {
         // theme:           "compact", // TODO standard or compact should be a player pref or something
         theme:           "standard", // TODO standard or compact should be a player pref or something
         sgf:             eidogo_SGF,
-        sgfPath:         "/static/eidogo/sgf/",
+        // sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
         hooks:           {"createMove": NetClient_onmove_wrapper},
         loadPath:        [0, 0],

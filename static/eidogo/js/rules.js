@@ -55,10 +55,20 @@ eidogo.Rules.prototype = {
 
             check_capture_loop:
             for(var i=0;i<checkPoints.length;i++) { 
+                
+                // skip if its not a valid point
+                if( (checkPoints[i].x > this.board.boardSize) || 
+                    (checkPoints[i].x < 0)  ||
+                    (checkPoints[i].y > this.board.boardSize) || 
+                    (checkPoints[i].y < 0) ) 
+                    continue;
+
+
+                // if this stone touches an opponent stone
                 if(this.board.getStone(checkPoints[i]) == other_color) { 
                     groupPoints = this.board.findGroupPoints( checkPoints[i] );
                     liberty_count = 0;
-                    for(j=0;j<groupPoints.length;j++) { 
+                    for(var j=0;j<groupPoints.length;j++) { 
                         liberty_count += this.board.getStoneLiberties(groupPoints[j]).length;
                     }
                     if(liberty_count == 0) { 
@@ -82,7 +92,8 @@ eidogo.Rules.prototype = {
             }
         }
         
-        if(this.cfgRules.koRule == 'simple') { 
+
+        if( (!violation) && (this.cfgRules.koRule == 'simple') ) { 
             
             // if a koImmune stone was set in a previous capture
             if(this.koImmune) { 
@@ -95,7 +106,7 @@ eidogo.Rules.prototype = {
                     violation = 'Ko';
                 }
             }
-
+            
             // this koImmune is no longer a concern
             if(!violation) 
                 this.koImmune = false;
@@ -136,19 +147,22 @@ eidogo.Rules.prototype = {
                             {x: pt.x+1, y: pt.y},
                             {x: pt.x, y: pt.y-1},
                             {x: pt.x, y: pt.y+1});
-
-        potentialKo = Array();
+                
+        potentialKo = false;
         for(var i=0;i<checkPoints.length;i++) { 
-            capCount = this.doCapture(checkPoints[i], color);
-            if(capCount == 1) { 
-                potentialKo.push(checkPoints[i]);
-            }
-            captures += capCount;
+
+            if( (checkPoints[i].x > this.board.boardSize) || 
+                (checkPoints[i].x < 0)  ||
+                (checkPoints[i].y > this.board.boardSize) || 
+                (checkPoints[i].y < 0) ) 
+                continue;
+            
+            captures += this.doCapture(checkPoints[i], color);
         }
         
         // if we captured one single stone with this play, mark it as ko-immune for the next move
-        if(potentialKo.length == 1) { 
-            this.koImmune = potentialKo[0];
+        if(captures == 1) { 
+            this.koImmune = pt;
         }
 
         // check for suicide
