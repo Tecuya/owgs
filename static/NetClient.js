@@ -91,7 +91,14 @@ function NetClient(session_key) {
         } else if(dataAr[0] == "MOVE") { 
 
             NetClient_eidogo_player.doMove(dataAr[1]);
+            
+        } else if(dataAr[0] == "DEAD") { 
 
+            // translate coord to a point (thats how scoreToggleStone likes it)
+            coord = NetClient_eidogo_player.sgfCoordToPoint(dataAr[1]);
+
+            NetClient_eidogo_player.scoreToggleStone( coord.x, coord.y, false );
+            
         } else if(dataAr[0] == "OFFR") { 
 
             this.receivedoffer(dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5], dataAr[6]);
@@ -188,6 +195,25 @@ function NetClient(session_key) {
         }
     }
 
+
+    this.onmove = function(data) { 
+        coord = data[0];
+        color = data[1];
+        
+        // TODO support getting the parent node from eidogo to enable variations!
+        parent_node = 0;
+        
+        // TODO support getting a copy of all the comments made since the last move from eidogo
+        comments = "";
+        
+        this.send( ["MOVE", coord, color, parent_node, comments] )
+    }
+
+    this.ondead = function(data) { 
+        this.send( ["DEAD", NetClient_eidogo_player.pointToSgfCoord({'x': data[0], 'y': data[1]})] )
+    }
+
+    
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 
         parts = document.getElementById('ParticipantSelect');
@@ -230,6 +256,7 @@ function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
 function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
 function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
+function NetClient_ondead_wrapper(data) { NetClient_instance.ondead(data); }
 function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 // init funcs
@@ -260,7 +287,8 @@ function initEidogo() {
         sgf:             eidogo_SGF,
         // sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
-        hooks:           {"createMove": NetClient_onmove_wrapper},
+        hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
+                          "owgs_scoreToggleStone": NetClient_ondead_wrapper},
         loadPath:        [0, 0],
         showComments:    true,
         showPlayerInfo:  true,

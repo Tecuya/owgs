@@ -1169,49 +1169,8 @@ eidogo.Player.prototype = {
                 stopEvent(e);
             }
         } else if (this.mode == "score") { 
-                     
-            var pt = {'x': x, 'y': y};
-            var color = this.board.getStone(pt);
             
-            // empty point click has no meaning in score mode
-            if(color == this.board.EMPTY) { 
-                return;
-            }
-                        
-            // reset processedPoints property - findTerritoryOnwer requires the caller handle clearing this manually.. annoying, really TODO clean that up
-            this.processedPoints = Array();
-
-            // do a findTerritory on the clicked spot instructing it to ignore stones of the clicked color.  
-            this.findTerritoryOwner(pt, this.board.EMPTY, false, color);
-            
-            // iterate through the points returned and toggle all target stones which occupy one of those spaces
-            for(var i=0 ; i<this.groupPoints.length ; i++) { 
-                
-                pt = this.groupPoints[i];
-                offset = pt.y * this.board.boardSize + pt.x;
-
-                if(this.board.getStone(pt) == color) { 
-                    
-                    if( color == this.board.WHITE ) { 
-                        this.board.renderer.renderStone( pt, "white-dead" );
-                        this.board.addStone( pt, this.board.WHITE_DEAD );
-                    } else if( color == this.board.BLACK ) { 
-                        this.board.renderer.renderStone( pt, "black-dead" );
-                        this.board.addStone( pt, this.board.BLACK_DEAD );
-                    } else if( color == this.board.WHITE_DEAD ) { 
-                        this.board.renderer.renderStone( pt, "white" );
-                        this.board.addStone( pt, this.board.WHITE );
-                        this.board.renderer.renderMarker(pt, "empty"); 
-                    } else if( color == this.board.BLACK_DEAD ) { 
-                        this.board.renderer.renderStone( pt, "black" );
-                        this.board.addStone( pt, this.board.BLACK );
-                        this.board.renderer.renderMarker(pt, "empty"); 
-                    }
-                }
-            }
-
-            // run preScore
-            this.preScore(false);
+            this.scoreToggleStone( x, y, true );
 
             // no property
             prop = null;
@@ -1268,7 +1227,59 @@ eidogo.Player.prototype = {
             if (deleted) this.prependComment(t['position deleted']);
         }
     },
-    
+
+
+    scoreToggleStone: function(x, y, locally_generated) { 
+
+        var pt = {'x': x, 'y': y};
+        var color = this.board.getStone(pt);
+        
+        // empty point click has no meaning in score mode
+        if(color == this.board.EMPTY) { 
+            return;
+        }
+        
+        // if owgsNetMode and this is a locally generated scoreToggleStone click
+        if(this.owgsNetMode && locally_generated) { 
+            this.hook("owgs_scoreToggleStone", [x, y]);
+        }
+
+        // reset processedPoints property - findTerritoryOnwer requires the caller handle clearing this manually.. annoying, really TODO clean that up
+        this.processedPoints = Array();
+
+        // do a findTerritory on the clicked spot instructing it to ignore stones of the clicked color.  
+        this.findTerritoryOwner(pt, this.board.EMPTY, false, color);
+        
+        // iterate through the points returned and toggle all target stones which occupy one of those spaces
+        for(var i=0 ; i<this.groupPoints.length ; i++) { 
+            
+            pt = this.groupPoints[i];
+            offset = pt.y * this.board.boardSize + pt.x;
+
+            if(this.board.getStone(pt) == color) { 
+                
+                if( color == this.board.WHITE ) { 
+                    this.board.renderer.renderStone( pt, "white-dead" );
+                    this.board.addStone( pt, this.board.WHITE_DEAD );
+                } else if( color == this.board.BLACK ) { 
+                    this.board.renderer.renderStone( pt, "black-dead" );
+                    this.board.addStone( pt, this.board.BLACK_DEAD );
+                } else if( color == this.board.WHITE_DEAD ) { 
+                    this.board.renderer.renderStone( pt, "white" );
+                    this.board.addStone( pt, this.board.WHITE );
+                    this.board.renderer.renderMarker(pt, "empty"); 
+                } else if( color == this.board.BLACK_DEAD ) { 
+                    this.board.renderer.renderStone( pt, "black" );
+                    this.board.addStone( pt, this.board.BLACK );
+                    this.board.renderer.renderMarker(pt, "empty"); 
+                }
+            }
+        }
+
+        // run preScore
+        this.preScore(false);
+    },
+
     /**
      * If there are no properties left in a node, ask whether to delete it
     **/
@@ -1676,8 +1687,12 @@ eidogo.Player.prototype = {
 
         otherColor = this.currentColor == 'W' ? 'B' : 'W';
 
-        // execute createMove hook
-        this.hook("createMove", [coord, this.currentColor]);
+        // if owgsNetMode, eidogo_color sent, this move reflects our move
+        if( (this.owgsNetMode) &&
+            (eidogo_color) && 
+            (eidogo_color == this.currentColor) ) 
+
+            this.hook("owgs_createMove", [coord, this.currentColor]);
 
         // if last move was a pass, and this move is a pass, move to score mode
         if((this.cursor.node[otherColor] == "tt") && (coord == "tt")) { 

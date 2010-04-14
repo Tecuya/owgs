@@ -190,6 +190,17 @@ class GoServerProtocol(basic.LineReceiver):
          response = CTS
 
 
+      elif(cmd[0] == 'DEAD'):
+         coord = cmd[1]
+
+         for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            # send it to all players associated with the current game.. but not the user who made the move
+            # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
+            if conn_game_id == self.game.id and self.transport.sessionno != connection.transport.sessionno:
+               self.writeToTransport(["DEAD", coord], transport = connection.transport)
+
+         response = CTS
+
       # ignore any BEGN that doesnt come from the game owner
       elif cmd[0] == 'BEGN' and self.game.Owner == self.user:
 
