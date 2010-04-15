@@ -68,6 +68,9 @@ class GameProperty(models.Model):
     Property = models.CharField('SGF Property Name', max_length=10)
     Value = models.TextField('SGF Property Value')
 
+    def __unicode__(self):
+        return '%s %s' % (self.Property, self.Value)
+        
 class GameParticipant(models.Model):
     import datetime
 
@@ -98,13 +101,8 @@ class UserProfile(models.Model):
 
 
 
-# find all nodes with current parent, and all that node's peers
-# if a node has children, recurse for given parent
-# add each node to a list, and return to caller
-
-
-class SGF:
-    """ This class provides all our SGF functionality """
+class GameTree:
+    """ This class provides all our SGF and game tree traversal functionality """
 
     def __init__(self, game_id):
         self.game_id = game_id
@@ -178,19 +176,106 @@ class SGF:
 
         return ret
 
+    
+    def getFullNodePath(self, parent_node_id, nodeList):
+        """ Returns a list of all nodes in order which are ancestors of node named by node_id """
+        
+        # get the node
+        if not parent_node_id:
+            node = False
+        else:
+            node = GameNode.objects.get( pk = parent_node_id )
+
+        # if we didnt get a node, we are done
+        if not node or not node.ParentNode:
+            
+            # reverse the list so it is in first-to-last move order (we built it in reverse)
+            nodeList.reverse()
+            return nodeList
+
+        else:         
+            
+            # load the nodes properties
+            properties = GameProperty.objects.filter( Node = node, Property__in = ['W', 'B', 'AB', 'AW']).all()
+
+            # add it to our list
+            nodeList.append( [ node, properties ] )
+            
+            # get the parent node
+            return self.getFullNodePath( node.ParentNode.id, nodeList )
                 
 class Board:
-    """ This class represents a go board. It is modelled after eidogo's game model as it closely integrates with it """
+    """ This class represents a go board. It is modelled after eidogo's game model as it closely integrates with it.  It is used to perform move validation / rule checking on client-generated moves. """
     
-    def __init__(self, game):        
+    def __init__(self, game):
+
+        self.WHITE = 1
+        self.EMPTY = 0
+        self.BLACK = -1
+
         self.game = game
-        self.loadGameFromDatabase()
-    
-    def loadGameFromDatabase():
-        """ Load up a game from the database on to our board """        
-
-        nodes = SGF(self.game.id).getNodes()
         
-    
+        self.board = []
 
-    
+        self.size = int(self.game.BoardSize.split('x')[0])
+
+        # produce a blank board
+        for i in range(0, (self.size ** 2)):
+            self.board.append( self.EMPTY )
+            
+        
+    def makeMove( self, parent_node, coord, color ):
+
+        # bring board in sync with parent_node
+        self.syncBoardToNode( parent_node.id )
+
+        # perform rule check on coord & color
+        return self.ruleCheck( coord, color )
+
+    def sgfPointToXY( self, sgfPoint ):        
+        x = ord(sgfPoint[0]) - 97
+        y = ord(sgfPoint[1]) - 97
+        return [x,y]
+        
+    def syncBoardToNode( self, parent_node ):        
+        # TODO implement some manner of caching here so its not necessary to always
+        # do a complete lookup of the game history!
+        nodes = GameTree( self.game.id ).getFullNodePath( parent_node, [] )
+
+        propColorMap = {'W': self.WHITE,
+                        'AW': self.WHITE,
+                        'B': self.BLACK,
+                        'AB': self.BLACK}
+        
+        for (node,properties) in nodes:
+            for prop in properties:
+                color = propColorMap[ prop.Property ]
+                (x,y) = self.sgfPointToXY( prop.Value )
+                self.setPoint(x, y, color)
+                self.lastColor = color
+                
+    def ruleCheck( self, coord, color):
+
+        # out of order turn
+        if(color == self.lastColor):
+            return [False, "Color out of order"]
+
+        # get the x,y
+        (x,y) = self.sgfPointToXY( coord )
+
+        # out of bounds coordinates
+        if x<0 or x>self.size-1 or y<0 or y>self.size-1:
+            return [False, "Invalid move: out of bounds"]
+
+        # playing on already-occupied space
+        if(self.getPoint(x,y) != self.EMPTY):
+            return [False, "Invalid move: occupied space"]
+        
+        return [True, ""]
+
+    def getPoint( self, x, y ):
+        return self.board[ y * self.size + x ]
+
+    def setPoint( self, x, y, color ):
+        self.board[ y * self.size + x ] = color
+        

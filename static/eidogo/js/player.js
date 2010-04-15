@@ -1666,7 +1666,7 @@ eidogo.Player.prototype = {
         return ret;
     },
 
-    doMove: function(coord) { 
+    doMove: function(coord, owgs_bypassHook) { 
         // play the move
         if (coord) {
             var nextMoves = this.cursor.getNextMoves();
@@ -1675,7 +1675,7 @@ eidogo.Player.prototype = {
                 this.variation(nextMoves[coord]);
             } else {
                 // move doesn't exist yet
-                this.createMove(coord);
+                this.createMove(coord, owgs_bypassHook);
             }
         }
     },
@@ -1683,7 +1683,7 @@ eidogo.Player.prototype = {
     /**
      * Create an as-yet unplayed move and go to it.
      */
-    createMove: function(coord) {
+    createMove: function(coord, owgs_bypassHook) {
 
         forColor = this.currentColor;
         otherColor = this.currentColor == 'W' ? 'B' : 'W';
@@ -1704,8 +1704,7 @@ eidogo.Player.prototype = {
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
 
-        // if owgsNetMode, eidogo_color sent, this move reflects our move
-        if( (this.owgsNetMode) &&
+        if( (!owgs_bypassHook) &&
             (eidogo_color) && 
             (eidogo_color == forColor) ) {
 

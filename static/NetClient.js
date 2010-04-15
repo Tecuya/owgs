@@ -29,12 +29,29 @@ function NetClient(session_key) {
     this.start = function() { 
 
         if(NetClient_debug) {
+            debug_div = document.createElement("DIV");
+
             debug_textarea = document.createElement("TEXTAREA");
             debug_textarea.setAttribute("cols", 80);
             debug_textarea.setAttribute("rows", 20);
             debug_textarea.setAttribute("id", "NetClient_debug");
 
-            document.body.appendChild(debug_textarea);
+            debug_input = document.createElement("INPUT");
+            debug_input.setAttribute("id", "sendraw");
+            debug_input.setAttribute("size", "80");
+            debug_input.setAttribute("type", "text");       
+            
+            debug_button = document.createElement("BUTTON");
+            debug_button.innerHTML = "Send";
+            debug_button.setAttribute("type", "button");
+            debug_button.setAttribute("onClick", 'NetClient_instance.sendraw( document.getElementById("sendraw").value)')
+            
+            debug_div.appendChild(debug_input);
+            debug_div.appendChild(debug_button);
+            debug_div.appendChild( document.createElement("BR") );
+            debug_div.appendChild(debug_textarea);
+
+            document.body.appendChild(debug_div);
 
             this.debug("NetClient.start\n");
         }
@@ -96,7 +113,7 @@ function NetClient(session_key) {
 
         } else if(command == "MOVE") { 
 
-            NetClient_eidogo_player.doMove(dataAr[0]);
+            NetClient_eidogo_player.doMove(dataAr[0], true);
             
         } else if(command == "DEAD") { 
 
@@ -112,6 +129,12 @@ function NetClient(session_key) {
         } else if(command == "BEGN") { 
 
             window.location.reload();
+
+        } else if(command == "SYNC") { 
+            
+            alert("Your client does is not synchronized with the server; your game will be reloaded, then please attempt your move again.");
+
+            // window.location.reload();
 
         }
     }
@@ -142,6 +165,12 @@ function NetClient(session_key) {
             // JSON is imported by orbited
             this.tcp.send(json_out + "\r\n");
         }
+    }
+
+    // this is a debug function that sends arbitrary strings 
+    this.sendraw = function(msg) { 
+        this.debug("SENDRAW: " + msg + "\n");
+        this.tcp.send(msg + "\r\n");
     }
 
     this.connected = function() { 

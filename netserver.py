@@ -15,7 +15,7 @@ from go import settings
 
 setup_environ(settings)
 
-from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode
+from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User, AnonymousUser
 
@@ -35,11 +35,14 @@ class GoServerProtocol(basic.LineReceiver):
 
    # user this connection is related to
    user = False
-
+   
    def debug(self, msg):
       print '%s %04d | %s' % (datetime.datetime.now(), self.transport.sessionno, msg)
       
    def connectionMade(self):
+      # dictionary where we store the users state per game
+      self.gamestate = {}
+
       self.debug('Connection opened')
    
    def connectionLost(self, reason):
@@ -116,10 +119,12 @@ class GoServerProtocol(basic.LineReceiver):
             new_user = True
 
             # this should really never return more than one row....
-            for part_that_joined in GameParticipant.objects.filter(Game = game, Participant=self.user):
-               new_user = False
-               part_that_joined.Present = True
-               part_that_joined.save()
+            part_that_joined = GameParticipant.objects.filter(Game = game, Participant=self.user)[0]
+            new_user = False
+            part_that_joined.Present = True
+            part_that_joined.save()
+            
+            self.gamestate[ game.id ] = part_that_joined.State
 
             # TODO .. can't figure out why this next line does not work the same as the preceeding 'for' block.. but it doesn't.. i dunno
             # new_user = ( GameParticipant.objects.filter(Game = self.game, Participant=self.user).update(Present = True) != 0 )
@@ -173,21 +178,21 @@ class GoServerProtocol(basic.LineReceiver):
             # TODO once we have a timer, hook this up to the proper value
             time_left = 0
 
-            # TODO validate the move, if its invalid alert the players that they need 
-            # to reload their boards to resync with the server.  The idea is that eidogo, once
-            # properly modified, will NEVER allow an illegal move.  If it does we assume the 
-            # player is somehow desynced (which shouldn't happen either unless a broken/cheating client)
-
             # Now store the move in the database
-            self.factory.storeMove(game.id, coord, color, node_id, parent_node_id, comments, time_left)
+            
+            if not self.factory.storeMove(game.id, coord, color, self.gamestate[ game.id ], node_id, parent_node_id, comments, time_left):
+               # illegal move! give them the sync message which indicates they are out of sync
+               response = ["SYNC", "Move rejected"]
 
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-               # send it to all players associated with the current game.. but not the user who made the move
-               # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
-               if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
-                  self.writeToTransport(["MOVE", game.id, coord, color], transport = connection.transport)
+            else:
 
-            response = CTS
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  # send it to all players associated with the current game.. but not the user who made the move
+                  # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
+                  if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
+                     self.writeToTransport(["MOVE", game.id, coord, color], transport = connection.transport)
+                     
+               response = CTS
 
 
          elif(cmd[0] == 'DEAD'):
@@ -370,22 +375,35 @@ class GoServerFactory(protocol.ServerFactory):
       return self.boards[ game_id ]
 
       
-   def storeMove(self, game_id, coord, color, client_node_id, client_parent_node_id, comments, time_left):
+   def storeMove(self, game_id, coord, color, playerColor, client_node_id, client_parent_node_id, comments, time_left):
       """
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
       
+      if playerColor != color:
+         self.debug("Illegal move received: Connection with color %s attempted to play %s" % (playerColor, color))
+         return False
+
       game = self.getGame( game_id ) 
+      board = self.getBoard( game_id )
+
+      ## First load the parent node from our DB
 
       # find the parent ID corresponding to the parent ID eidogo provided us with
       parentqs = GameNode.objects.filter(Game = game, ClientNodeId = client_parent_node_id)
       
       if len(parentqs):
-         self.debug("Found client node %d" % client_parent_node_id)
          parent_node = parentqs[0]
       else:
-         self.debug("Couldn't find client node %d" % client_parent_node_id)
          parent_node = GameNode.objects.filter(Game = game).order_by('-id')[0]
+
+      # attempt to make the move on the board
+      (legalMove, violation) = board.makeMove( parent_node, coord, color )
+      if not legalMove:
+         
+         # that move is invalid, notify caller
+         self.debug("Illegal move received: %s" % violation)
+         return False
 
       # create the node
       if parent_node:
@@ -401,7 +419,8 @@ class GoServerFactory(protocol.ServerFactory):
       move_prop = GameProperty(Node = node, Property = color, Value = coord)
       move_prop.save()
 
-
+      # success!
+      return True
 
 
 

@@ -38,13 +38,13 @@ def GameCreate(request):
 
 
 def GameMakeSGF(request, game_id):
-    from go.GoServer.models import SGF
+    from go.GoServer.models import GameTree
     
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
     
-    sgf = SGF( game_id ).dumpSGF()
+    sgf = GameTree( game_id ).dumpSGF()
 
     return HttpResponse(sgf)
 
@@ -74,7 +74,7 @@ def GameEdit(request, game_id):
 
 
 def GameView(request, game_id):
-    from go.GoServer.models import Game, GameParticipant, SGF
+    from go.GoServer.models import Game, GameParticipant, GameTree
     from django.contrib.auth.models import User
 
     if request.user.is_anonymous():
@@ -106,7 +106,7 @@ def GameView(request, game_id):
     else:
         user_b = {}
 
-    sgf = SGF( game.id ).dumpSGF()
+    sgf = GameTree( game.id ).dumpSGF()
         
     return render_to_response('GoServer/GameView.html', 
                               {"Game": game,
