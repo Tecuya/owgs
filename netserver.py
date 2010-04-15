@@ -174,7 +174,7 @@ class GoServerProtocol(basic.LineReceiver):
             node_id = cmd[4]
             parent_node_id = cmd[5]
             comments = ""
-
+            
             # TODO once we have a timer, hook this up to the proper value
             time_left = 0
 
