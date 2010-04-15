@@ -35,6 +35,7 @@ class Game(models.Model):
             player_list.append(part.Participant.username)
 
         return u'%s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.BoardSize, self.MainTime, self.Komi)
+
     
 class GameForm(ModelForm):
     class Meta:
@@ -47,12 +48,15 @@ class GameNode(models.Model):
     Nodes exist in a parent/child tree.
     When ParentNode is unset, this is the root node of the collection.
     """
-    Game = models.ForeignKey(Game)
 
     # muhuk #django/FreeNode sez:
     #  <muhuk> if I had a hierarcy, I wouldn't want blank=True, null=True on my FK. So I'd use a hack for the exception; the root node.
     # so consider that!  for now i'm being lazy and making this blank/null
     ParentNode = models.ForeignKey('self', null=True, blank=True)
+
+    Game = models.ForeignKey(Game)
+
+    ClientNodeId = models.IntegerField(null=True, blank=True)
 
 
 class GameProperty(models.Model):
@@ -175,9 +179,18 @@ class SGF:
         return ret
 
                 
-            
+class Board:
+    """ This class represents a go board. It is modelled after eidogo's game model as it closely integrates with it """
+    
+    def __init__(self, game):        
+        self.game = game
+        self.loadGameFromDatabase()
+    
+    def loadGameFromDatabase():
+        """ Load up a game from the database on to our board """        
 
-            
+        nodes = SGF(self.game.id).getNodes()
         
+    
 
     

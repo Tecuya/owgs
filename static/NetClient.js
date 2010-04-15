@@ -54,25 +54,31 @@ function NetClient(session_key) {
 
         dataAr = JSON.parse(line);
 
+        command = dataAr.shift();
+        
+        if(dataAr.length > 0) 
+            game_id = dataAr.shift()
+
         // if there are pending messages, then paste them 
-        if(dataAr[0] == "CTS") {
+        if(command == "CTS") {
+
             this.cts = true;
             if(this.sendq.length > 0) { 
                 this.send( this.sendq.pop() );
             }
 
-        } else if(dataAr[0] == "JOIN") { 
+        } else if(command == "JOIN") { 
             part_select = document.getElementById("ParticipantSelect");
 
             if(part_select.options[0].value == 0) { 
                 part_select.remove(0);
             }
             
-            part_select.options.add( new Option(dataAr[2] + ' ('+dataAr[3]+')', dataAr[1]) );
+            part_select.options.add( new Option(dataAr[1] + ' ('+dataAr[2]+')', dataAr[0]) );
 
-            this.updatechat('*** '+dataAr[2]+' has joined the game');
+            this.updatechat('*** '+dataAr[1]+' has joined the game');
 
-        } else if(dataAr[0] == "PART") { 
+        } else if(command == "PART") { 
 
             part_select = document.getElementById("ParticipantSelect");
             
@@ -82,28 +88,28 @@ function NetClient(session_key) {
                 }
             }
             
-            this.updatechat('*** '+dataAr[2]+' has left the game');
+            this.updatechat('*** '+dataAr[1]+' has left the game');
 
-        } else if(dataAr[0] == "CHAT") {
+        } else if(command == "CHAT") {
 
-            this.updatechat('<'+dataAr[1]+'> '+dataAr[2]);
+            this.updatechat('<'+dataAr[0]+'> '+dataAr[1]);
 
-        } else if(dataAr[0] == "MOVE") { 
+        } else if(command == "MOVE") { 
 
-            NetClient_eidogo_player.doMove(dataAr[1]);
+            NetClient_eidogo_player.doMove(dataAr[0]);
             
-        } else if(dataAr[0] == "DEAD") { 
+        } else if(command == "DEAD") { 
 
             // translate coord to a point (thats how scoreToggleStone likes it)
-            coord = NetClient_eidogo_player.sgfCoordToPoint(dataAr[1]);
+            coord = NetClient_eidogo_player.sgfCoordToPoint(dataAr[0]);
 
             NetClient_eidogo_player.scoreToggleStone( coord.x, coord.y, false );
             
-        } else if(dataAr[0] == "OFFR") { 
+        } else if(command == "OFFR") { 
 
-            this.receivedoffer(dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5], dataAr[6]);
+            this.receivedoffer(dataAr[0], dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5]);
 
-        } else if(dataAr[0] == "BEGN") { 
+        } else if(command == "BEGN") { 
 
             window.location.reload();
 
@@ -163,7 +169,7 @@ function NetClient(session_key) {
     }
 
     this.chat = function(chatinput) {
-        this.send( ["CHAT", chatinput.value] );
+        this.send( ["CHAT", this.game_id, chatinput.value] );
         chatinput.value = '';
     }
 
@@ -180,6 +186,8 @@ function NetClient(session_key) {
     this.onmove = function(data) { 
         coord = data[0];
         color = data[1];
+        node_id = data[2];
+        parent_node_id = data[3];
 
         // we only relay moves that *we* made
         if( ((eidogo_color == 'W') && (color == 'W')) ||
@@ -191,26 +199,12 @@ function NetClient(session_key) {
             // TODO support getting a copy of all the comments made since the last move from eidogo
             comments = "";
             
-            this.send( ["MOVE", coord, color, parent_node, comments] )
+            this.send( ["MOVE", this.game_id, coord, color, node_id, parent_node_id] )
         }
     }
 
-
-    this.onmove = function(data) { 
-        coord = data[0];
-        color = data[1];
-        
-        // TODO support getting the parent node from eidogo to enable variations!
-        parent_node = 0;
-        
-        // TODO support getting a copy of all the comments made since the last move from eidogo
-        comments = "";
-        
-        this.send( ["MOVE", coord, color, parent_node, comments] )
-    }
-
     this.ondead = function(data) { 
-        this.send( ["DEAD", NetClient_eidogo_player.pointToSgfCoord({'x': data[0], 'y': data[1]})] )
+        this.send( ["DEAD", this.game_id, NetClient_eidogo_player.pointToSgfCoord({'x': data[0], 'y': data[1]})] )
     }
 
     
@@ -219,7 +213,7 @@ function NetClient(session_key) {
         parts = document.getElementById('ParticipantSelect');
         selected_user = parts.options[ parts.selectedIndex ].value;
 
-        this.send( ["BEGN", selected_user ] )
+        this.send( ["BEGN", this.game_id, selected_user ] )
     }
 
     // this func is called when challenders click the "Offer to Play" button
@@ -229,7 +223,7 @@ function NetClient(session_key) {
         komi = document.getElementById("offer_Komi").value;
         my_color = document.getElementById("offer_Color").value;
         
-        this.send( ["OFFR", board_size, main_time, komi, my_color] )
+        this.send( ["OFFR", this.game_id, board_size, main_time, komi, my_color] )
     }
 
     // this func is called when an offer is received

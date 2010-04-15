@@ -1685,14 +1685,9 @@ eidogo.Player.prototype = {
      */
     createMove: function(coord) {
 
+        forColor = this.currentColor;
         otherColor = this.currentColor == 'W' ? 'B' : 'W';
-
-        // if owgsNetMode, eidogo_color sent, this move reflects our move
-        if( (this.owgsNetMode) &&
-            (eidogo_color) && 
-            (eidogo_color == this.currentColor) ) 
-
-            this.hook("owgs_createMove", [coord, this.currentColor]);
+        
 
         // if last move was a pass, and this move is a pass, move to score mode
         if((this.cursor.node[otherColor] == "tt") && (coord == "tt")) { 
@@ -1708,6 +1703,17 @@ eidogo.Player.prototype = {
         this.cursor.node.appendChild(varNode);
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
+
+        // if owgsNetMode, eidogo_color sent, this move reflects our move
+        if( (this.owgsNetMode) &&
+            (eidogo_color) && 
+            (eidogo_color == forColor) ) {
+
+            parent_node_id = (varNode._parent == null) ? 0 : varNode._parent._id;
+            
+            this.hook("owgs_createMove", [coord, forColor, varNode._id, parent_node_id]);
+        }
+
     },
 
     /**
