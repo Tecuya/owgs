@@ -25,7 +25,8 @@ eidogo.Rules.prototype = {
     /**
      * Called to see whether a stone may be placed at a given point
     **/
-    check: function(pt, colorLetter) {
+    check: function(pt, colorLetter, skipColorCheck) {
+
         // already occupied?
         if (this.board.getStone(pt) != this.board.EMPTY) {
             return false;
@@ -45,6 +46,7 @@ eidogo.Rules.prototype = {
         // if this is owgsNetMode then
         // check that this move color is in accord with the server position
         if( this.cfgRules.owgsNetMode && 
+            (!skipColorCheck) && 
             (colorLetter != eidogo_color) ) {
             violation = 'It is not your turn (Turn belongs to '+colorLetter+' but you are '+eidogo_color+')';            
         }

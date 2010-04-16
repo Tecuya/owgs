@@ -119,13 +119,13 @@ class GoServerProtocol(basic.LineReceiver):
             new_user = True
 
             # this should really never return more than one row....
-            part_that_joined = GameParticipant.objects.filter(Game = game, Participant=self.user)[0]
-            new_user = False
-            part_that_joined.Present = True
-            part_that_joined.save()
+            existing_rows = GameParticipant.objects.filter(Game = game, Participant=self.user)
+            if(len(existing_rows) > 0):
+               new_user = False
+               part_that_joined = existing_rows[0]
+               part_that_joined.Present = True
+               part_that_joined.save()
             
-            self.gamestate[ game.id ] = part_that_joined.State
-
             # TODO .. can't figure out why this next line does not work the same as the preceeding 'for' block.. but it doesn't.. i dunno
             # new_user = ( GameParticipant.objects.filter(Game = self.game, Participant=self.user).update(Present = True) != 0 )
 
@@ -146,6 +146,9 @@ class GoServerProtocol(basic.LineReceiver):
                # now make a participant entry to tie this user to the game in the database
                part_that_joined = GameParticipant( Participant=self.user, Game=game, State=newstate, Present=True )
                part_that_joined.save()
+
+            # store our game state so we are aware what color/state we are in this game later
+            self.gamestate[ game.id ] = part_that_joined.State
 
             # register this connection as being associated with this game in the factory.             
             self.factory.addToConnectionDB(self, game.id, self.user.id)
@@ -188,7 +191,6 @@ class GoServerProtocol(basic.LineReceiver):
 
                for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                   # send it to all players associated with the current game.. but not the user who made the move
-                  # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
                   if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
                      self.writeToTransport(["MOVE", game.id, coord, color], transport = connection.transport)
                      
@@ -201,7 +203,7 @@ class GoServerProtocol(basic.LineReceiver):
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                # send it to all players associated with the current game.. but not the user who made the move
                # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
-               if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
+               if self.transport.sessionno != connection.transport.sessionno:
                   self.writeToTransport(["DEAD", game.id, coord], transport = connection.transport)
 
             response = CTS
@@ -294,7 +296,21 @@ class GoServerProtocol(basic.LineReceiver):
 
             response = CTS
 
+         elif cmd[0] == 'NAVI':
+            
+            # three cmd[2] possiblities: 
+            # F / B (move a single space Forward or Back) 
+            # SEEK (move to a specific move number as clicked on the bar)
+            # TREE (move to a click on the tree)
+            # if cmd[2] == 'SINGLE':
 
+            # blindly relay the command TODO validate..
+            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               # dont send to the connection that made the move
+               if self.transport.sessionno != connection.transport.sessionno:
+                  self.writeToTransport(cmd, transport = connection.transport)
+               
+            response = CTS
 
       self.writeToTransport(response, self.transport)
 

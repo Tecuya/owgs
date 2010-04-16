@@ -56,6 +56,7 @@ class GameNode(models.Model):
 
     Game = models.ForeignKey(Game)
 
+    # this relates to the node ID on eidogo's side of things
     ClientNodeId = models.IntegerField(null=True, blank=True)
 
 
@@ -215,6 +216,8 @@ class Board:
 
         self.game = game
         
+        self.lastColor = self.BLACK
+
         self.board = []
 
         self.size = int(self.game.BoardSize.split('x')[0])
@@ -239,7 +242,7 @@ class Board:
         
     def syncBoardToNode( self, parent_node ):        
         # TODO implement some manner of caching here so its not necessary to always
-        # do a complete lookup of the game history!
+        # do a complete lookup of the game history!  This is slllooow
         nodes = GameTree( self.game.id ).getFullNodePath( parent_node, [] )
 
         propColorMap = {'W': self.WHITE,
@@ -247,14 +250,23 @@ class Board:
                         'B': self.BLACK,
                         'AB': self.BLACK}
         
+        # print 'node %d' % parent_node
+
         for (node,properties) in nodes:
             for prop in properties:
+                if prop.Value == "tt":
+                    continue
                 color = propColorMap[ prop.Property ]
                 (x,y) = self.sgfPointToXY( prop.Value )
+                # print node.ClientNodeId, node.ParentNode.ClientNodeId, x,y,color
                 self.setPoint(x, y, color)
                 self.lastColor = color
                 
     def ruleCheck( self, coord, color):
+        
+        # it's just a pass? that's always allowed
+        if coord == "tt":
+            return [True, ""]
 
         # out of order turn
         if(color == self.lastColor):
@@ -265,12 +277,16 @@ class Board:
 
         # out of bounds coordinates
         if x<0 or x>self.size-1 or y<0 or y>self.size-1:
-            return [False, "Invalid move: out of bounds"]
+            return [False, "Invalid move: out of bounds (%d, %d)" % (x, y)]
 
         # playing on already-occupied space
         if(self.getPoint(x,y) != self.EMPTY):
-            return [False, "Invalid move: occupied space"]
+            return [False, "Invalid move: occupied space (%d, %d, %d)" % (x, y, self.getPoint(x,y))]
         
+        # TODO suicide
+
+        # TODO ko
+
         return [True, ""]
 
     def getPoint( self, x, y ):

@@ -61,6 +61,8 @@ eidogo.Player.prototype = {
             'owgsNetMode': this.owgsNetMode
         };
         
+        this.allowUndo = cfg.allowUndo;
+
         // play, add_b, add_w, region, tr, sq, cr, label, number, score(?)
         this.mode = cfg.mode ? cfg.mode : "play";
     
@@ -1022,7 +1024,11 @@ eidogo.Player.prototype = {
         return vars;
     },
 
-    back: function(e, obj, noRender) {
+    back: function(e, obj, noRender, bypassHook) {
+
+        if(!bypassHook) 
+            this.hook("owgs_nav", ["B"]);
+
         if (this.cursor.previous()) {
             this.board.revert(1);
             this.goingBack = true;
@@ -1031,22 +1037,37 @@ eidogo.Player.prototype = {
         }
     },
 
-    forward: function(e, obj, noRender) {
+    forward: function(e, obj, noRender, bypassHook) {
+        
+        if(!bypassHook)
+            this.hook("owgs_nav", ["F"]);
+
         this.variation(null, noRender);
     },
 
-    first: function() {
+    first: function(bypassHook) {
+
+        if(!bypassHook)
+            this.hook("owgs_nav", ["FIRST"]);
+        
         if (!this.cursor.hasPrevious()) return;
         this.resetCursor(false, true);
     },
 
-    last: function() {
+    last: function(bypassHook) {
+
+        if(!bypassHook)
+            this.hook("owgs_nav", ["LAST"]);
+
         if (!this.cursor.hasNext()) return;
         while (this.variation(null, true)) {}
         this.refresh();
     },
 
     pass: function() {
+        this.doMove("tt");
+
+        /* old variation checking.. this seemed redundant to doMove's version
         if (!this.variations) return;
         for (var i = 0; i < this.variations.length; i++) {
             if (!this.variations[i].move || this.variations[i].move == "tt") {
@@ -1055,6 +1076,7 @@ eidogo.Player.prototype = {
             }
         }
         this.createMove('tt');
+        */
     },
 
     /**
@@ -1141,10 +1163,6 @@ eidogo.Player.prototype = {
         }
         
         if (this.mode == "play") {
-            // can't click there?
-            if (!this.rules.check({x: x, y: y}, this.currentColor)) {
-                return;
-            }
             
             this.doMove( coord );
 
@@ -1666,7 +1684,7 @@ eidogo.Player.prototype = {
         return ret;
     },
 
-    doMove: function(coord, owgs_bypassHook) { 
+    doMove: function(coord, owgs_serverMove) {         
         // play the move
         if (coord) {
             var nextMoves = this.cursor.getNextMoves();
@@ -1675,25 +1693,38 @@ eidogo.Player.prototype = {
                 this.variation(nextMoves[coord]);
             } else {
                 // move doesn't exist yet
-                this.createMove(coord, owgs_bypassHook);
+                this.createMove(coord, owgs_serverMove);
             }
         }
     },
-
+    
     /**
-     * Create an as-yet unplayed move and go to it.
+     * if the last two moves were passes, switch to scoring mode
      */
-    createMove: function(coord, owgs_bypassHook) {
-
-        forColor = this.currentColor;
+    checkForDoublePass: function() { 
         otherColor = this.currentColor == 'W' ? 'B' : 'W';
-        
 
-        // if last move was a pass, and this move is a pass, move to score mode
-        if((this.cursor.node[otherColor] == "tt") && (coord == "tt")) { 
+        if( (this.cursor.node[otherColor] == "tt") &&
+            (this.cursor.node._parent[this.currentColor] == "tt") ) { 
             this.dom.toolsSelect.value = "score";
             this.selectTool("score");
         }
+    },
+    
+    /**
+     * Create an as-yet unplayed move and go to it.
+     */
+    createMove: function(coord, owgs_serverMove) {
+
+        // can't click there?        
+        var pt = this.sgfCoordToPoint(coord);
+
+        // check the move for validity; unless its server-generated, in that case just accept it
+        if(!this.rules.check(pt, this.currentColor, owgs_serverMove)) { 
+            return;
+        }
+                
+        var forColor = this.currentColor;
 
         var props = {};
         props[this.currentColor] = coord;
@@ -1704,15 +1735,14 @@ eidogo.Player.prototype = {
         this.unsavedChanges = true;
         this.variation(this.cursor.node._children.length-1);
 
-        if( (!owgs_bypassHook) &&
-            (eidogo_color) && 
-            (eidogo_color == forColor) ) {
+        if(!owgs_serverMove) {
 
             parent_node_id = (varNode._parent == null) ? 0 : varNode._parent._id;
             
             this.hook("owgs_createMove", [coord, forColor, varNode._id, parent_node_id]);
         }
 
+        this.checkForDoublePass();
     },
 
     /**
@@ -1840,7 +1870,7 @@ eidogo.Player.prototype = {
     selectTool: function(tool) {
         var cursor;
         hide(this.dom.scoreEst);
-        hide(this.dom.scoreDone);
+        if(!this.allowUndo) hide(this.dom.undo);
         if (tool == "region") {
             cursor = "crosshair";
         } else if (tool == "comment") {
@@ -1850,6 +1880,7 @@ eidogo.Player.prototype = {
         } else if (tool == "score") {
             this.preScore(true);
             show(this.dom.scoreDone, "inline");
+            show(this.dom.undo, "inline");
         } else {
             cursor = "default";
             this.regionBegun = false;
@@ -2236,6 +2267,7 @@ eidogo.Player.prototype = {
                 </select>\
                 <input type='button' id='score-est' class='score-est-button' value='" + t['score est'] + "' />\
                 <input type='button' id='score-done' class='score-done-button' value='" + t['score done'] + "' />\
+                <input type='button' id='undo' class='undo-button' value='" + t['undo'] + "' />\
                 <select id='search-algo' class='search-algo'>\
                     <option value='corner'>" + t['search corner'] + "</option>\
                     <option value='center'>" + t['search center'] + "</option>\
@@ -2328,6 +2360,7 @@ eidogo.Player.prototype = {
          ['controlPass',      'pass'],
          ['scoreEst',         'fetchScoreEstimate'],
          ['scoreDone',        'postScore'],
+         ['undo',             'undo'],
          ['searchButton',     'searchRegion'],
          ['searchResults',    'loadSearchResult'],
          ['searchClose',      'closeSearch'],
@@ -2597,6 +2630,10 @@ eidogo.Player.prototype = {
                 msg.replace(/\n/g, "<br />") + "</div>";
             this.croaked = true;
         }
+    },
+
+    undo: function() { 
+        alert("Undo!");
     },
 
     postScore: function() { 

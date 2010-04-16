@@ -130,12 +130,18 @@ function NetClient(session_key) {
 
             window.location.reload();
 
+        } else if(command == "NAVI") { 
+            
+            this.navi(dataAr);
+
         } else if(command == "SYNC") { 
             
             alert("Your client does is not synchronized with the server; your game will be reloaded, then please attempt your move again.");
 
             // window.location.reload();
 
+        } else { 
+            alert("Unknown net command received from server: "+command);
         }
     }
 
@@ -217,25 +223,25 @@ function NetClient(session_key) {
         color = data[1];
         node_id = data[2];
         parent_node_id = data[3];
-
-        // we only relay moves that *we* made
-        if( ((eidogo_color == 'W') && (color == 'W')) ||
-            ((eidogo_color == 'B') && (color == 'B')) ) { 
-            
-            // TODO support getting the parent node from eidogo to enable variations!
-            parent_node = 0;
-            
-            // TODO support getting a copy of all the comments made since the last move from eidogo
-            comments = "";
-            
-            this.send( ["MOVE", this.game_id, coord, color, node_id, parent_node_id] )
-        }
+        
+        // TODO support getting the parent node from eidogo to enable variations!
+        parent_node = 0;
+        
+        // TODO support getting a copy of all the comments made since the last move from eidogo
+        comments = "";
+        
+        this.send( ["MOVE", this.game_id, coord, color, node_id, parent_node_id] )
     }
 
     this.ondead = function(data) { 
         this.send( ["DEAD", this.game_id, NetClient_eidogo_player.pointToSgfCoord({'x': data[0], 'y': data[1]})] )
     }
 
+    this.onnav = function(data) { 
+        data.unshift( this.game_id );
+        data.unshift( "NAVI" );
+        this.send( data );
+    }
     
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 
@@ -269,6 +275,23 @@ function NetClient(session_key) {
         
         
     }
+
+    this.navi = function(data) { 
+        movetype = data[0];
+        
+        if(movetype == "F") { 
+            NetClient_eidogo_player.forward(undefined, undefined, undefined, true);
+        } else if(movetype == "B") { 
+            NetClient_eidogo_player.back(undefined, undefined, undefined, true);
+        } else if(movetype == "FIRST") { 
+            NetClient_eidogo_player.first(true);
+        } else if(movetype == "LAST") { 
+            NetClient_eidogo_player.last(true); 
+        } else { 
+            alert("Unknown navigation command received: "+movetype);
+        }
+
+    }
 }
 
 
@@ -280,6 +303,7 @@ function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinerecei
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
 function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
 function NetClient_ondead_wrapper(data) { NetClient_instance.ondead(data); }
+function NetClient_onnav_wrapper(data) { NetClient_instance.onnav(data); }
 function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 // init funcs
@@ -311,7 +335,8 @@ function initEidogo() {
         // sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
         hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
-                          "owgs_scoreToggleStone": NetClient_ondead_wrapper},
+                          "owgs_scoreToggleStone": NetClient_ondead_wrapper,
+                          "owgs_nav": NetClient_onnav_wrapper},
         loadPath:        [0, 0],
         showComments:    true,
         showPlayerInfo:  true,
@@ -324,12 +349,16 @@ function initEidogo() {
         markNext:        false,
         enableShortcuts: false,
         problemMode:     false,
+        allowUndo:       false,
         owgsNetMode:     true
     });
     
     
     // NetClient_eidogo_player.loadSgf( {'sgf': eidogo_SGF} );
     NetClient_eidogo_player.last();
+
+    NetClient_eidogo_player.checkForDoublePass();
+    
 }
 
 
