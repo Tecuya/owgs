@@ -277,7 +277,7 @@ function NetClient(session_key) {
     }
 
     this.navi = function(data) { 
-        movetype = data[0];
+        movetype = data.shift();
         
         if(movetype == "F") { 
             NetClient_eidogo_player.forward(undefined, undefined, undefined, true);
@@ -287,6 +287,8 @@ function NetClient(session_key) {
             NetClient_eidogo_player.first(true);
         } else if(movetype == "LAST") { 
             NetClient_eidogo_player.last(true); 
+        } else if(movetype == "TREE") { 
+            NetClient_eidogo_player.navTreeClick( false, data[0], true );
         } else { 
             alert("Unknown navigation command received: "+movetype);
         }

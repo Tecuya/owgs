@@ -2512,12 +2512,20 @@ eidogo.Player.prototype = {
         current.className = "current";
     },
     
-    navTreeClick: function(e) {
-        var target = e.target || e.srcElement;
-        if (target.nodeName.toLowerCase() == "li" && target.className == "first")
-            target = target.parentNode.previousSibling.lastChild;
-        if (!target || !target.id) return;
-        var path = target.id.replace(/^navtree-node-/, "").split("-");
+    navTreeClick: function(e, injectPath, bypassHook) {
+        if(!injectPath) { 
+            var target = e.target || e.srcElement;
+            if (target.nodeName.toLowerCase() == "li" && target.className == "first")
+                target = target.parentNode.previousSibling.lastChild;
+            if (!target || !target.id) return;
+            var path = target.id.replace(/^navtree-node-/, "").split("-");
+        } else { 
+            var path = injectPath;
+        }
+        
+        if(!bypassHook) 
+            this.hook("owgs_nav", ["TREE", path]);
+
         this.goTo(path, true);
         stopEvent(e);
     },
