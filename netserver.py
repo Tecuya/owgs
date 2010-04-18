@@ -309,6 +309,15 @@ class GoServerProtocol(basic.LineReceiver):
                
             response = CTS
 
+         elif cmd[0] == 'UNDO':
+            
+            # TODO
+            # if someone requests an undo, we need to relay their request to the other
+            # player.  If the other player accepts we'll get an UND
+
+
+            response = CTS
+
       self.writeToTransport(response, self.transport)
 
 
@@ -388,7 +397,7 @@ class GoServerFactory(protocol.ServerFactory):
       return self.boards[ game_id ]
 
       
-   def storeMove(self, game_id, coord, color, playerColor, client_node_id, client_parent_node_id, comments, time_left):
+   def storeMove(self, game_id, coord, color, playerColor, client_node_id, client_parent_node_iD, comments, time_left):
       """
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
@@ -400,7 +409,7 @@ class GoServerFactory(protocol.ServerFactory):
       game = self.getGame( game_id ) 
       board = self.getBoard( game_id )
 
-      ## First load the parent node from our DB
+      ## First load the parent node from our DBx
 
       # find the parent ID corresponding to the parent ID eidogo provided us with
       parentqs = GameNode.objects.filter(Game = game, ClientNodeId = client_parent_node_id)

@@ -241,6 +241,10 @@ function NetClient(session_key) {
         this.send( ["NAVI", this.game_id, path] );
     }
     
+    this.onundo = function() { 
+        this.send( ["UNDO", this.game_id] );
+    }
+
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 
         parts = document.getElementById('ParticipantSelect');
@@ -289,6 +293,7 @@ function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
 function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
 function NetClient_ondead_wrapper(data) { NetClient_instance.ondead(data); }
 function NetClient_onnav_wrapper(data) { NetClient_instance.onnav(data); }
+function NetClient_onundo_wrapper(data) { NetClient_instance.onundo(data); }
 function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 // init funcs
@@ -321,7 +326,9 @@ function initEidogo() {
         mode:            "play",
         hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
                           "owgs_scoreToggleStone": NetClient_ondead_wrapper,
-                          "owgs_nav": NetClient_onnav_wrapper},
+                          "owgs_nav": NetClient_onnav_wrapper,
+                          "owgs_undo": NetClient_onundo_wrapper,
+                         },
         loadPath:        [0, 0],
         showComments:    true,
         showPlayerInfo:  true,
@@ -334,7 +341,7 @@ function initEidogo() {
         markNext:        false,
         enableShortcuts: false,
         problemMode:     false,
-        allowUndo:       false,
+        allowUndo:       true,
         owgsNetMode:     true
     });
     

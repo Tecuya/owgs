@@ -221,6 +221,9 @@ eidogo.Player.prototype = {
         if (cfg.sgf || cfg.sgfUrl || (cfg.sgfPath && cfg.gameName)) {
             this.loadSgf(cfg);
         }
+
+        // show undo button if we allow it
+        if(this.allowUndo) show(this.dom.undo, "inline");
         
         this.hook("initDone");
     },
@@ -1056,7 +1059,6 @@ eidogo.Player.prototype = {
 
         if(!bypassHook) 
             this.hook("owgs_nav", this.cursor.getPath());
-
     },
 
     forward: function(e, obj, noRender, bypassHook) {
@@ -1065,7 +1067,6 @@ eidogo.Player.prototype = {
 
         if(!bypassHook)
             this.hook("owgs_nav", this.cursor.getPath());
-
     },
 
     first: function(bypassHook) {
@@ -1915,6 +1916,7 @@ eidogo.Player.prototype = {
     selectTool: function(tool) {
         var cursor;
         hide(this.dom.scoreEst);
+        hide(this.dom.scoreDone);
         if(!this.allowUndo) hide(this.dom.undo);
         hide(this.dom.labelInput);
         if (tool == "region") {
@@ -2513,6 +2515,7 @@ eidogo.Player.prototype = {
             if (delta < 0) {
                 this.board.revert(Math.abs(delta));
             }
+            this.hook("owgs_nav", this.cursor.getPath());
             this.doneLoading();
             this.refresh();
         }
@@ -2800,8 +2803,9 @@ eidogo.Player.prototype = {
         }
     },
 
+    // undo is server-mediated.. 
     undo: function() { 
-        alert("Undo!");
+        this.hook("owgs_undo");
     },
 
     postScore: function() { 
