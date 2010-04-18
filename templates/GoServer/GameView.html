@@ -23,9 +23,12 @@ eidogo_SGF = "{{ SGF }}";
 // lets eidogo know what color we are
 eidogo_color = "{{ YouAreColor }}";
 
+{% if Game.FocusNode %}
+eidogo_focusNode = "{{ Game.FocusNode }}";
+{% endif %}
+
 // init eidogo event
 window.addEventListener("load", initEidogo, false);
-
 {% endif %}
 </script>
 <style type="text/css">

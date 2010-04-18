@@ -73,7 +73,7 @@ class Game(models.Model):
     ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1)
     
     # stores the node which is currently focused in this game
-    FocusNode = models.ForeignKey(GameNode, null=True, blank=True)
+    FocusNode = models.IntegerField('Focus Client Node Id', blank=True, null=True)
 
     def __unicode__(self):
         player_list = []
@@ -130,7 +130,6 @@ class GameTree:
 
         nodeList = self.getNodes()
 
-
         def makeCollection(items):
             # TODO this is ugly as sin, should be cleaned
             outSGF = u''
@@ -168,9 +167,9 @@ class GameTree:
 
         # define a func to get node list for this parentnode; this way we can use is_null or node num
         if parentNode == 0:
-            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode__isnull = True)
+            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode__isnull = True).order_by('ClientNodeId')
         else:
-            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode = parentNode)
+            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode = parentNode).order_by('ClientNodeId')
             
         childcount = len(nodes.all())
 
@@ -260,12 +259,11 @@ class GameTree:
                     
                 
             # count represents the path position
-            pathList.append(counter-1)
+            pathList.append(counter)
 
             # aand recurse
             return self.getClientPath( node.ParentNode, pathList )
 
-        
                 
 class Board:
     """ This class represents a go board. It is modelled after eidogo's game model as it closely integrates with it.  It is used to perform move validation / rule checking on client-generated moves. """

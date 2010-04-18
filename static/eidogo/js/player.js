@@ -720,6 +720,7 @@ eidogo.Player.prototype = {
      * into account.
     **/
     goTo: function(path, fromStart) {
+        
         fromStart = typeof fromStart != "undefined" ? fromStart : true;
         if (fromStart)
             this.resetCursor(true);
@@ -1026,42 +1027,50 @@ eidogo.Player.prototype = {
 
     back: function(e, obj, noRender, bypassHook) {
 
-        if(!bypassHook) 
-            this.hook("owgs_nav", ["B"]);
-
         if (this.cursor.previous()) {
             this.board.revert(1);
             this.goingBack = true;
             this.refresh(noRender);
             this.resetLastLabels();
         }
+
+        if(!bypassHook) 
+            this.hook("owgs_nav", this.cursor.getPath());
+
     },
 
     forward: function(e, obj, noRender, bypassHook) {
         
-        if(!bypassHook)
-            this.hook("owgs_nav", ["F"]);
-
         this.variation(null, noRender);
+
+        if(!bypassHook)
+            this.hook("owgs_nav", this.cursor.getPath());
+
     },
 
     first: function(bypassHook) {
-
-        if(!bypassHook)
-            this.hook("owgs_nav", ["FIRST"]);
         
         if (!this.cursor.hasPrevious()) return;
         this.resetCursor(false, true);
+
+        // because this is called as an event handler, a parameter is always passed.
+        // if it is object, we know someone didn't specify bypassHook = true, which wouldnt be a object
+        if(typeof(bypassHook) == 'object') 
+            this.hook("owgs_nav", this.cursor.getPath());
+
     },
 
     last: function(bypassHook) {
 
-        if(!bypassHook)
-            this.hook("owgs_nav", ["LAST"]);
-
         if (!this.cursor.hasNext()) return;
         while (this.variation(null, true)) {}
         this.refresh();
+
+        // because this is called as an event handler, a parameter is always passed.
+        // if it is object, we know someone didn't specify bypassHook = true, which wouldnt be a object
+        if(typeof(bypassHook) == 'object') 
+            this.hook("owgs_nav", this.cursor.getPath());
+
     },
 
     pass: function() {
@@ -2522,12 +2531,13 @@ eidogo.Player.prototype = {
         } else { 
             var path = injectPath;
         }
-        
-        if(!bypassHook) 
-            this.hook("owgs_nav", ["TREE", path]);
 
         this.goTo(path, true);
         stopEvent(e);
+
+        if(!bypassHook) 
+            this.hook("owgs_nav", this.cursor.getPath());
+
     },
 
     resetLastLabels: function() {
@@ -2855,9 +2865,30 @@ eidogo.Player.prototype = {
 
         // return the current borderStone
         return borderStone;
+    },
+
+    goToNode: function(toNodeId) { 
+        
+        foundNode = false;
+
+        this.collectionRoot.walk( 
+            function(node) { 
+                if( ( typeof(foundNode) != "object" ) &&
+                    ( node._id == toNodeId ) ) 
+                    foundNode = node;
+            }
+        );
+          
+        if(!foundNode) { 
+            alert("Node from NAVI command not found: "+foundNode);
+            return;
+        } 
+
+        cur = new eidogo.GameCursor( foundNode );
+        cur.node = foundNode;
+
+        this.goTo( cur.getPath() );
     }
-
-
 };
     
 })();

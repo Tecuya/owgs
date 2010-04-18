@@ -276,10 +276,12 @@ eidogo.GameCursor.prototype = {
     hasNext: function() {
         return this.node && this.node._children.length;
     },
+
     hasPrevious: function() {
         // Checking _parent of _parent is to prevent returning to root
         return this.node && this.node._parent && this.node._parent._parent;
     },
+
     getNextMoves: function() {
         if (!this.hasNext()) return null;
         var moves = {};

@@ -298,11 +298,8 @@ class GoServerProtocol(basic.LineReceiver):
 
          elif cmd[0] == 'NAVI':
             
-            # three cmd[2] possiblities: 
-            # F / B (move a single space Forward or Back) 
-            # SEEK (move to a specific move number as clicked on the bar)
-            # TREE (move to a click on the tree)
-            # if cmd[2] == 'SINGLE':
+            # prepare the command to send to clients
+            cmd = ["NAVI", game.id, cmd[2]]
 
             # blindly relay the command TODO validate..
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:

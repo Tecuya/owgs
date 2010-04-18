@@ -237,10 +237,8 @@ function NetClient(session_key) {
         this.send( ["DEAD", this.game_id, NetClient_eidogo_player.pointToSgfCoord({'x': data[0], 'y': data[1]})] )
     }
 
-    this.onnav = function(data) { 
-        data.unshift( this.game_id );
-        data.unshift( "NAVI" );
-        this.send( data );
+    this.onnav = function(path) { 
+        this.send( ["NAVI", this.game_id, path] );
     }
     
     // this func is called when the game owner decides he's ready to start the game
@@ -277,22 +275,7 @@ function NetClient(session_key) {
     }
 
     this.navi = function(data) { 
-        movetype = data.shift();
-        
-        if(movetype == "F") { 
-            NetClient_eidogo_player.forward(undefined, undefined, undefined, true);
-        } else if(movetype == "B") { 
-            NetClient_eidogo_player.back(undefined, undefined, undefined, true);
-        } else if(movetype == "FIRST") { 
-            NetClient_eidogo_player.first(true);
-        } else if(movetype == "LAST") { 
-            NetClient_eidogo_player.last(true); 
-        } else if(movetype == "TREE") { 
-            NetClient_eidogo_player.navTreeClick( false, data[0], true );
-        } else { 
-            alert("Unknown navigation command received: "+movetype);
-        }
-
+        NetClient_eidogo_player.goTo( data[0], true );
     }
 }
 
@@ -355,9 +338,10 @@ function initEidogo() {
         owgsNetMode:     true
     });
     
-    
-    // NetClient_eidogo_player.loadSgf( {'sgf': eidogo_SGF} );
-    NetClient_eidogo_player.last();
+    if(typeof(eidogo_focusNode) != "undefined")
+        NetClient_eidogo_player.goToNode( eidogo_focusNode );
+    else 
+        NetClient_eidogo_player.last();
 
     NetClient_eidogo_player.checkForDoublePass();
     
