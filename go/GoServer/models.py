@@ -4,44 +4,6 @@ from django.forms import ModelForm
 # so we can have user foreign keys
 from django.contrib.auth.models import User
 
-class Game(models.Model):
-    import datetime
-     
-    Owner = models.ForeignKey(User)
-    StartDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
-    BoardSize = models.CharField(max_length=10, choices=(('19x19','19 x 19'),
-                                                         ('13x13','13 x 13'),
-                                                         ('9x9','9 x 9')), default='19x19')
-    MainTime = models.TimeField('Main Time')    
-    Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
-    
-    PlayersAssigned = models.BooleanField('Players Assigned')
-
-    Winner = models.CharField('Winning Color', max_length=1, choices=(('W', 'White'),
-                                                                      ('B', 'Black'),
-                                                                      ('U', 'Unset')), default='U')
-
-    WinType = models.CharField('Win Type', max_length=1, choices=(('S', 'Score'),
-                                                                  ('R', 'Resignation'),
-                                                                  ('F', 'Forfeit'),
-                                                                  ('U', 'Unset')), default='U')
-    
-    ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1)
-    
-    def __unicode__(self):
-        player_list = []
-
-        for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
-            player_list.append(part.Participant.username)
-
-        return u'%s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.BoardSize, self.MainTime, self.Komi)
-
-    
-class GameForm(ModelForm):
-    class Meta:
-        model = Game
-        exclude = ('Owner', 'StartDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner')
-
 class GameNode(models.Model):
     """ 
     This model represents an SGF node.  
@@ -54,7 +16,7 @@ class GameNode(models.Model):
     # so consider that!  for now i'm being lazy and making this blank/null
     ParentNode = models.ForeignKey('self', null=True, blank=True)
 
-    Game = models.ForeignKey(Game)
+    Game = models.ForeignKey('Game')
 
     # this relates to the node ID on eidogo's side of things
     ClientNodeId = models.IntegerField(null=True, blank=True)
@@ -71,6 +33,62 @@ class GameProperty(models.Model):
 
     def __unicode__(self):
         return '%s %s' % (self.Property, self.Value)
+
+
+class Game(models.Model):
+    import datetime
+    
+    # the owner of the game
+    Owner = models.ForeignKey(User)
+
+    # Date at which this game record was created
+    StartDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
+
+    # board size
+    BoardSize = models.CharField(max_length=10, choices=(('19x19','19 x 19'),
+                                                         ('13x13','13 x 13'),
+                                                         ('9x9','9 x 9')), default='19x19')
+
+    # Main time period length
+    MainTime = models.TimeField('Main Time')    
+
+    # Komi for this game
+    Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
+    
+    # Indicates whether or not W / B players are determined
+    PlayersAssigned = models.BooleanField('Players Assigned')
+
+    # Winning color
+    Winner = models.CharField('Winning Color', max_length=1, choices=(('W', 'White'),
+                                                                      ('B', 'Black'),
+                                                                      ('U', 'Unset')), default='U')
+
+    # Type of win
+    WinType = models.CharField('Win Type', max_length=1, choices=(('S', 'Score'),
+                                                                  ('R', 'Resignation'),
+                                                                  ('F', 'Forfeit'),
+                                                                  ('U', 'Unset')), default='U')
+    
+    # the difference between W & B's score
+    ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1)
+    
+    # stores the node which is currently focused in this game
+    FocusNode = models.ForeignKey(GameNode, null=True, blank=True)
+
+    def __unicode__(self):
+        player_list = []
+
+        for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
+            player_list.append(part.Participant.username)
+
+        return u'%s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.BoardSize, self.MainTime, self.Komi)
+
+    
+class GameForm(ModelForm):
+    class Meta:
+        model = Game
+        exclude = ('Owner', 'StartDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode')
+
         
 class GameParticipant(models.Model):
     import datetime
@@ -178,14 +196,14 @@ class GameTree:
         return ret
 
     
-    def getFullNodePath(self, parent_node_id, nodeList):
+    def getFullNodePath(self, findnode, nodeList = [] ):
         """ Returns a list of all nodes in order which are ancestors of node named by node_id """
         
         # get the node
-        if not parent_node_id:
+        if not findnode:
             node = False
         else:
-            node = GameNode.objects.get( pk = parent_node_id )
+            node = GameNode.objects.get( pk = findnode )
 
         # if we didnt get a node, we are done
         if not node or not node.ParentNode:
@@ -204,6 +222,50 @@ class GameTree:
             
             # get the parent node
             return self.getFullNodePath( node.ParentNode.id, nodeList )
+
+
+    def getClientPath(self, node, pathList = False ):
+        """ Return an eidogo-style node path """
+
+        if not pathList:
+            pathList = []
+
+        # if we didnt get a node, we are done
+        if not node or not node.ParentNode:
+            
+            # reverse the list so it is in first-to-last move order (we built it in reverse)
+            pathList.append(0)
+            pathList.append(0)
+            pathList.reverse()
+            return pathList
+
+        else:         
+
+            # loop back until we find a parent that has multiple children
+
+            counter=0
+            while True:
+                
+                # find how many siblings this node has
+                qs = GameNode.objects.filter( ParentNode = node.ParentNode )
+                if len(qs) == 1:
+                    counter += 1
+                    
+                if node.ParentNode:
+                    # exactly one child..  keep going
+                    node = node.ParentNode
+                    
+                else:
+                    break
+                    
+                
+            # count represents the path position
+            pathList.append(counter-1)
+
+            # aand recurse
+            return self.getClientPath( node.ParentNode, pathList )
+
+        
                 
 class Board:
     """ This class represents a go board. It is modelled after eidogo's game model as it closely integrates with it.  It is used to perform move validation / rule checking on client-generated moves. """
@@ -240,10 +302,11 @@ class Board:
         y = ord(sgfPoint[1]) - 97
         return [x,y]
         
-    def syncBoardToNode( self, parent_node ):        
+    def syncBoardToNode( self, syncnode ):        
+
         # TODO implement some manner of caching here so its not necessary to always
         # do a complete lookup of the game history!  This is slllooow
-        nodes = GameTree( self.game.id ).getFullNodePath( parent_node, [] )
+        nodes = GameTree( self.game.id ).getFullNodePath( syncnode )
 
         propColorMap = {'W': self.WHITE,
                         'AW': self.WHITE,
@@ -295,3 +358,11 @@ class Board:
     def setPoint( self, x, y, color ):
         self.board[ y * self.size + x ] = color
         
+class GameCursor:
+    """ This class represents a cursor for traversing sgf nodes. It is modelled after eidogo's game model as it closely integrates with it. """
+    
+    def __init__(self, node):
+        self.node = node
+
+    def hasNext(self):
+        pass
