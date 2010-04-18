@@ -46,16 +46,25 @@
         }
         var el;
         for (var i = 0; el = els[i]; i++) {
-            var cfg = {container: el, disableShortcuts: true, theme: "compact"};
-            for (var key in autoCfg)
-                cfg[key] = autoCfg[key];
+
+            var cfg = {container: el, enableShortcuts: false, theme: "compact"};
+
             if (eidogo.util.hasClass(el, "eidogo-player-problem"))
                 for (var key in problemCfg)
                     cfg[key] = problemCfg[key];
             
+            for (var key in autoCfg)
+                cfg[key] = autoCfg[key];
+
             var sgfUrl = el.getAttribute('sgf');
-            if (sgfUrl) cfg.sgfUrl = sgfUrl;
-            else if (el.innerHTML) cfg.sgf = el.innerHTML;
+            if (sgfUrl) 
+                cfg.sgfUrl = sgfUrl;
+            else if (el.innerHTML) 
+                cfg.sgf = el.innerHTML;
+
+            var shrink = el.getAttribute('shrink');
+            if (shrink)
+                cfg.shrinkToFit = (shrink == "no" ? false : true);            
             
             el.innerHTML = "";
             eidogo.util.show(el);

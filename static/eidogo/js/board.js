@@ -393,14 +393,14 @@ eidogo.BoardRendererHtml.prototype = {
     },
     handleHover: function(e) {
         var xy = this.getXY(e);
-        this.player.handleBoardHover(xy[0], xy[1]);
+        this.player.handleBoardHover(xy[0], xy[1], xy[2], xy[3], e);
     },
     handleMouseDown: function(e) {
         var xy = this.getXY(e);
-        this.player.handleBoardMouseDown(xy[0], xy[1]);
+        this.player.handleBoardMouseDown(xy[0], xy[1], xy[2], xy[3], e);
     },
     handleMouseUp: function(e) {
-        var xy = this.getXY(e);
+        var xy = this.getXY(e);        
         this.player.handleBoardMouseUp(xy[0], xy[1]);
     },
     /**
@@ -415,14 +415,14 @@ eidogo.BoardRendererHtml.prototype = {
         
         var x = Math.round((clickXY[0] - m - (pw / 2)) / pw);
         var y = Math.round((clickXY[1] - m - (ph / 2)) / ph);
-    
-        return [x, y];
+
+        return [x, y, clickXY[0], clickXY[1]];
     },
     crop: function(crop) {
         eidogo.util.addClass(this.domContainer, "shrunk");
         this.domGutter.style.overflow = "hidden";
-        var width = crop.width * this.pointWidth + this.margin;
-        var height = crop.height * this.pointHeight + this.margin;
+        var width = crop.width * this.pointWidth + (this.margin * 2);
+        var height = crop.height * this.pointHeight + (this.margin * 2);
         this.domGutter.style.width = width + "px";
         this.domGutter.style.height = height + "px";
         this.player.dom.player.style.width = width + "px";

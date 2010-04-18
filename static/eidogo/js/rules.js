@@ -46,7 +46,7 @@ eidogo.Rules.prototype = {
         // if this is owgsNetMode then
         // check that this move color is in accord with the server position
         if( this.cfgRules.owgsNetMode && 
-            (!skipColorCheck) && 
+            (!skipColorCheck) &&
             (colorLetter != eidogo_color) ) {
             violation = 'It is not your turn (Turn belongs to '+colorLetter+' but you are '+eidogo_color+')';            
         }

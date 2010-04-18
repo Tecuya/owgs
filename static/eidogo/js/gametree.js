@@ -144,18 +144,19 @@ eidogo.GameNode.prototype = {
      * Applies a function to this node and all its children, recursively
      * (although we use a stack instead of actual recursion)
     **/
-    walk: function(fn) {
+    walk: function(fn, thisObj) {
         var stack = [this];
         var node;
         var i, len;
         while (stack.length) {
             node = stack.pop();
-            fn(node);
+            fn.call(thisObj || this, node);
             len = (node._children ? node._children.length : 0);
             for (i = 0; i < len; i++)
                 stack.push(node._children[i]);
         }
     },
+
     /**
      * Get the current black or white move as a raw SGF coordinate
     **/
@@ -305,23 +306,20 @@ eidogo.GameCursor.prototype = {
         return node;
     },
     getPath: function() {
-        var path = [];
-        var cur = new eidogo.GameCursor(this.node);
-        var mn = (cur.node._parent && cur.node._parent._parent ? -1 : null);
-        var prev;
-        do {
-            prev = cur.node;
-            cur.previous();
-            if (mn != null) mn++;
-        } while (cur.hasPrevious() && cur.node._children.length == 1);
-        if (mn != null)
-            path.push(mn);
-        path.push(prev.getPosition());
-        do {
-            if (cur.node._children.length > 1 || cur.node._parent._parent == null)
-                path.push(cur.node.getPosition());
-        } while (cur.previous());
-        return path.reverse();
+        var n = this.node,
+            rpath = [],
+            mn = 0;
+        while (n && n._parent && n._parent._children.length == 1 && n._parent._parent) {
+            mn++;
+            n = n._parent;
+        }
+        rpath.push(mn);
+        while (n) {
+            if (n._parent && (n._parent._children.length > 1 || !n._parent._parent))
+                rpath.push(n.getPosition() || 0);
+            n = n._parent;
+        }
+        return rpath.reverse();
     },
     getPathMoves: function() {
         var path = [];
