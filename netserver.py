@@ -191,7 +191,7 @@ class GoServerProtocol(basic.LineReceiver):
 
             else:
 
-               # same the focusNode
+               # save the focusNode
                game.FocusNode = int(new_node_id)
                game.save()
                
@@ -308,7 +308,9 @@ class GoServerProtocol(basic.LineReceiver):
             response = CTS
 
          elif cmd[0] == 'NAVI':
-            
+
+            # TODO validate  .. dont allow NAVI outside of teaching/review modes
+
             # prepare the command to send to clients
             cmd = ["NAVI", game.id, cmd[2]]
 
@@ -316,7 +318,6 @@ class GoServerProtocol(basic.LineReceiver):
             game.FocusNode = int(cmd[2])
             game.save()
 
-            # blindly relay the command TODO validate..
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                # dont send to the connection that made the move
                if self.transport.sessionno != connection.transport.sessionno:
@@ -325,14 +326,40 @@ class GoServerProtocol(basic.LineReceiver):
             response = CTS
 
          elif cmd[0] == 'UNDO':
+
+            # TODO if a game is in scoring mode.  undo should always be automatically accepted.
+
+            if not game.AllowUndo:
+               # if you undo on a game that doesnt allow it you are desynced.
+               response = ["SYNC", "Move rejected"]               
+
+            else:
+               
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  # send it to all players associated with the current game.. but not the user who made the request
+                  if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
+                     self.writeToTransport(["UNDO", self.gamestate[ game.id]], transport = connection.transport)
+               
+               # send a CTS back to requesting player
+               response = CTS
+
+
+         elif cmd[0] == 'OKUN':
             
-            # TODO
-            # if someone requests an undo, we need to relay their request to the other
-            # player.  If the other player accepts we'll get an UND
+            # TODO implement
 
+            # client accepted opponents undo request.  
 
-            response = CTS
+            # check that there is a pending undo request!
 
+            # if so, issue a command to all connections including caller instructing client to move back one move... i guess this would be via a NAVI
+            # command.
+
+            pass
+            
+               
+
+      # write whatever response we came up with above
       self.writeToTransport(response, self.transport)
 
 
@@ -392,6 +419,19 @@ class GoServerFactory(protocol.ServerFactory):
          del self.connectionList[key];
 
       return deletedList
+
+
+   def getConnectionForUserState(self, game_id, state):
+
+      for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+         # this is the right game at least?
+         if conn_game_id == game_id:            
+            user = User.objects.get(pk = conn_user_id)
+            part = GameParticipant.objects.get(Participant = user, Game = self.getGame( game_id ))
+            if part.State == state:
+               return connection
+
+      return False
 
                   
    def getGame(self, game_id):

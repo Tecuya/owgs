@@ -51,6 +51,9 @@ class Game(models.Model):
 
     # Komi for this game
     Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
+
+    # Indicates whether or not W / B players are determined
+    AllowUndo = models.BooleanField('Allow Undo')
     
     # Indicates whether or not W / B players are determined
     PlayersAssigned = models.BooleanField('Players Assigned')
@@ -239,7 +242,8 @@ class Board:
 
         self.game = game
         
-        self.lastColor = self.BLACK
+        # initially we say white went last; so black can go next
+        self.lastColor = self.WHITE
 
         self.board = []
 
@@ -296,7 +300,7 @@ class Board:
             return [True, ""]
 
         if(color == self.lastColor):
-            return [False, "Color out of order"]
+            return [False, "Color out of order %d == %d" % (color, self.lastColor)]
 
         # get the x,y
         (x,y) = self.sgfPointToXY( coord )

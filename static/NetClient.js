@@ -115,9 +115,15 @@ function NetClient(session_key) {
 
             NetClient_eidogo_player.doMove(dataAr[0], true, dataAr[1]);
 
-        } else if(command == "NODE") { 
-            
+        } else if(command == "NODE") {             
+
             NetClient_eidogo_player.assignSnProp( dataAr[0] );
+
+        } else if(command == "UNDO") { 
+
+            if(confirm("Opponent requested an undo.  Allow?")) { 
+                this.send(["OKUN"]);
+            }
 
         } else if(command == "DEAD") { 
 
