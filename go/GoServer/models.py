@@ -18,9 +18,6 @@ class GameNode(models.Model):
 
     Game = models.ForeignKey('Game')
 
-    # this relates to the node ID on eidogo's side of things
-    ClientNodeId = models.IntegerField(null=True, blank=True)
-
 
 class GameProperty(models.Model):
     """
@@ -73,7 +70,7 @@ class Game(models.Model):
     ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1)
     
     # stores the node which is currently focused in this game
-    FocusNode = models.IntegerField('Focus Client Node Id', blank=True, null=True)
+    FocusNode = models.IntegerField('Focus Node Id', blank=True, null=True)
 
     def __unicode__(self):
         player_list = []
@@ -167,9 +164,9 @@ class GameTree:
 
         # define a func to get node list for this parentnode; this way we can use is_null or node num
         if parentNode == 0:
-            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode__isnull = True).order_by('ClientNodeId')
+            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode__isnull = True).order_by('id')
         else:
-            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode = parentNode).order_by('ClientNodeId')
+            nodes = GameNode.objects.filter(Game = self.game_id, ParentNode = parentNode).order_by('id')
             
         childcount = len(nodes.all())
 
@@ -178,8 +175,18 @@ class GameTree:
             noderet = []
 
             propList = []
+            hasSN = False
             for prop in node.gameproperty_set.all():
+
+                if prop.Property == "SN":
+                    hasSN = True
+
                 propList.append( [prop.Property, prop.Value] )
+
+
+            # provided its not already there, artificially add the SN property for eidogo / server node syncing
+            if not hasSN:
+                propList.append( ["SN", node.id] )
 
             # add all this nodes properties to the ret list
             noderet.append(propList)
@@ -195,74 +202,25 @@ class GameTree:
         return ret
 
     
-    def getFullNodePath(self, findnode, nodeList = [] ):
-        """ Returns a list of all nodes in order which are ancestors of node named by node_id """
-        
-        # get the node
-        if not findnode:
-            node = False
-        else:
-            node = GameNode.objects.get( pk = findnode )
+    def getFullNodePath(self, findNode):
+        """ Returns a list of all nodes in order which are ancestors of findnode """
 
-        # if we didnt get a node, we are done
-        if not node or not node.ParentNode:
-            
-            # reverse the list so it is in first-to-last move order (we built it in reverse)
-            nodeList.reverse()
-            return nodeList
+        nodeList = []
 
-        else:         
-            
+        # get the node props, add it to our list, then move node's parents, continue until we hit the end
+        while findNode:
+
             # load the nodes properties
-            properties = GameProperty.objects.filter( Node = node, Property__in = ['W', 'B', 'AB', 'AW']).all()
+            properties = GameProperty.objects.filter( Node = findNode, Property__in = ['W', 'B', 'AB', 'AW']).all()
 
-            # add it to our list
-            nodeList.append( [ node, properties ] )
+            # append this node to the list
+            nodeList.append( [ findNode, properties ] )
             
-            # get the parent node
-            return self.getFullNodePath( node.ParentNode.id, nodeList )
-
-
-    def getClientPath(self, node, pathList = False ):
-        """ Return an eidogo-style node path """
-
-        if not pathList:
-            pathList = []
-
-        # if we didnt get a node, we are done
-        if not node or not node.ParentNode:
+            findNode = findNode.ParentNode
             
-            # reverse the list so it is in first-to-last move order (we built it in reverse)
-            pathList.append(0)
-            pathList.append(0)
-            pathList.reverse()
-            return pathList
-
-        else:         
-
-            # loop back until we find a parent that has multiple children
-
-            counter=0
-            while True:
-                
-                # find how many siblings this node has
-                qs = GameNode.objects.filter( ParentNode = node.ParentNode )
-                if len(qs) == 1:
-                    counter += 1
-                    
-                if node.ParentNode:
-                    # exactly one child..  keep going
-                    node = node.ParentNode
-                    
-                else:
-                    break
-                    
-                
-            # count represents the path position
-            pathList.append(counter)
-
-            # aand recurse
-            return self.getClientPath( node.ParentNode, pathList )
+        # reverse the list so its in order of moves played
+        nodeList.reverse()
+        return nodeList
 
                 
 class Board:
@@ -273,6 +231,11 @@ class Board:
         self.WHITE = 1
         self.EMPTY = 0
         self.BLACK = -1
+
+        self.colorMap = {'W': self.WHITE,
+                        'AW': self.WHITE,
+                        'B': self.BLACK,
+                        'AB': self.BLACK}
 
         self.game = game
         
@@ -290,10 +253,11 @@ class Board:
     def makeMove( self, parent_node, coord, color ):
 
         # bring board in sync with parent_node
-        self.syncBoardToNode( parent_node.id )
+        if not self.syncBoardToNode( parent_node ):
+            return [False, "Failed syncing board to node %d" % parent_node.id]
 
         # perform rule check on coord & color
-        return self.ruleCheck( coord, color )
+        return self.ruleCheck( coord, self.colorMap[ color ] )
 
     def sgfPointToXY( self, sgfPoint ):        
         x = ord(sgfPoint[0]) - 97
@@ -301,35 +265,36 @@ class Board:
         return [x,y]
         
     def syncBoardToNode( self, syncnode ):        
-
+        
         # TODO implement some manner of caching here so its not necessary to always
         # do a complete lookup of the game history!  This is slllooow
         nodes = GameTree( self.game.id ).getFullNodePath( syncnode )
 
-        propColorMap = {'W': self.WHITE,
-                        'AW': self.WHITE,
-                        'B': self.BLACK,
-                        'AB': self.BLACK}
-        
-        # print 'node %d' % parent_node
+        if len(nodes) == 0:
+            return False
+                
+        self.clearBoard()
 
         for (node,properties) in nodes:
             for prop in properties:
+                
+                color = self.colorMap[ prop.Property ]
+                self.lastColor = color
+
                 if prop.Value == "tt":
                     continue
-                color = propColorMap[ prop.Property ]
-                (x,y) = self.sgfPointToXY( prop.Value )
-                # print node.ClientNodeId, node.ParentNode.ClientNodeId, x,y,color
-                self.setPoint(x, y, color)
-                self.lastColor = color
+                else:
+                    (x,y) = self.sgfPointToXY( prop.Value )
+                    self.setPoint(x, y, color)
                 
+        return True
+
     def ruleCheck( self, coord, color):
         
         # it's just a pass? that's always allowed
         if coord == "tt":
             return [True, ""]
 
-        # out of order turn
         if(color == self.lastColor):
             return [False, "Color out of order"]
 
@@ -355,7 +320,11 @@ class Board:
 
     def setPoint( self, x, y, color ):
         self.board[ y * self.size + x ] = color
-        
+
+    def clearBoard( self ):
+        for i in range(0, len(self.board)):
+            self.board[i] = self.EMPTY
+
 class GameCursor:
     """ This class represents a cursor for traversing sgf nodes. It is modelled after eidogo's game model as it closely integrates with it. """
     

@@ -33,6 +33,7 @@ eidogo.GameNode.prototype = {
         this._parent = parent || null;
         this._children = [];
         this._preferredChild = 0;
+        this._serverNode = 0;
         if (properties)
             this.loadJson(properties);
     },

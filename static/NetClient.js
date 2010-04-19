@@ -113,8 +113,12 @@ function NetClient(session_key) {
 
         } else if(command == "MOVE") { 
 
-            NetClient_eidogo_player.doMove(dataAr[0], true);
+            NetClient_eidogo_player.doMove(dataAr[0], true, dataAr[1]);
+
+        } else if(command == "NODE") { 
             
+            NetClient_eidogo_player.assignSnProp( dataAr[0] );
+
         } else if(command == "DEAD") { 
 
             // translate coord to a point (thats how scoreToggleStone likes it)
@@ -136,7 +140,7 @@ function NetClient(session_key) {
 
         } else if(command == "SYNC") { 
             
-            alert("Your client does is not synchronized with the server; your game will be reloaded, then please attempt your move again.");
+            alert("Your client is not synchronized with the server; your game will be reloaded, then please attempt your move again.");
 
             // window.location.reload();
 
@@ -221,16 +225,12 @@ function NetClient(session_key) {
     this.onmove = function(data) { 
         coord = data[0];
         color = data[1];
-        node_id = data[2];
-        parent_node_id = data[3];
-        
-        // TODO support getting the parent node from eidogo to enable variations!
-        parent_node = 0;
+        sn = data[2]
         
         // TODO support getting a copy of all the comments made since the last move from eidogo
         comments = "";
         
-        this.send( ["MOVE", this.game_id, coord, color, node_id, parent_node_id] )
+        this.send( ["MOVE", this.game_id, coord, color, sn, comments] )
     }
 
     this.ondead = function(data) { 
@@ -279,7 +279,8 @@ function NetClient(session_key) {
     }
 
     this.navi = function(data) { 
-        NetClient_eidogo_player.goTo( data[0], true );
+
+        NetClient_eidogo_player.goToNodeWithSN( data[0] );
     }
 }
 
@@ -346,7 +347,7 @@ function initEidogo() {
     });
     
     if(typeof(eidogo_focusNode) != "undefined")
-        NetClient_eidogo_player.goToNode( eidogo_focusNode );
+        NetClient_eidogo_player.goToNodeWithSN( eidogo_focusNode );
     else 
         NetClient_eidogo_player.last();
 
@@ -483,6 +484,4 @@ LineProtocol = function(transport) {
     self.onlinereceived = function(line) {};
     self.onrawdatareceived = function(data) {};
 };
-
-
 

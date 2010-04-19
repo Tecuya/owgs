@@ -1058,7 +1058,7 @@ eidogo.Player.prototype = {
         }
 
         if(!bypassHook) 
-            this.hook("owgs_nav", this.cursor.getPath());
+            this.hook("owgs_nav", this.cursor.node.SN);
     },
 
     forward: function(e, obj, noRender, bypassHook) {
@@ -1066,7 +1066,7 @@ eidogo.Player.prototype = {
         this.variation(null, noRender);
 
         if(!bypassHook)
-            this.hook("owgs_nav", this.cursor.getPath());
+            this.hook("owgs_nav", this.cursor.node.SN);
     },
 
     first: function(bypassHook) {
@@ -1077,7 +1077,7 @@ eidogo.Player.prototype = {
         // because this is called as an event handler, a parameter is always passed.
         // if it is object, we know someone didn't specify bypassHook = true, which wouldnt be a object
         if(typeof(bypassHook) == 'object') 
-            this.hook("owgs_nav", this.cursor.getPath());
+            this.hook("owgs_nav", this.cursor.node.SN);
 
     },
 
@@ -1090,7 +1090,7 @@ eidogo.Player.prototype = {
         // because this is called as an event handler, a parameter is always passed.
         // if it is object, we know someone didn't specify bypassHook = true, which wouldnt be a object
         if(typeof(bypassHook) == 'object') 
-            this.hook("owgs_nav", this.cursor.getPath());
+            this.hook("owgs_nav", this.cursor.node.SN);
 
     },
 
@@ -1174,7 +1174,7 @@ eidogo.Player.prototype = {
                 if (varPt.x == x && varPt.y == y) {
                     this.variation(this.variations[i].varNum);
                     stopEvent(e);
-                    this.hook("owgs_nav", this.cursor.getPath());
+                    this.hook("owgs_nav", this.cursor.node.SN);
                     return;
                 }
             }
@@ -1276,6 +1276,7 @@ eidogo.Player.prototype = {
                     prop = null;
                 }
             }
+
             if (prop)
                 this.cursor.node.pushProperty(prop, coord);
 
@@ -1724,17 +1725,19 @@ eidogo.Player.prototype = {
         return ret;
     },
 
-    doMove: function(coord, owgs_serverMove) {         
+    doMove: function(coord, owgs_serverMove, owgs_serverNode) {         
         // play the move
         if (coord) {
             var nextMoves = this.cursor.getNextMoves();
             if (nextMoves && coord in nextMoves) {
                 // move already exists
                 this.variation(nextMoves[coord]);
-                this.hook("owgs_nav", this.cursor.getPath());
+                
+                // gotta fire the nav hook since we just navigated, technically
+                this.hook("owgs_nav", this.cursor.node.SN);
             } else {
                 // move doesn't exist yet
-                this.createMove(coord, owgs_serverMove);
+                this.createMove(coord, owgs_serverMove, owgs_serverNode);
             }
         }
     },
@@ -1751,11 +1754,17 @@ eidogo.Player.prototype = {
             this.selectTool("score");
         }
     },
-    
+
+    pendingSnProp: Array(),
+
     /**
      * Create an as-yet unplayed move and go to it.
      */
-    createMove: function(coord, owgs_serverMove) {
+    createMove: function(coord, owgs_serverMove, owgs_serverNode) {
+        
+        // if we are in network mode, making our own move, and we are still awaiting the server SN node assignment, refuse to move
+        if(this.owgsNetMode && (!owgs_serverMove) && this.pendingSnProp.length) 
+            return;
 
         // can't click there?        
         var pt = this.sgfCoordToPoint(coord);
@@ -1769,6 +1778,11 @@ eidogo.Player.prototype = {
 
         var props = {};
         props[this.currentColor] = coord;
+
+        // in owgs mode, append the SN value supplied by the server
+        if(this.owgsNetMode && owgs_serverMove)
+            props['SN'] = owgs_serverNode;
+
         var varNode = new eidogo.GameNode(null, props);
         varNode._cached = true;
         this.totalMoves++;
@@ -1777,11 +1791,28 @@ eidogo.Player.prototype = {
         this.updatedNavTree = false;
         this.variation(this.cursor.node._children.length-1);
 
-        if(!owgs_serverMove) {
+        if(this.owgsNetMode && (!owgs_serverMove)) {
 
-            parent_node_id = (varNode._parent == null) ? 0 : varNode._parent._id;
+            // parent_node = (varNode._parent == null) ? 0 : varNode._parent._id;
+
+            if(!varNode._parent) { 
+                alert("Could not determine the parent node for this move!  Refreshing..");
+                window.location.reload();
+                return;
+            }
             
-            this.hook("owgs_createMove", [coord, forColor, varNode._id, parent_node_id]);
+            snProp = varNode._parent.SN;
+
+            if(snProp == null) { 
+                alert("Parent node does not have a SN property!  Refreshing..");
+                window.location.reload();
+                return;                
+            }
+            
+            this.hook("owgs_createMove", [coord, forColor, snProp]);
+
+            // add this node to the list of nodes which await an SnProperty
+            this.pendingSnProp.push( this.cursor.node );
         }
 
         this.checkForDoublePass();
@@ -2515,7 +2546,7 @@ eidogo.Player.prototype = {
             if (delta < 0) {
                 this.board.revert(Math.abs(delta));
             }
-            this.hook("owgs_nav", this.cursor.getPath());
+            this.hook("owgs_nav", this.cursor.node.SN);
             this.doneLoading();
             this.refresh();
         }
@@ -2651,7 +2682,7 @@ eidogo.Player.prototype = {
     },
     
     showNavTreeCurrent: function() {
-        var id = "navtree-node-" + this.cursor.getPath().join("-"),
+        var id = "navtree-node-" + this.cursor.getPath(),
             current = byId(id);
         if (!current) return;
         // Highlight node
@@ -2690,7 +2721,7 @@ eidogo.Player.prototype = {
         stopEvent(e);
 
         if(!bypassHook) 
-            this.hook("owgs_nav", this.cursor.getPath());
+            this.hook("owgs_nav", this.cursor.node.SN);
     },
 
     resetLastLabels: function() {
@@ -3021,14 +3052,14 @@ eidogo.Player.prototype = {
         return borderStone;
     },
 
-    goToNode: function(toNodeId) { 
+    goToNodeWithSN: function(toNodeSN) { 
         
         foundNode = false;
 
         this.collectionRoot.walk( 
             function(node) { 
                 if( ( typeof(foundNode) != "object" ) &&
-                    ( node._id == toNodeId ) ) 
+                    ( node.SN == toNodeSN ) ) 
                     foundNode = node;
             }
         );
@@ -3042,7 +3073,18 @@ eidogo.Player.prototype = {
         cur.node = foundNode;
 
         this.goTo( cur.getPath() );
+    },
+
+    // takes an SN value and assigns it to the node that is awaiting an SN prop
+    assignSnProp: function( sn_value ) {         
+        if(this.pendingSnProp.length == 0) { 
+            alert("Received SN prop set when no nodes are awaiting SN.  Reloading.");
+            window.location.reload();
+        }
+        node = this.pendingSnProp.pop()
+        node.pushProperty('SN', sn_value)
     }
+    
 };
     
 })();

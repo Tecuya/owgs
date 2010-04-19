@@ -174,26 +174,36 @@ class GoServerProtocol(basic.LineReceiver):
          elif(cmd[0] == 'MOVE'):
             coord = cmd[2]
             color = cmd[3]
-            node_id = cmd[4]
-            parent_node_id = cmd[5]
-            comments = ""
+            sn = cmd[4]            
+            comments = cmd[5]
             
             # TODO once we have a timer, hook this up to the proper value
             time_left = 0
 
-            # Now store the move in the database
-            
-            if not self.factory.storeMove(game.id, coord, color, self.gamestate[ game.id ], node_id, parent_node_id, comments, time_left):
+            # Now store the move in the database            
+            new_node_id = self.factory.storeMove(game.id, coord, color, self.gamestate[ game.id ], sn, comments, time_left)
+
+
+            if not new_node_id:
+
                # illegal move! give them the sync message which indicates they are out of sync
                response = ["SYNC", "Move rejected"]
 
             else:
 
+               # same the focusNode
+               game.FocusNode = int(new_node_id)
+               game.save()
+               
                for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                   # send it to all players associated with the current game.. but not the user who made the move
                   if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
-                     self.writeToTransport(["MOVE", game.id, coord, color], transport = connection.transport)
+                     self.writeToTransport(["MOVE", game.id, coord, new_node_id], transport = connection.transport)
                      
+
+               # notify the client of the node ID for the node
+               self.writeToTransport(["NODE", game.id, new_node_id], self.transport)
+               
                response = CTS
 
 
@@ -267,7 +277,8 @@ class GoServerProtocol(basic.LineReceiver):
                                       ['KM', komi],
                                       ['PB', username['B']],
                                       ['PW', username['W']],
-                                      ['CA', 'UTF-8'] ]:
+                                      ['CA', 'UTF-8'],
+                                      ['SN', gi_node.id]]:
                   prop = GameProperty(Node = gi_node, Property = prop, Value = value)
                   prop.save()
 
@@ -300,6 +311,10 @@ class GoServerProtocol(basic.LineReceiver):
             
             # prepare the command to send to clients
             cmd = ["NAVI", game.id, cmd[2]]
+
+            # same the focusNode
+            game.FocusNode = int(cmd[2])
+            game.save()
 
             # blindly relay the command TODO validate..
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
@@ -397,11 +412,11 @@ class GoServerFactory(protocol.ServerFactory):
       return self.boards[ game_id ]
 
       
-   def storeMove(self, game_id, coord, color, playerColor, client_node_id, client_parent_node_iD, comments, time_left):
+   def storeMove(self, game_id, coord, color, playerColor, server_node_id, comments, time_left):
       """
       Store a move and any related data in to the GameNode / GameProperty Tables
       """
-      
+
       if playerColor != color:
          self.debug("Illegal move received: Connection with color %s attempted to play %s" % (playerColor, color))
          return False
@@ -412,12 +427,11 @@ class GoServerFactory(protocol.ServerFactory):
       ## First load the parent node from our DBx
 
       # find the parent ID corresponding to the parent ID eidogo provided us with
-      parentqs = GameNode.objects.filter(Game = game, ClientNodeId = client_parent_node_id)
-      
-      if len(parentqs):
-         parent_node = parentqs[0]
-      else:
-         parent_node = GameNode.objects.filter(Game = game).order_by('-id')[0]
+      try:
+         parent_node = GameNode.objects.get( pk = server_node_id, Game = game )
+      except:
+         self.debug("Illegal move received: SN %s is invalid" % str(server_node_id) )
+         return False
 
       # attempt to make the move on the board
       (legalMove, violation) = board.makeMove( parent_node, coord, color )
@@ -427,22 +441,16 @@ class GoServerFactory(protocol.ServerFactory):
          self.debug("Illegal move received: %s" % violation)
          return False
 
-      # create the node
-      if parent_node:
-         node = GameNode(Game = game, ParentNode = parent_node, ClientNodeId = client_node_id )
-      else:         
-         # this shouldnt ever happen because before players have a chance to move we've created
-         # the game-info node
-         node = GameNode(Game = game)
-
+      # create the new node
+      node = GameNode(Game = game, ParentNode = parent_node)
       node.save()
 
       # create the property
       move_prop = GameProperty(Node = node, Property = color, Value = coord)
       move_prop.save()
-
+      
       # success!
-      return True
+      return node.id
 
 
 
