@@ -122,9 +122,20 @@ function NetClient(session_key) {
         } else if(command == "UNDO") { 
 
             if(confirm("Opponent requested an undo.  Allow?")) { 
-                this.send(["OKUN"]);
+                this.send(["OKUN", game_id]);
+            } else { 
+                this.send(["NOUN", game_id]);
             }
 
+        } else if(command == "OKUN") { 
+            
+            alert("Undo accepted");
+            NetClient_eidogo_player.back();
+
+        } else if(command == "NOUN") { 
+
+            alert("Undo rejected");
+        
         } else if(command == "DEAD") { 
 
             // translate coord to a point (thats how scoreToggleStone likes it)
@@ -146,7 +157,7 @@ function NetClient(session_key) {
 
         } else if(command == "SYNC") { 
             
-            alert("Your client is not synchronized with the server; your game will be reloaded, then please attempt your move again.");
+            alert("Your client is not synchronized with the server; server said: "+dataAr[0]);
 
             // window.location.reload();
 
@@ -285,8 +296,12 @@ function NetClient(session_key) {
     }
 
     this.navi = function(data) { 
-
         NetClient_eidogo_player.goToNodeWithSN( data[0] );
+
+        // if the player is on restricted nav, we need to make sure that if they are in score mode,
+        // that we move them out of it whenever we do a navi, otherwise they get stuck in score mode
+        if(NetClient_eidogo_player.owgsRestrictedNav)
+            NetClient_eidogo_player.selectTool("play");
     }
 }
 
@@ -324,11 +339,14 @@ var NetClient_eidogo_player = null;
 
 // attached to load event by GameView
 function initEidogo() { 
+
+
+    // type: showTools showOptions    
     NetClient_eidogo_player = new eidogo.Player({
         container:       "eidogo",
         // theme:           "compact", // TODO standard or compact should be a player pref or something
         theme:           "standard", // TODO standard or compact should be a player pref or something
-        sgf:             eidogo_SGF,
+        sgf:             eidogo_owgs_vars["sgf"],
         // sgfPath:         "/static/eidogo/sgf/",
         mode:            "play",
         hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
@@ -337,12 +355,6 @@ function initEidogo() {
                           "owgs_undo": NetClient_onundo_wrapper,
                          },
         loadPath:        [0, 0],
-        showComments:    true,
-        showPlayerInfo:  true,
-        showGameInfo:    true,
-        showTools:       true,
-        showOptions:     true,
-        showNavTree:     true,
         markCurrent:     true,
         markVariations:  true,
         markNext:        false,
@@ -352,8 +364,10 @@ function initEidogo() {
         owgsNetMode:     true
     });
     
-    if(typeof(eidogo_focusNode) != "undefined")
-        NetClient_eidogo_player.goToNodeWithSN( eidogo_focusNode );
+    NetClient_eidogo_player.setGameType( eidogo_owgs_vars["gameType"], eidogo_owgs_vars["gameState"] );
+
+    if(typeof(eidogo_owgs_vars["focusNode"]) != "undefined")
+        NetClient_eidogo_player.goToNodeWithSN( eidogo_owgs_vars["focusNode"] );
     else 
         NetClient_eidogo_player.last();
 

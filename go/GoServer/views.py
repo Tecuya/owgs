@@ -110,6 +110,8 @@ def GameView(request, game_id):
         
     return render_to_response('GoServer/GameView.html', 
                               {"Game": game,
+                               "PreGame": (game.State == 'P'),
+                               "Finished": (game.State == 'F'),
                                "SGF": sgf,
                                "YouAreColor": you_are,
                                "YouAreOwner": you_are_owner,

@@ -41,7 +41,7 @@ class GoServerProtocol(basic.LineReceiver):
       
    def connectionMade(self):
       # dictionary where we store the users state per game
-      self.gamestate = {}
+      self.gamepartstate = {}
 
       self.debug('Connection opened')
    
@@ -148,7 +148,7 @@ class GoServerProtocol(basic.LineReceiver):
                part_that_joined.save()
 
             # store our game state so we are aware what color/state we are in this game later
-            self.gamestate[ game.id ] = part_that_joined.State
+            self.gamepartstate[ game.id ] = part_that_joined.State
 
             # register this connection as being associated with this game in the factory.             
             self.factory.addToConnectionDB(self, game.id, self.user.id)
@@ -181,13 +181,13 @@ class GoServerProtocol(basic.LineReceiver):
             time_left = 0
 
             # Now store the move in the database            
-            new_node_id = self.factory.storeMove(game.id, coord, color, self.gamestate[ game.id ], sn, comments, time_left)
+            new_node_id = self.factory.storeMove(game.id, coord, color, self.gamepartstate[ game.id ], sn, comments, time_left)
 
 
             if not new_node_id:
 
                # illegal move! give them the sync message which indicates they are out of sync
-               response = ["SYNC", "Move rejected"]
+               response = ["SYNC", game.id, "Move rejected"]
 
             else:
 
@@ -212,7 +212,6 @@ class GoServerProtocol(basic.LineReceiver):
 
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
                # send it to all players associated with the current game.. but not the user who made the move
-               # TODO the user that made the move should be included here too, and his move should *not* trigger eidogo to move until the server validates the move!! but for now...
                if self.transport.sessionno != connection.transport.sessionno:
                   self.writeToTransport(["DEAD", game.id, coord], transport = connection.transport)
 
@@ -228,8 +227,8 @@ class GoServerProtocol(basic.LineReceiver):
             if self.factory.user_game_offers.has_key( accepted_user ):
                (board_size, main_time, komi, color) = self.factory.user_game_offers[ accepted_user ]
 
-               # Set the game to PlayersAssigned = true, set game variables as dictated by the offer
-               game.PlayersAssigned = True
+               # Set the game to in-progress, set game variables as dictated by the offer
+               game.State = 'I'
                game.BoardSize = board_size
                game.MainTime = main_time
                game.Komi = komi
@@ -309,59 +308,137 @@ class GoServerProtocol(basic.LineReceiver):
 
          elif cmd[0] == 'NAVI':
 
-            # TODO validate  .. dont allow NAVI outside of teaching/review modes
+            # only allow navigation commands when game type is teaching or game state is finished
+            if game.Type == 'T' or game.State == 'F':
+            
+               # prepare the command to send to clients
+               cmd = ["NAVI", game.id, cmd[2]]
 
-            # prepare the command to send to clients
-            cmd = ["NAVI", game.id, cmd[2]]
+               # same the focusNode
+               game.FocusNode = int(cmd[2])
+               game.save()
 
-            # same the focusNode
-            game.FocusNode = int(cmd[2])
-            game.save()
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  # dont send to the connection that made the move
+                  if self.transport.sessionno != connection.transport.sessionno:
+                     self.writeToTransport(cmd, transport = connection.transport)
 
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-               # dont send to the connection that made the move
-               if self.transport.sessionno != connection.transport.sessionno:
-                  self.writeToTransport(cmd, transport = connection.transport)
-               
-            response = CTS
-
-         elif cmd[0] == 'UNDO':
-
-            # TODO if a game is in scoring mode.  undo should always be automatically accepted.
-
-            if not game.AllowUndo:
-               # if you undo on a game that doesnt allow it you are desynced.
-               response = ["SYNC", "Move rejected"]               
+               response = CTS
 
             else:
                
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
-                  # send it to all players associated with the current game.. but not the user who made the request
-                  if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
-                     self.writeToTransport(["UNDO", self.gamestate[ game.id]], transport = connection.transport)
+               response = ["SYNC", game.id, "Navigation commands not allowed"]
                
+         elif cmd[0] == 'UNDO':
+
+            # get the focused node
+            focus_node = GameNode.objects.get(pk = game.FocusNode)
+
+            # get the clients color
+            client_is_color = self.gamepartstate[ game.id ]
+
+            # get the props from the last two moves
+            fn_props = GameProperty.objects.filter( Node = focus_node, Property__in = ['W','B'])
+            pn_props = GameProperty.objects.filter( Node = focus_node.ParentNode,  Property__in = ['W','B'])
+            
+            undoForPass = 0
+
+            # if the game has ended (two passes occurred)
+            if len(fn_props) and len(pn_props) and fn_props[0].Value == 'tt' and pn_props[0].Value == 'tt':
+               
+               # then undo the pass that the undo-clicking player made
+               if fn_props[0].Property == client_is_color:
+                  undoForPass = focus_node.ParentNode.id
+               else:
+                  undoForPass = focus_node.ParentNode.ParentNode.id
+
+            # if the undo was determined to be a pass, perform the undo 
+            if undoForPass:
+               
+               # give a NAVI to all clients to navigate back to the node we did an undo to
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  self.writeToTransport(["NAVI", game.id, undoForPass], transport = connection.transport)
+               
+               game.FocusNode = undoForPass
+               game.PendingUndoNode = 0
+               game.save()
+               
+               response = CTS
+
+            elif game.AllowUndo:
+
+               invalid = True
+               
+               self.debug("Received undo request while focus node is " + str(focus_node.id))
+               
+               if focus_node:
+                  if len( GameProperty.objects.filter( Node = focus_node, Property = client_is_color ) ):
+                     game.PendingUndoNode = focus_node.ParentNode.id
+                     game.save()
+                     invalid = False
+                  else:
+                     if focus_node.ParentNode:
+                        if len( GameProperty.objects.filter( Node = focus_node.ParentNode, Property = client_is_color ) ):
+                          game.PendingUndoNode = focus_node.ParentNode.ParentNode.id
+                          game.save()
+                          invalid = False
+                  
+               if not invalid:                  
+                  self.debug("Undo validated ; resolves to node " + str(game.PendingUndoNode))
+                  for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                     # send it to all players associated with the current game.. but not the user who made the request
+                     if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
+                        self.writeToTransport(["UNDO", game.id, self.gamepartstate[ game.id]], transport = connection.transport)
+               else:
+                  self.debug("Undo request failed for game focus node " + str(game.FocusNode))
+
                # send a CTS back to requesting player
                response = CTS
+
+            else:
+               # if you undo on a game that doesnt allow it you are desynced.
+               response = ["SYNC", game.id, "Undo disallowed"]               
 
 
          elif cmd[0] == 'OKUN':
             
-            # TODO implement
-
-            # client accepted opponents undo request.  
-
-            # check that there is a pending undo request!
-
-            # if so, issue a command to all connections including caller instructing client to move back one move... i guess this would be via a NAVI
-            # command.
-
-            pass
-            
+            if game.PendingUndoNode:
                
+               # give a NAVI to all clients to navigate back to the node we did an undo to
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  self.writeToTransport(["NAVI", game.id, game.PendingUndoNode], transport = connection.transport)
+               
+               game.FocusNode = game.PendingUndoNode
+               game.PendingUndoNode = 0
+               game.save()
+
+               response = CTS            
+            else:
+               response = ["SYNC", game.id, "Undo accepted when there is no pending undo."]               
+               
+         
+         elif cmd[0] == 'NOUN':
+            
+            if game.PendingUndoNode:
+
+               game.PendingUndoNode = 0
+
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  # send it to all players associated with the current game.. but not the user who made the request
+                  if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
+                     self.writeToTransport(["NOUN", game.id], transport = connection.transport)
+
+               response = CTS
+
+            else:
+               response = ["SYNC", game.id, "Rejected undo when no undo is pending"]
 
       # write whatever response we came up with above
       self.writeToTransport(response, self.transport)
 
+      # if we are telling them they are out of sync, d/c them
+      if response[0] == 'SYNC':
+         self.transport.loseConnection()
 
    def writeToTransport(self, response, transport = False):
 

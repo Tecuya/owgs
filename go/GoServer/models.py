@@ -41,6 +41,11 @@ class Game(models.Model):
     # Date at which this game record was created
     StartDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
 
+    # type
+    Type = models.CharField('Game Type', max_length=1, choices=(('F', 'Free'),
+                                                                ('R', 'Ranked'),
+                                                                ('T', 'Teaching')), default='F')
+    
     # board size
     BoardSize = models.CharField(max_length=10, choices=(('19x19','19 x 19'),
                                                          ('13x13','13 x 13'),
@@ -55,8 +60,10 @@ class Game(models.Model):
     # Indicates whether or not W / B players are determined
     AllowUndo = models.BooleanField('Allow Undo')
     
-    # Indicates whether or not W / B players are determined
-    PlayersAssigned = models.BooleanField('Players Assigned')
+    # indicates the game state
+    State = models.CharField('Game State', max_length=1, choices=(('P', 'Pre-Game'),
+                                                                  ('I', 'In Progress'),
+                                                                  ('F', 'Finished')), default='P')
 
     # Winning color
     Winner = models.CharField('Winning Color', max_length=1, choices=(('W', 'White'),
@@ -75,19 +82,22 @@ class Game(models.Model):
     # stores the node which is currently focused in this game
     FocusNode = models.IntegerField('Focus Node Id', blank=True, null=True)
 
+    # keeps track of when undos are pending
+    PendingUndoNode = models.IntegerField('Pending Undo Node Id', blank=True, null=True)
+
     def __unicode__(self):
         player_list = []
 
         for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
             player_list.append(part.Participant.username)
 
-        return u'%s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.BoardSize, self.MainTime, self.Komi)
+        return u'%s | Type: %s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.Type, self.BoardSize, self.MainTime, self.Komi)
 
     
 class GameForm(ModelForm):
     class Meta:
         model = Game
-        exclude = ('Owner', 'StartDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode')
+        exclude = ('Owner', 'StartDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode')
 
         
 class GameParticipant(models.Model):
@@ -97,17 +107,23 @@ class GameParticipant(models.Model):
     Participant = models.ForeignKey(User)
 
     JoinDate = models.DateTimeField('Participant Join Date', default=datetime.datetime.now)
+
     LeaveDate = models.DateTimeField('Participant Leave Date', default=datetime.datetime.now)    
 
     Originator = models.BooleanField('Game Originator')
+
     Present = models.BooleanField('Present')
+
     Winner = models.BooleanField('Winner')
+
     State = models.CharField('State', max_length=1, choices=(('W', 'White'),
                                                              ('B', 'Black'),
                                                              ('O', 'Owner'),
                                                              ('S', 'Spectator'),
                                                              ('U', 'Unset')), default='U')
     
+    # indicates whether this user is allowed to edit the game board
+    Editor = models.BooleanField('Editor', default=False)
 
     def __unicode__(self):
         return '%s (%s)' % (self.Participant.username, self.State)

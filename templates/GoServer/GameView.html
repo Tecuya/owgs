@@ -15,17 +15,15 @@
 <script>
 NetClient_instance.joingame( {{ Game.id }} );
 
-{% if Game.PlayersAssigned %}
+{% if not PreGame %}
 
-// load whatever server-provided sgf data 
-eidogo_SGF = "{{ SGF }}";
-
-// lets eidogo know what color we are
-eidogo_color = "{{ YouAreColor }}";
-
-{% if Game.FocusNode %}
-eidogo_focusNode = "{{ Game.FocusNode }}";
-{% endif %}
+eidogo_owgs_vars = {
+"sgf": "{{ SGF }}",
+"color": "{{ YouAreColor }}",
+"gameType": "{{ Game.Type }}",
+"gameState": "{{ Game.State }}",
+{% if Game.FocusNode %}"focusNode": "{{ Game.FocusNode }}",{% endif %}
+};
 
 // init eidogo event
 window.addEventListener("load", initEidogo, false);
@@ -46,7 +44,7 @@ window.addEventListener("load", initEidogo, false);
  {% endif %}
 </p>
 
-{% if Game.PlayersAssigned %} 
+{% if not PreGame %} 
 <div class="gamebox">
  <div id="eidogo"></div>     
  <input size=60 type=text id="ChatInput">
@@ -64,7 +62,7 @@ window.addEventListener("load", initEidogo, false);
    <option value=0>Loading...</option>
  </select>
 
- {% if YouAreOwner and not Game.PlayersAssigned %}
+ {% if YouAreOwner and PreGame %}
  <p>
   <button type=button onClick="NetClient_instance.startgame();">Accept Selected Offer</button>
  </p>
@@ -75,7 +73,7 @@ window.addEventListener("load", initEidogo, false);
 </div>
 
 
-{% if not Game.PlayersAssigned and not YouAreOwner %}
+{% if PreGame and not YouAreOwner %}
 <div class="gamebox">
  <h3>Offer to Join This Game</h3>
 
@@ -100,7 +98,7 @@ window.addEventListener("load", initEidogo, false);
 </div>
 {% endif %}
 
-{% if not Game.PlayersAssigned %}
+{% if PreGame %}
 <div id="Chat" class="gamebox">
  <h3>Chat</h3>
  <textarea cols=60 rows=7 id="ChatTextarea" readonly></textarea><br>

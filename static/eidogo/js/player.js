@@ -52,7 +52,11 @@ eidogo.Player.prototype = {
     
         cfg = cfg || {};
 
+        // indicates whether this instance is used in an owgs network game
         this.owgsNetMode = (typeof cfg.owgsNetMode != 'undefined' ? true : false);
+
+        // indicates whether this instance's nav functions are restricted
+        this.owgsRestrictedNav = false;
 
         // import rules from config - to be passed to Rules class later
         this.cfgRules = {
@@ -223,8 +227,10 @@ eidogo.Player.prototype = {
         }
 
         // show undo button if we allow it
-        if(this.allowUndo) show(this.dom.undo, "inline");
-        
+        if(this.allowUndo) show(this.dom.buttonUndo, "inline");
+
+        show(this.dom.buttonPass, "inline");
+
         this.hook("initDone");
     },
     
@@ -324,6 +330,10 @@ eidogo.Player.prototype = {
         this.prefs.showOptions = !!cfg.showOptions;
         this.prefs.showNavTree = !this.progressiveLoad && typeof cfg.showNavTree != "undefined" ?
             !!cfg.showNavTree : false;
+
+        // owgs stuff
+        this.prefs.showNavControls = true;
+        this.prefs.showToolSelect = true;
     },
     
     /**
@@ -582,7 +592,7 @@ eidogo.Player.prototype = {
     **/
     handleDisplayPrefs: function() {
         (this.prefs.showGameInfo || this.prefs.showPlayerInfo ? show : hide)(this.dom.info);
-        (this.prefs.showGameInfo ? show : hide)(this.dom.infoGame);
+        (this.prefs.showGameInfo ? show : hide)(this.dom.infoGame);               
         (this.prefs.showPlayerInfo ? show : hide)(this.dom.infoPlayers);  
         (this.prefs.showTools ? show : hide)(this.dom.toolsContainer);
         if (!this.showingSearch) {
@@ -590,6 +600,11 @@ eidogo.Player.prototype = {
         }
         (this.prefs.showOptions ? show : hide)(this.dom.options);
         (this.prefs.showNavTree ? show : hide)(this.dom.navTreeContainer);
+        
+        // really only makes sense in the owgs context
+        (this.prefs.showNavControls ? show : hide)(this.dom.controlsContainer);  
+        (this.prefs.showToolSelect ? show : hide)(this.dom.toolsSelect);  
+        (this.prefs.showToolSelect ? show : hide)(this.dom.toolsLabel);  
     },
 
     /**
@@ -1096,17 +1111,6 @@ eidogo.Player.prototype = {
 
     pass: function() {
         this.doMove("tt");
-
-        /* old variation checking.. this seemed redundant to doMove's version
-        if (!this.variations) return;
-        for (var i = 0; i < this.variations.length; i++) {
-            if (!this.variations[i].move || this.variations[i].move == "tt") {
-                this.variation(this.variations[i].varNum);
-                return;
-            }
-        }
-        this.createMove('tt');
-        */
     },
 
     /**
@@ -1168,7 +1172,7 @@ eidogo.Player.prototype = {
         var coord = this.pointToSgfCoord({x: x, y: y});
         
         // click on a variation?
-        if (this.mode == "view" || this.mode == "play") {
+        if( (!this.owgsRestrictedNav) && (this.mode == "view" || this.mode == "play") ) {
             for (var i = 0; i < this.variations.length; i++) {
                 var varPt = this.sgfCoordToPoint(this.variations[i].move);
                 if (varPt.x == x && varPt.y == y) {
@@ -1726,17 +1730,21 @@ eidogo.Player.prototype = {
     },
 
     doMove: function(coord, owgs_serverMove, owgs_serverNode) {         
+        
         // play the move
         if (coord) {
+
+            // this is redundant to the variation click checking in handleBoardUp 
+            // but we do it here as well to check for pass !
+
             var nextMoves = this.cursor.getNextMoves();
-            if (nextMoves && coord in nextMoves) {
-                // move already exists
+            if ( (!this.owgsRestrictedNav) && nextMoves && coord in nextMoves) {
+                // move already exists (and we are allowed to nav)
                 this.variation(nextMoves[coord]);
                 
                 // gotta fire the nav hook since we just navigated, technically
                 this.hook("owgs_nav", this.cursor.node.SN);
             } else {
-                // move doesn't exist yet
                 this.createMove(coord, owgs_serverMove, owgs_serverNode);
             }
         }
@@ -2077,8 +2085,8 @@ eidogo.Player.prototype = {
             (this.timeW ? this.timeW : "--") + "</span>";
         this.dom.blackTime.innerHTML = t['time left'] + ": <span>" +
             (this.timeB ? this.timeB : "--") + "</span>";
-
-        removeClass(this.dom.controlPass, "pass-on");
+        
+        removeClass(this.dom.buttonPass, "pass-on");
         
         // variations?
         this.dom.variations.innerHTML = "";
@@ -2087,7 +2095,7 @@ eidogo.Player.prototype = {
             var overlapped = false;
             if (!this.variations[i].move || this.variations[i].move == "tt") {
                 // 'pass' variation
-                addClass(this.dom.controlPass, "pass-on");
+                addClass(this.dom.buttonPass, "pass-on");
             } else if (this.prefs.markNext || this.variations.length > 1) {
                 // show clickable variation on the board
                 var varPt = this.sgfCoordToPoint(this.variations[i].move);
@@ -2340,7 +2348,6 @@ eidogo.Player.prototype = {
                     <li id='control-back' class='control back'>Back</li>\
                     <li id='control-forward' class='control forward'>Forward</li>\
                     <li id='control-last' class='control last'>Last</li>\
-                    <li id='control-pass' class='control pass'>Pass</li>\
                 </ul>\
                 <div id='move-number' class='move-number" + (this.permalinkable ? " permalink" : "") + "'></div>\
                 <div id='nav-slider' class='nav-slider'>\
@@ -2375,7 +2382,8 @@ eidogo.Player.prototype = {
                 </select>\
                 <input type='button' id='score-est' class='score-est-button' value='" + t['score est'] + "' />\
                 <input type='button' id='score-done' class='score-done-button' value='" + t['score done'] + "' />\
-                <input type='button' id='undo' class='undo-button' value='" + t['undo'] + "' />\
+                <input type='button' id='button-undo' class='undo-button' value='" + t['undo'] + "' />\
+                <input type='button' id='button-pass' class='undo-button' value='" + t['pass'] + "' />\
                 <select id='search-algo' class='search-algo'>\
                     <option value='corner'>" + t['search corner'] + "</option>\
                     <option value='center'>" + t['search center'] + "</option>\
@@ -2466,10 +2474,10 @@ eidogo.Player.prototype = {
          ['controlBack',      'back'],
          ['controlForward',   'forward'],
          ['controlLast',      'last'],
-         ['controlPass',      'pass'],
+         ['buttonPass',       'pass'],
          ['scoreEst',         'fetchScoreEstimate'],
          ['scoreDone',        'postScore'],
-         ['undo',             'undo'],
+         ['buttonUndo',       'undo'],
          ['searchButton',     'searchRegion'],
          ['searchResults',    'loadSearchResult'],
          ['searchClose',      'closeSearch'],
@@ -2957,6 +2965,9 @@ eidogo.Player.prototype = {
     },
 
 
+    ////////////////////////////////////////////////////////
+    // methods below this line are only useful for OWGS
+
     processedPoints: Array(),
     groupPoints: Array(),
     preScoreInfo: Array(),
@@ -3083,7 +3094,35 @@ eidogo.Player.prototype = {
         }
         node = this.pendingSnProp.pop()
         node.pushProperty('SN', sn_value)
-    }
+    },
+
+    setGameType: function( type, state ) { 
+
+        var restricted_nav = ( ! ( ( type == 'T' ) ||
+                                   ( state == 'F' ) ) );
+
+        this.owgsRestrictedNav = restricted_nav;
+
+        if( restricted_nav ) { 
+            this.prefs.showGameInfo = true;
+            this.prefs.showPlayerInfo = true;
+            this.prefs.showTools = true;
+            this.prefs.showToolSelect = false;
+            this.prefs.showOptions = false;
+            this.prefs.showNavTree = false;
+            this.prefs.showNavControls = false;
+        } else { 
+            this.prefs.showGameInfo = true;
+            this.prefs.showPlayerInfo = true;
+            this.prefs.showTools = true;
+            this.prefs.showToolSelect = true;
+            this.prefs.showOptions = true;
+            this.prefs.showNavTree = true;
+            this.prefs.showNavControls = true;
+        }
+
+        this.handleDisplayPrefs();        
+    },
     
 };
     
