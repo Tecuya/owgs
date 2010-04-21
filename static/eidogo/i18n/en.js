@@ -31,6 +31,7 @@ eidogo.i18n = eidogo.i18n || {
     'score done':       'Done Scoring',
     'undo':             'Undo',
     'pass':             'Pass',
+    'resign':           'Resign',
     'search':           'Search',
     'search corner':    'Corner Search',
     'search center':    'Center Search',

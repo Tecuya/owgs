@@ -8,7 +8,7 @@ def GameList(request):
     from go.GoServer.models import GameForm, Game, GameParticipant
 
     return render_to_response('GoServer/GameList.html', 
-                              {'GameList': Game.objects.order_by('StartDate')},
+                              {'GameList': Game.objects.order_by('StartDate').order_by('-State')},
                               context_instance=RequestContext(request))
 
 def GameCreate(request):
@@ -106,7 +106,7 @@ def GameView(request, game_id):
     else:
         user_b = {}
 
-    sgf = GameTree( game.id ).dumpSGF()
+    sgf = GameTree( game.id ).dumpSGF().replace("\n","\\n")
         
     return render_to_response('GoServer/GameView.html', 
                               {"Game": game,

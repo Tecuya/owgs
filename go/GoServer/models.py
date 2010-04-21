@@ -91,7 +91,7 @@ class Game(models.Model):
         for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
             player_list.append(part.Participant.username)
 
-        return u'%s | Type: %s | Size: %s | Time: %s | Komi: %s ' % (' vs '.join(player_list), self.Type, self.BoardSize, self.MainTime, self.Komi)
+        return u'State: %s | Type: %s | Size: %s | Time: %s | Komi: %s | Players: %s' % (self.State, self.Type, self.BoardSize, self.MainTime, self.Komi, ' vs '.join(player_list))
 
     
 class GameForm(ModelForm):

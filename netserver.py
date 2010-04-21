@@ -268,6 +268,7 @@ class GoServerProtocol(basic.LineReceiver):
 
                # TODO support handicaps
                # TODO export our version to AP property
+               # TODO more properties.. DT.. others?
                for (prop, value) in [ ['GM', 1],
                                       ['FF', 4],
                                       ['AP', 'owgs:git'],
@@ -433,6 +434,148 @@ class GoServerProtocol(basic.LineReceiver):
             else:
                response = ["SYNC", game.id, "Rejected undo when no undo is pending"]
 
+         elif cmd[0] == 'RSGN':            
+            # player resigns
+
+            client_is_color = self.gamepartstate[ game.id ]
+            
+            if client_is_color == 'W':
+               other_color = 'B'
+            else:
+               other_color = 'W'
+            
+            # set game stats
+            game.State = 'F'
+            game.Winner = other_color
+            game.WinType = 'R'
+            game.save()
+
+            # find the root node and set a RE property with the resignation info
+            rootnode = GameNode.objects.get( Game = game, ParentNode__isnull = True )
+
+            reprop = GameProperty( Node = rootnode, Property = 'RE', Value=other_color+'+R' )
+            reprop.save()
+
+            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               self.writeToTransport(["RSLT", game.id, other_color, 'R', False], transport = connection.transport)
+            
+            response = CTS
+
+         elif cmd[0] == 'SCOR':
+            
+            # get client color
+            client_is_color = self.gamepartstate[ game.id ]
+
+            if client_is_color == 'W':
+               other_color = 'B'
+            else:
+               other_color = 'W'
+
+            # store the results from the player in the factory 
+            score = {'color': client_is_color, 
+                        'territory_w': cmd[2],
+                        'captures_w': cmd[3],
+                        'prisoners_b': cmd[4],
+                        'score_w': cmd[5],
+                        'territory_b': cmd[6],
+                        'captures_b': cmd[7],
+                        'prisoners_w': cmd[8],
+                        'score_b': cmd[9]}
+
+            # if the scoring dict doesnt have our game then add it
+            if not self.factory.user_game_scoring.has_key( game.id ):
+               self.factory.user_game_scoring[game.id] = []
+
+            # if the other player has also had his results stored in the factory, compare the
+            # results and make sure they match            
+            accepted_entry = False
+            for item in self.factory.user_game_scoring[ game.id ]:
+               if (item['color'] == other_color and
+                   len(item['territory_w']) == len(score['territory_w']) and
+                   item['captures_w'] == score['captures_w'] and 
+                   item['prisoners_b'] == score['prisoners_b'] and
+                   item['score_w'] == score['score_w'] and
+                   len(item['territory_b']) == len(score['territory_b']) and
+                   item['captures_b'] == score['captures_b'] and
+                   item['prisoners_w'] == score['prisoners_w'] and
+                   item['score_b'] == score['score_b']):
+
+                  accepted_entry = score
+                  break
+            
+            if not accepted_entry:
+               self.factory.user_game_scoring[game.id].append( score )
+               
+            else:
+
+               # calculate results and store them in the game
+               
+               if score['score_w'] > score['score_b']:
+                  winner_color = 'W'
+                  delta = str(score['score_w'] - score['score_b'])
+                  result = 'W+' + delta
+               else:
+                  winner_color = 'B'
+                  delta = str(score['score_b'] - score['score_w'])
+                  result = 'B+' + delta
+                                 
+               game.State = 'F'
+               game.WinType = 'S'
+               game.ScoreDelta = delta
+               game.Winner = winner_color
+               game.save()
+
+               strvar = (len(score['territory_w']),
+                         score['captures_w'],
+                         score['prisoners_b'],
+                         str(game.Komi),
+                         str(score['score_w']),
+                         len(score['territory_b']),
+                         score['captures_b'],
+                         score['prisoners_w'],
+                         str(score['score_b']),
+                         result) 
+
+               # prepare the last node which contains all the territory markers and stuff
+               comment_text = "Game finished.\n\n" + \
+                   "White: %d territory, %d captures, %d prisoners, %s komi\n" + \
+                   "White Total: %s\n\n" + \
+                   "Black: %d territory, %d captures, %d prisoners\n" + \
+                   "Black Total: %s\n\n" + \
+                   "Result: %s\n" 
+
+               comment = comment_text % strvar
+
+               
+        
+               focus_node = GameNode.objects.get(pk = game.FocusNode)
+               territorynode = GameNode( Game = game, ParentNode = focus_node )
+               territorynode.save()
+
+               cprop = GameProperty( Node = territorynode, Property = 'C', Value=comment )
+               cprop.save()
+
+               # TODO ewww.. make our model / SGF creator smart enough to do something about this..
+               for co in score['territory_w']:
+                  twprop = GameProperty( Node = territorynode, Property = 'TW', Value = co)
+                  twprop.save()
+
+               for co in score['territory_b']:
+                  twprop = GameProperty( Node = territorynode, Property = 'TB', Value = co)
+                  twprop.save()
+
+               # find the root node and set a RE property with the score
+               rootnode = GameNode.objects.get( Game = game, ParentNode__isnull = True )
+               reprop = GameProperty( Node = rootnode, Property = 'RE', Value=result )
+               reprop.save()
+               
+               # transmit results to everyone
+               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  self.writeToTransport(["RSLT", game.id, winner_color, 'S', result], transport = connection.transport)
+            
+            response = CTS
+
+
       # write whatever response we came up with above
       self.writeToTransport(response, self.transport)
 
@@ -475,7 +618,11 @@ class GoServerFactory(protocol.ServerFactory):
 
       # this is a dict storing the offers users make to play games
       # { user_id: [ board size, main time, komi, color ], .... } 
+      # TODO this needs a game id... huh
       self.user_game_offers = {}
+
+      # this holds scores submitted by users for comparison/validation with their opponent's submitted scores
+      self.user_game_scoring = {}
 
    def addToConnectionDB(self, connection, game_id, user_id):
       self.connectionList.append( [connection, game_id, user_id] )
@@ -511,10 +658,10 @@ class GoServerFactory(protocol.ServerFactory):
       return False
 
                   
-   def getGame(self, game_id):
+   def getGame(self, game_id, refresh = False):
       """ This func provides a game object.  it caches games to prevent needless reloading """
       
-      if not self.games.has_key( game_id ):
+      if refresh or not self.games.has_key( game_id ):
          self.games[ game_id ] = Game.objects.get(pk = game_id)
          
       return self.games[ game_id ]

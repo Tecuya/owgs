@@ -229,6 +229,7 @@ eidogo.Player.prototype = {
         // show undo button if we allow it
         if(this.allowUndo) show(this.dom.buttonUndo, "inline");
 
+        show(this.dom.buttonResign, "inline");
         show(this.dom.buttonPass, "inline");
 
         this.hook("initDone");
@@ -2383,7 +2384,8 @@ eidogo.Player.prototype = {
                 <input type='button' id='score-est' class='score-est-button' value='" + t['score est'] + "' />\
                 <input type='button' id='score-done' class='score-done-button' value='" + t['score done'] + "' />\
                 <input type='button' id='button-undo' class='undo-button' value='" + t['undo'] + "' />\
-                <input type='button' id='button-pass' class='undo-button' value='" + t['pass'] + "' />\
+                <input type='button' id='button-pass' class='pass-button' value='" + t['pass'] + "' />\
+                <input type='button' id='button-resign' class='resign-button' value='" + t['resign'] + "' />\
                 <select id='search-algo' class='search-algo'>\
                     <option value='corner'>" + t['search corner'] + "</option>\
                     <option value='center'>" + t['search center'] + "</option>\
@@ -2478,6 +2480,7 @@ eidogo.Player.prototype = {
          ['scoreEst',         'fetchScoreEstimate'],
          ['scoreDone',        'postScore'],
          ['buttonUndo',       'undo'],
+         ['buttonResign',     'resign'],
          ['searchButton',     'searchRegion'],
          ['searchResults',    'loadSearchResult'],
          ['searchClose',      'closeSearch'],
@@ -2847,6 +2850,13 @@ eidogo.Player.prototype = {
         this.hook("owgs_undo");
     },
 
+    resign: function() { 
+        
+        if( confirm("Are you sure you want to resign?") ) { 
+            this.hook("owgs_resign");
+        }
+    },
+    
     postScore: function() { 
         
         // count prisoners
@@ -2888,25 +2898,28 @@ eidogo.Player.prototype = {
             result = 'Tie';
         }
 
-        comment = "Game finished.\n\n" + 
-            "White: " + territory_w.length + " territory, " + this.board.captures.W + " captures, " + prisoners_b + " prisoners, " + root.KM + " komi\n" +
-            "White Total: " + score_w + "\n\n" +
-            "Black: " + territory_b.length + " territory, " + this.board.captures.B + " captures, " + prisoners_w + " prisoners\n" +
-            "Black Total: " + score_b + "\n\n" + 
-            "Result: " + result + "\n";
-        
-        var resultNode = new eidogo.GameNode(null, {'C': comment,
-                                                    'TW': territory_w,
-                                                    'TB': territory_b} );
-        
-        // TODO write result to root node!
+        if(this.owgsGameState == 'I') {
+            // only submit scores if this is an in-progress game; we dont care about scores from reviewing games
+            this.hook("owgs_scoresubmit", [territory_w, this.board.captures.W, prisoners_b, score_w, territory_b, this.board.captures.B, prisoners_w, score_b]);
 
-        resultNode._cached = false;     
-        this.cursor.node.appendChild(resultNode);
-        this.unsavedChanges = true;
-        this.variation(this.cursor.node._children.length-1);
+        } else { 
+            
+            comment = "Game finished.\n\n" + 
+                "White: " + territory_w.length + " territory, " + this.board.captures.W + " captures, " + prisoners_b + " prisoners, " + root.KM + " komi\n" +
+                "White Total: " + score_w + "\n\n" +
+                "Black: " + territory_b.length + " territory, " + this.board.captures.B + " captures, " + prisoners_w + " prisoners\n" +
+                "Black Total: " + score_b + "\n\n" + 
+                "Result: " + result + "\n";
         
-        this.selectTool("play");
+            var resultNode = new eidogo.GameNode(null, {'C': comment,
+                                                        'TW': territory_w,
+                                                        'TB': territory_b} );
+            
+            resultNode._cached = false;     
+            this.cursor.node.appendChild(resultNode);
+            this.unsavedChanges = true;
+            this.variation(this.cursor.node._children.length-1);
+        }
     },
 
     // makeResult: function(komi, territory_w, captures_w, prisoners_w, territory_b, captures_b, prisoners_b) {  }
@@ -3096,12 +3109,30 @@ eidogo.Player.prototype = {
         node.pushProperty('SN', sn_value)
     },
 
+    // set the game type.  note; sometimes type is not specified; the restricted_nav command must
+    // work in that situation
     setGameType: function( type, state ) { 
+        
+        // store state / type if given
+        if(state) this.owgsGameState = state;
+        if(type) this.owgsType = type;
 
-        var restricted_nav = ( ! ( ( type == 'T' ) ||
-                                   ( state == 'F' ) ) );
+        // determine nav restrictions
+        var restricted_nav = ( ! ( ( this.owgsType == 'T' ) ||
+                                   ( this.owgsGameState == 'F' ) ) );
 
         this.owgsRestrictedNav = restricted_nav;
+
+        // in a finished game, we should hide undo / pass / resign
+        if( this.owgsGameState == 'F') { 
+            hide(this.dom.buttonPass);
+            hide(this.dom.buttonResign);
+            hide(this.dom.buttonUndo);
+        } else { 
+            show(this.dom.buttonPass, "inline");
+            show(this.dom.buttonResign, "inline");
+            show(this.dom.buttonUndo, "inline");
+        }
 
         if( restricted_nav ) { 
             this.prefs.showGameInfo = true;
@@ -3122,8 +3153,29 @@ eidogo.Player.prototype = {
         }
 
         this.handleDisplayPrefs();        
+        this.updateControls();
     },
     
+    // accept a game result and notify the user, update the interface, etc
+    setResult: function(wincolor, wintype, results) { 
+        
+        if(wintype == 'R') { 
+            msg = "Game over.  " + wincolor + " wins by resignation.";
+        } else {
+            msg = "Game over.  " + wincolor + " " + results;
+        }
+
+        alert(msg);
+
+        // todo cleanup
+        this.dom.comments.innerHTML += msg + "<br>";
+        
+        // update the interface now that the game is finished
+        this.setGameType( false, 'F' );
+
+        this.selectTool('view');
+    },
+
 };
     
 })();

@@ -155,6 +155,15 @@ function NetClient(session_key) {
             
             this.navi(dataAr);
 
+        } else if(command == "GAME") { 
+
+            // this command allows the server to update our game state & type.. currently unused
+            NetClient_eidogo_player.setGameType( dataAr[0], dataAr[1] );
+
+        } else if(command == "RSLT") { 
+            
+            NetClient_eidogo_player.setResult( dataAr[0], dataAr[1], dataAr[2]);
+
         } else if(command == "SYNC") { 
             
             alert("Your client is not synchronized with the server; server said: "+dataAr[0]);
@@ -262,6 +271,16 @@ function NetClient(session_key) {
         this.send( ["UNDO", this.game_id] );
     }
 
+    this.onresign = function() { 
+        this.send( ["RSGN", this.game_id] );
+    }
+    
+    this.onscoresubmit = function(data) {         
+        data.unshift(this.game_id);
+        data.unshift("SCOR");
+        this.send( data );
+    }
+
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 
         parts = document.getElementById('ParticipantSelect');
@@ -307,8 +326,8 @@ function NetClient(session_key) {
 
 
 // annoying wrappers for various event handlers
-// TODO perhaps there's a better way of accessing NetClient_instance from event handlers?  some kind of singleton technique?
 
+// TODO perhaps there's a better way of accessing NetClient_instance from event handlers?  some kind of singleton technique?
 function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
 function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
@@ -316,6 +335,9 @@ function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
 function NetClient_ondead_wrapper(data) { NetClient_instance.ondead(data); }
 function NetClient_onnav_wrapper(data) { NetClient_instance.onnav(data); }
 function NetClient_onundo_wrapper(data) { NetClient_instance.onundo(data); }
+function NetClient_onresign_wrapper(data) { NetClient_instance.onresign(data); }
+function NetClient_onscoresubmit_wrapper(data) { NetClient_instance.onscoresubmit(data); }
+
 function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 // init funcs
@@ -353,6 +375,8 @@ function initEidogo() {
                           "owgs_scoreToggleStone": NetClient_ondead_wrapper,
                           "owgs_nav": NetClient_onnav_wrapper,
                           "owgs_undo": NetClient_onundo_wrapper,
+                          "owgs_resign": NetClient_onresign_wrapper,
+                          "owgs_scoresubmit": NetClient_onscoresubmit_wrapper,
                          },
         loadPath:        [0, 0],
         markCurrent:     true,
