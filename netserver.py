@@ -320,6 +320,11 @@ class GoServerProtocol(basic.LineReceiver):
                game.save()
 
                for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  
+                  # not the right game? skip!
+                  if conn_game_id != game.id:
+                     continue
+
                   # dont send to the connection that made the move
                   if self.transport.sessionno != connection.transport.sessionno:
                      self.writeToTransport(cmd, transport = connection.transport)

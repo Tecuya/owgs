@@ -74,6 +74,7 @@ class Game(models.Model):
     WinType = models.CharField('Win Type', max_length=1, choices=(('S', 'Score'),
                                                                   ('R', 'Resignation'),
                                                                   ('F', 'Forfeit'),
+                                                                  ('T', 'Time'),
                                                                   ('U', 'Unset')), default='U')
     
     # the difference between W & B's score
@@ -263,6 +264,8 @@ class Board:
 
         self.board = []
 
+        self.koImmune = False
+
         self.size = int(self.game.BoardSize.split('x')[0])
 
         # produce a blank board
@@ -287,7 +290,8 @@ class Board:
     def syncBoardToNode( self, syncnode ):        
         
         # TODO implement some manner of caching here so its not necessary to always
-        # do a complete lookup of the game history!  This is slllooow
+        # do a complete lookup of the game history!  This is going to get slllooow..
+
         nodes = GameTree( self.game.id ).getFullNodePath( syncnode )
 
         if len(nodes) == 0:
@@ -306,8 +310,55 @@ class Board:
                 else:
                     (x,y) = self.sgfPointToXY( prop.Value )
                     self.setPoint(x, y, color)
-                
+                    
+                    caps = self.findMoveCaptures( x, y, color )
+                    for (rx, ry) in caps:
+                        self.setPoint( rx, ry, self.EMPTY)
+
+                    # if we only captured one stone, this move's is marked koImmune
+                    if len(caps) == 1:
+                        self.koImmune = [x, y]
+
         return True
+
+    
+    def findMoveCaptures(self, x, y, color):
+        """ This method determines if a move makes captures and if it does it returns the list of captured points """
+
+        # see if we captured something
+        checkPoints = []
+        if x > 0: 
+            checkPoints.append( [x-1, y] )
+        if y > 0:
+            checkPoints.append( [x, y-1] )
+        if x < self.size - 1:
+            checkPoints.append( [x+1, y] )
+        if y < self.size - 1:
+            checkPoints.append( [x, y+1] )
+
+        # if we did capture stuff we'll keep a list here
+        removeStones = []
+
+        for (cx, cy) in checkPoints:
+
+            # dont check empty space
+            if self.getPoint( cx, cy ) == self.EMPTY:
+                continue
+
+            # find the group
+            groupPoints = self.findGroupPoints( cx, cy )
+
+            # see if we killed its liberties
+            groupLibs = 0
+            for (gx, gy) in groupPoints:
+                groupLibs += len(self.getStoneLiberties( gx, gy ))
+
+            # remove the group if it was captured
+            if groupLibs == 0:
+                for (gx, gy) in groupPoints:
+                    removeStones.append( [gx, gy] )
+
+        return removeStones
 
     def ruleCheck( self, coord, color):
         
@@ -324,15 +375,41 @@ class Board:
         # out of bounds coordinates
         if x<0 or x>self.size-1 or y<0 or y>self.size-1:
             return [False, "Invalid move: out of bounds (%d, %d)" % (x, y)]
-
+        
         # playing on already-occupied space
         if(self.getPoint(x,y) != self.EMPTY):
             return [False, "Invalid move: occupied space (%d, %d, %d)" % (x, y, self.getPoint(x,y))]
+
+        ##########
+        # suicide check        
+        self.setPoint(x, y, color) # temporarily set the point so we can check it
+
+        # find the new group
+        groupPoints = self.findGroupPoints( x, y )
+
+        # count the groups liberties
+        groupLibs = 0
+        for (gx, gy) in groupPoints:
+            groupLibs += len(self.getStoneLiberties( gx, gy ))
+
+        # this will be reused in the ko check
+        thisMoveCaptures = self.findMoveCaptures( x, y, color)
+
+        # if it appears the placed stone removes all this groups liberties, see if we are capturing
+        if groupLibs == 0 and len(thisMoveCaptures) == 0:
+            self.setPoint(x, y, self.EMPTY) # restore the point
+            return [False, "Invalid move: move is suicide (%d, %d, %d)" % (x, y, color)]
         
-        # TODO suicide
-
-        # TODO ko
-
+        ############## ko check
+        if (self.koImmune and 
+            len(self.findGroupPoints( self.koImmune[0], self.koImmune[1])) == 1 and
+            len(self.getStoneLiberties( self.koImmune[0], self.koImmune[1])) == 0):
+            
+            self.setPoint(x, y, self.EMPTY) # restore the point
+            return [False, "Invalid move: move violates the ko rule"]
+                
+        # restore the point
+        self.setPoint(x, y, self.EMPTY) 
         return [True, ""]
 
     def getPoint( self, x, y ):
@@ -344,6 +421,61 @@ class Board:
     def clearBoard( self ):
         for i in range(0, len(self.board)):
             self.board[i] = self.EMPTY
+            
+    def findGroupPoints( self, x, y, groupPoints = False ):
+        
+        color = self.getPoint( x, y )
+        
+        if not groupPoints:
+            groupPoints = []
+            
+        groupPoints.append( [x,y] )
+        
+        checkPoints = []
+        if x > 0: 
+            checkPoints.append( [x-1, y] )
+        if y > 0:
+            checkPoints.append( [x, y-1] )
+        if x < self.size - 1:
+            checkPoints.append( [x+1, y] )
+        if y < self.size - 1:
+            checkPoints.append( [x, y+1] )
+
+        for (x,y) in checkPoints:
+            
+            # if this points already been checked, skip it
+            ptInGp = False
+
+            for (gx, gy) in groupPoints:
+                if x == gx and y == gy:
+                    ptInGp = True
+                    break
+            
+            if not ptInGp and color == self.getPoint( x, y ):
+                groupPoints.extend( self.findGroupPoints( x, y, groupPoints ) )
+        
+        return groupPoints
+    
+    def getStoneLiberties(self, x, y):
+        
+        checkPoints = []
+        if x > 0: 
+            checkPoints.append( [x-1, y] )
+        if y > 0:
+            checkPoints.append( [x, y-1] )
+        if x < self.size - 1:
+            checkPoints.append( [x+1, y] )
+        if y < self.size - 1:
+            checkPoints.append( [x, y+1] )
+
+        returnList = []
+
+        for (cx, cy) in checkPoints:
+            if self.getPoint( cx, cy ) == self.EMPTY:
+                returnList.append( [cx, cy] )
+        
+        return returnList
+
 
 class GameCursor:
     """ This class represents a cursor for traversing sgf nodes. It is modelled after eidogo's game model as it closely integrates with it. """

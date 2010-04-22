@@ -107,21 +107,16 @@ eidogo.Rules.prototype = {
         // simple ko checking
         if( (!violation) && (this.cfgRules.koRule == 'simple') ) { 
             
-            // if a koImmune stone was set in a previous capture
-            if(this.koImmune) { 
-                groupPoints = this.board.findGroupPoints( this.koImmune );
-                
-                for(i=0;i<groupPoints.length;i++) 
-                    liberty_count += this.board.getStoneLiberties(groupPoints[i]).length;
-                
-                if(liberty_count == 0) { 
-                    violation = 'Ko';
-                }
-            }
-            
-            // this koImmune is no longer a concern
-            if(!violation) 
+            // if a koImmune stone was set in a previous capture,
+            // and the koImmune stone is in a group of 1 stone (single stone)
+            // and it now has no liberties, this is a ko violation
+            if( (this.koImmune) && 
+                (this.board.findGroupPoints( this.koImmune ).length == 1 ) && 
+                (this.board.getStoneLiberties( this.koImmune ).length == 0) ) { 
+                violation = 'Ko';
+            } else { 
                 this.koImmune = false;
+            }
             
         } else if(this.cfgRules.koRule == 'positional_superko') { 
             // TODO
