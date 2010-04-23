@@ -39,7 +39,10 @@ class Game(models.Model):
     Owner = models.ForeignKey(User)
 
     # Date at which this game record was created
-    StartDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
+    CreateDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
+
+    # date at which the game officially started
+    StartDate = models.DecimalField('Game Start Timestamp', max_digits=15, decimal_places=3, default='0.0')
 
     # type
     Type = models.CharField('Game Type', max_length=1, choices=(('F', 'Free'),
@@ -53,6 +56,17 @@ class Game(models.Model):
 
     # Main time period length
     MainTime = models.TimeField('Main Time')    
+    
+    # overtime type
+    OvertimeType = models.CharField('Overtime Type', max_length=1, choices=(('N', 'No Overtime'),
+                                                                            ('B', 'Byo-Yomi'),
+                                                                            ('C', 'Canadian')), default='N')
+    
+    # the length of an overtime period
+    OvertimePeriod = models.TimeField('Overtime Period')
+
+    # the number of stones per period, or the number of periods (depending on overtime type)
+    OvertimeCount = models.IntegerField('Overtime Count')
 
     # Komi for this game
     Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
@@ -86,6 +100,7 @@ class Game(models.Model):
     # keeps track of when undos are pending
     PendingUndoNode = models.IntegerField('Pending Undo Node Id', blank=True, null=True)
 
+        
     def __unicode__(self):
         player_list = []
 
@@ -98,7 +113,7 @@ class Game(models.Model):
 class GameForm(ModelForm):
     class Meta:
         model = Game
-        exclude = ('Owner', 'StartDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode')
+        exclude = ('Owner', 'StartDate', 'CreateDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode')
 
         
 class GameParticipant(models.Model):
