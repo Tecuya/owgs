@@ -41,9 +41,8 @@ class Game(models.Model):
     # Date at which this game record was created
     CreateDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
 
-    # date at which the game officially started
-    StartDate = models.DecimalField('Game Start Timestamp', max_digits=15, decimal_places=3, default='0.0')
 
+    ########### Player Preferences ###########
     # type
     Type = models.CharField('Game Type', max_length=1, choices=(('F', 'Free'),
                                                                 ('R', 'Ranked'),
@@ -54,8 +53,16 @@ class Game(models.Model):
                                                          ('13x13','13 x 13'),
                                                          ('9x9','9 x 9')), default='19x19')
 
+    # Komi for this game
+    Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
+
+    # Indicates whether or not W / B players are determined
+    AllowUndo = models.BooleanField('Allow Undo')
+    
+
+    ########### Time #############
     # Main time period length
-    MainTime = models.TimeField('Main Time')    
+    MainTime = models.IntegerField('Main Time')    
     
     # overtime type
     OvertimeType = models.CharField('Overtime Type', max_length=1, choices=(('N', 'No Overtime'),
@@ -63,17 +70,35 @@ class Game(models.Model):
                                                                             ('C', 'Canadian')), default='N')
     
     # the length of an overtime period
-    OvertimePeriod = models.TimeField('Overtime Period')
-
-    # the number of stones per period, or the number of periods (depending on overtime type)
+    OvertimePeriod = models.IntegerField('Overtime Period Length')
+    
+    # in N, meaningless, in B, the number of byo-yomi periods. in C, the number of stones 
     OvertimeCount = models.IntegerField('Overtime Count')
 
-    # Komi for this game
-    Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
+    # determine whether or not player is in overtime
+    IsOvertimeW = models.BooleanField('W Is Overtime')
+    IsOvertimeB = models.BooleanField('B Is Overtime')
 
-    # Indicates whether or not W / B players are determined
-    AllowUndo = models.BooleanField('Allow Undo')
+    ## Track the overtime period count for white/black
+    # in N, meaningless
+    # in B, the number of byo-yomi periods remaining
+    # in C, the number of stones remaining to be played before the time period renews
+    OvertimeCountW = models.IntegerField('W Overtime Count', default=0)
+    OvertimeCountB = models.IntegerField('B Overtime Count', default=0)
+
+    # track the time remaining in the current time period for white & black
+    TimePeriodRemainW = models.DecimalField('W Period Time Remaining', max_digits=15, decimal_places=3, default='0.0')
+    TimePeriodRemainB = models.DecimalField('B Period Time Remaining', max_digits=15, decimal_places=3, default='0.0')
     
+    # whose turn is it
+    TurnColor = models.CharField('Overtime Type', max_length=1, choices=(('W', 'White'),
+                                                                         ('B', 'Black')), default='B')
+
+    # exactly when did the turn start
+    TurnStart = models.DecimalField('Most Recent Turn Start', max_digits=15, decimal_places=3, default='0.0')
+
+
+    ############## State Tracking ###############
     # indicates the game state
     State = models.CharField('Game State', max_length=1, choices=(('P', 'Pre-Game'),
                                                                   ('I', 'In Progress'),
@@ -100,7 +125,7 @@ class Game(models.Model):
     # keeps track of when undos are pending
     PendingUndoNode = models.IntegerField('Pending Undo Node Id', blank=True, null=True)
 
-        
+    
     def __unicode__(self):
         player_list = []
 
@@ -113,7 +138,9 @@ class Game(models.Model):
 class GameForm(ModelForm):
     class Meta:
         model = Game
-        exclude = ('Owner', 'StartDate', 'CreateDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode')
+        exclude = ('Owner', 'CreateDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode',
+                   'TimePeriodW', 'TimePeriodB', 'OvertimeCountW', 'OvertimeCountB', 'TimePeriodRemainW', 'TimePeriodRemainB', 'TurnColor', 'TurnStart',
+                   'IsOvertimeW', 'IsOvertimeB')
 
         
 class GameParticipant(models.Model):

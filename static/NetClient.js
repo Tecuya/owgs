@@ -309,9 +309,7 @@ function NetClient(session_key) {
             }
         }
 
-        part_select.options.add( new Option(username + ' ' + ' ' + board_size + ' ' + main_time + ' ' + komi + ' ' + color , user_id) );
-        
-        
+        part_select.options.add( new Option(username + ' ' + ' ' + board_size + ' ' + main_time + ' ' + komi + ' ' + color , user_id) );        
     }
 
     this.navi = function(data) { 
@@ -389,6 +387,11 @@ function initEidogo() {
     });
     
     NetClient_eidogo_player.setGameType( eidogo_owgs_vars["gameType"], eidogo_owgs_vars["gameState"] );
+    
+    NetClient_eidogo_player.setTimer( eidogo_owgs_vars["gameMainTime"],
+                                      eidogo_owgs_vars["gameOvertimeType"],
+                                      eigodo_owgs_vars["gameOvertimePeriod"],
+                                      eidogo_owgs_vars["gameOvertimeCount"] );
 
     if(typeof(eidogo_owgs_vars["focusNode"]) != "undefined")
         NetClient_eidogo_player.goToNodeWithSN( eidogo_owgs_vars["focusNode"] );

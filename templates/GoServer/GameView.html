@@ -19,14 +19,13 @@ NetClient_instance.joingame( {{ Game.id }} );
 
 eidogo_owgs_vars = {
 "sgf": "{{ SGF }}",
-"color": "{{ YouAreColor }}",
+"turn": "{{ YouAreColor }}",
 "gameType": "{{ Game.Type }}",
 "gameState": "{{ Game.State }}",
 "gameMainTime": "{{ Game.MainTime }}",
 "gameOvertimeType": "{{ Game.OvertimeType }}",
 "gameOvertimePeriod": "{{ Game.OvertimePeriod }}",
 "gameOvertimeCount": "{{ Game.OvertimeCount }}",
-
 {% if Game.FocusNode %}"focusNode": "{{ Game.FocusNode }}",{% endif %}
 };
 

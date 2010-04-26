@@ -231,7 +231,7 @@ eidogo.Player.prototype = {
 
         show(this.dom.buttonResign, "inline");
         show(this.dom.buttonPass, "inline");
-
+        
         this.hook("initDone");
     },
     
@@ -3161,6 +3161,8 @@ eidogo.Player.prototype = {
         
         if(wintype == 'R') { 
             msg = "Game over.  " + wincolor + " wins by resignation.";
+        } else if(wintype == 'T') { 
+            msg = "Game over.  " + wincolor + " wins by time.";
         } else {
             msg = "Game over.  " + wincolor + " " + results;
         }
