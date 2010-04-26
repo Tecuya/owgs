@@ -267,6 +267,17 @@ class GoServerProtocol(basic.LineReceiver):
 
 
             if time_loss:
+
+               # set game stats
+               game.State = 'F'
+               game.Winner = other_color
+               game.WinType = 'T'
+               game.save()
+
+               rootnode = GameNode.objects.get( Game = game, ParentNode__isnull = True )               
+               reprop = GameProperty( Node = rootnode, Property = 'RE', Value=other_color+'+T' )
+               reprop.save()
+
                self.broadcastResult( game.id, other_color, 'T', False )
 
             else:
@@ -316,6 +327,9 @@ class GoServerProtocol(basic.LineReceiver):
 
 
          elif(cmd[0] == 'DEAD'):
+
+            # TODO validate
+
             coord = cmd[2]
 
             for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
@@ -580,7 +594,6 @@ class GoServerProtocol(basic.LineReceiver):
 
             # find the root node and set a RE property with the resignation info
             rootnode = GameNode.objects.get( Game = game, ParentNode__isnull = True )
-
             reprop = GameProperty( Node = rootnode, Property = 'RE', Value=other_color+'+R' )
             reprop.save()
 
