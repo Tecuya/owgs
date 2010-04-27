@@ -155,8 +155,10 @@ class GoServerProtocol(basic.LineReceiver):
                if conn_game_id == game.id:
                   self.writeToTransport(["JOIN", game.id, self.user.id, self.user.username, part_that_joined.State], transport = connection.transport)
 
-            # update the timer so the join-ee knows whats up
-            self.timerUpdate(game)
+            # if the game is in progress we need to do a timer update to inform the joiner of the time...
+            # TODO we *could* reduce traffic by forcing timerUpdate to only update the timer of this client...
+            if game.State == 'I':
+               self.timerUpdate(game)
 
             response = CTS
 

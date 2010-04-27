@@ -3225,7 +3225,7 @@ eidogo.Player.prototype = {
         
         this.timerData[period_remain] -= 1;
         
-        // handle timer period changes
+        // handle timer period changes.. we really only need to worry about byo yomi, it's the only timing period that 
         if(this.timerData[period_remain] < 1) { 
             
             if(this.timerSettings['overtime_type'] == 'B') { 
@@ -3234,7 +3234,23 @@ eidogo.Player.prototype = {
                     this.timerData[period_remain] = this.timerSettings['overtime_period'];
                 }
             }
+
+            if(this.timerSettings['overtime_type'] == 'C') { 
+                // if canadian, we really only need to do anythign if they arent in overtime yet; just init the overtime display.. 
+                // server time messages produced on moves will update the timer stone count appropriately
+                if(!this.timerData[is_overtime]) { 
+                    this.timerData[overtime_count] = this.timerSettings['overtime_count']; 
+                    this.timerData[period_remain] = this.timerSettings['overtime_period'];
+                    this.timerData[is_overtime] = true;
+                }
+            }
             
+        }
+        
+        // if the timer is *still* negative, even though the game ended, then we need to update all clients time status.  
+        // since we only need this to be requested once, we only have the client who is actually present (to lose) request it
+        if( (this.timerData[period_remain] < 1) && (testColor == eidogo_owgs_vars["YouAreColor"]) ) { 
+            NetClient_instance.send([ "TIME", eidogo_owgs_vars["gameID"] ]);
         }
 
         // this draws a negative indicator if the time has gone past the end of the game.. 
@@ -3249,13 +3265,12 @@ eidogo.Player.prototype = {
         if(timer_hours < 10) timer_hours = '0' + timer_hours;
         if(timer_minutes < 10) timer_minutes = '0' + timer_minutes;
         if(timer_seconds < 10) timer_seconds = '0' + timer_seconds;
-                
         
         this[setProp] = timesign + timer_hours + ':' + timer_minutes + ':' + timer_seconds + ' ' + 
             (this.timerData[is_overtime] ? this.timerData[overtime_count] : 'Main ') + '/' + this.timerSettings['overtime_count'];
         
         this.updateControls();
-    }
+    },
         
 };
     
