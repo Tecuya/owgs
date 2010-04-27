@@ -54,7 +54,13 @@ eidogo.Player.prototype = {
 
         // indicates whether this instance is used in an owgs network game
         this.owgsNetMode = (typeof cfg.owgsNetMode != 'undefined' ? true : false);
-
+        
+        // if owgsNetMode, we are going to update the timer display every second, so set the tick
+        if(this.owgsNetMode) { 
+            var myself = this;
+            this.owgsTimerTickInterval = window.setInterval( function() { myself.timerTick(); } , 1000 );
+        }
+        
         // indicates whether this instance's nav functions are restricted
         this.owgsRestrictedNav = false;
 
@@ -2082,9 +2088,9 @@ eidogo.Player.prototype = {
             ": <span>" + this.board.captures.B + "</span>";
     
         // time
-        this.dom.whiteTime.innerHTML = t['time left'] + ": <span>" +
+        this.dom.whiteTime.innerHTML = t['time left'] + ": <br /><span>" +
             (this.timeW ? this.timeW : "--") + "</span>";
-        this.dom.blackTime.innerHTML = t['time left'] + ": <span>" +
+        this.dom.blackTime.innerHTML = t['time left'] + ": <br /><span>" +
             (this.timeB ? this.timeB : "--") + "</span>";
         
         removeClass(this.dom.buttonPass, "pass-on");
@@ -3178,6 +3184,79 @@ eidogo.Player.prototype = {
         this.selectTool('view');
     },
 
+    setTimerType: function( maintime, overtime_type, overtime_period, overtime_count ) { 
+        this.timerSettings = {'maintime': maintime,
+                              'overtime_type': overtime_type,
+                              'overtime_period': overtime_period,
+                              'overtime_count': overtime_count};
+    },
+
+    updateTimerState: function( is_overtime_w, 
+                                is_overtime_b,
+                                overtime_count_w,
+                                overtime_count_b,
+                                period_remain_w,
+                                period_remain_b ) { 
+        this.timerData = {'is_overtime_w': is_overtime_w,
+                          'is_overtime_b': is_overtime_b,
+                          'overtime_count_w': overtime_count_w,
+                          'overtime_count_b': overtime_count_b,
+                          'period_remain_w': period_remain_w,
+                          'period_remain_b': period_remain_b}
+    },
+    
+    timerTick: function( forceColor ) { 
+
+        testColor = (forceColor ? forceColor : this.currentColor);
+
+        if(testColor == 'W') { 
+            var period_remain = "period_remain_w";
+            var overtime_count = "overtime_count_w";
+            var is_overtime = "is_overtime_w";
+            
+            var setProp = 'timeW';
+        } else { 
+            var period_remain = "period_remain_b";
+            var overtime_count = "overtime_count_b";
+            var is_overtime = "is_overtime_b";
+
+            var setProp = 'timeB';
+        }
+        
+        this.timerData[period_remain] -= 1;
+        
+        // handle timer period changes
+        if(this.timerData[period_remain] < 1) { 
+            
+            if(this.timerSettings['overtime_type'] == 'B') { 
+                if(this.timerData[overtime_count] > 1) { 
+                    this.timerData[overtime_count]--;
+                    this.timerData[period_remain] = this.timerSettings['overtime_period'];
+                }
+            }
+            
+        }
+
+        // this draws a negative indicator if the time has gone past the end of the game.. 
+        var timesign = (this.timerData[period_remain] < 0) ? '-' : '';
+
+        var secs = Math.abs( this.timerData[period_remain] );
+
+        timer_hours = Math.floor(secs / 3600);
+        timer_minutes = Math.floor( (secs - timer_hours * 3600) / 60);
+        timer_seconds = Math.floor( secs - timer_hours * 3600 - timer_minutes * 60 );
+
+        if(timer_hours < 10) timer_hours = '0' + timer_hours;
+        if(timer_minutes < 10) timer_minutes = '0' + timer_minutes;
+        if(timer_seconds < 10) timer_seconds = '0' + timer_seconds;
+                
+        
+        this[setProp] = timesign + timer_hours + ':' + timer_minutes + ':' + timer_seconds + ' ' + 
+            (this.timerData[is_overtime] ? this.timerData[overtime_count] : 'Main ') + '/' + this.timerSettings['overtime_count'];
+        
+        this.updateControls();
+    }
+        
 };
     
 })();

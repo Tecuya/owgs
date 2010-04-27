@@ -110,7 +110,6 @@ class GoServerProtocol(basic.LineReceiver):
 
          # join game command ; index 1 is a game name
          if(cmd[0] == 'JOIN'):        
-
             # TODO insert a validation thing to make sure user has perm to join this game
 
             # assume user is new
@@ -156,6 +155,9 @@ class GoServerProtocol(basic.LineReceiver):
                if conn_game_id == game.id:
                   self.writeToTransport(["JOIN", game.id, self.user.id, self.user.username, part_that_joined.State], transport = connection.transport)
 
+            # update the timer so the join-ee knows whats up
+            self.timerUpdate(game)
+
             response = CTS
 
 
@@ -175,115 +177,8 @@ class GoServerProtocol(basic.LineReceiver):
             sn = cmd[4]            
             comments = cmd[5]
 
-            # TODO all this timing stuff should be moved to a separate func and be called in rsgn commands to validate that the player didnt actually lose on time rather than resign
-            if color == 'W':
-               overtime_count = game.OvertimeCountW
-               period_remain = float(game.TimePeriodRemainW)
-               is_overtime = game.IsOvertimeW
-               other_color = 'B'               
-
-            else:
-               overtime_count = game.OvertimeCountB
-               period_remain = float(game.TimePeriodRemainB)
-               is_overtime = game.IsOvertimeB
-               other_color = 'W'            
-
-            # determine how much time the player took
-            time_taken_to_move = time.time() - float(game.TurnStart)
-            
-            time_loss = False
-
-            # figure out if that exhausted their current time period
-            if (period_remain - time_taken_to_move) < 0:
-
-               exceeded_period_by = time_taken_to_move - period_remain
+            if self.timerUpdate(game):
                
-               self.debug("%s exceeded period time by %f" % (color, exceeded_period_by))
-               
-               if game.OvertimeType == 'N': 
-                  # there's no overtime and player exceeded the time period?  loser!
-                  time_loss = 'Main timer exceeded'
-
-               elif game.OvertimeType == 'B':
-                  # byo-yomi.  determine how many time periods they exceeded by
-                  periods_exceeded = int( math.floor( exceeded_period_by / game.OvertimePeriod ) ) 
-
-                  if is_overtime:
-                     # we were already on overtime, so we need to add 1 to periods_exceeded to represent the period we just exceeded
-                     periods_exceeded += 1
-                  
-                  # if they exceeded all their overtime periods they had left, they lose
-                  if periods_exceeded >= overtime_count:
-                     time_loss = 'Byo yomi periods exceeded.'
-                  else:
-                     self.debug("Exceeded %d byo yomi periods" % periods_exceeded)
-                     new_overtime_count = overtime_count - periods_exceeded
-                     new_period_remain = game.OvertimePeriod
-                     new_is_overtime = True
-
-               elif game.OvertimeType == 'C':
-
-                  if is_overtime == False:
-                     # player just moved to overtime?
-                     new_is_overtime = True
-                     new_period_remain = game.OvertimePeriod - exceeded_period_by
-                     new_overtime_count = game.OvertimeCount - 1  # minus one for the stone they just played
-                     
-                  else:
-                     # player exceeded overtime?? loser!
-                     time_loss = 'Canadian overtime period exceeded with %d stones remaining to be played' % period_remain
-
-            else:
-               
-               if is_overtime:
-                  # handle overtime
-
-                  # ..yeah its overtime
-                  new_is_overtime = True
-                  
-                  if game.OvertimeType == 'C':
-                     
-                     if overtime_count > 1:
-                        # 1 less stone they must meet
-                        new_overtime_count = overtime_count - 1  
-                        new_period_remain = period_remain - time_taken_to_move
-                     else:
-                        # they fulfilled the stone requirement to reset the overtime period
-                        new_overtime_count = game.OvertimeCount
-                        new_period_remain = game.OvertimePeriod
-
-                  elif game.OvertimeType == 'B':
-                     self.debug("Byo yomi period reset")
-                     # byo yomi gets the period reset 
-                     new_period_remain = game.OvertimePeriod
-                     new_overtime_count = overtime_count
-
-               else:
-
-                  # regular time, and the move did not exhaust their time period.  simple!
-                  new_period_remain = period_remain - time_taken_to_move
-                  new_overtime_count = overtime_count
-                  new_is_overtime = is_overtime
-
-
-            if time_loss:
-
-               # set game stats
-               game.State = 'F'
-               game.Winner = other_color
-               game.WinType = 'T'
-               game.save()
-
-               rootnode = GameNode.objects.get( Game = game, ParentNode__isnull = True )               
-               reprop = GameProperty( Node = rootnode, Property = 'RE', Value=other_color+'+T' )
-               reprop.save()
-
-               self.broadcastResult( game.id, other_color, 'T', False )
-
-            else:
-
-               self.debug("New settings: %s %s %s " % (str(new_period_remain), str(new_overtime_count), str(new_is_overtime)))
-
                # We know they didn't lost on time now.. so see if we can legally make the move (and make it)
                new_node_id = self.factory.storeMove(game.id, coord, color, self.gamepartstate[ game.id ], sn, comments)
 
@@ -293,20 +188,14 @@ class GoServerProtocol(basic.LineReceiver):
                   response = ["SYNC", game.id, "Move rejected"]
 
                else:
-
-                  # set the newly calculated time variables
+                  
                   if color == 'W':
-                     game.TimePeriodRemainW = str(new_period_remain)
-                     game.OvertimeCountW = new_overtime_count
-                     game.IsOvertimeW = new_is_overtime
+                     other_color = 'B'
                   else:
-                     game.TimePeriodRemainB = str(new_period_remain)
-                     game.OvertimeCountB = new_overtime_count
-                     game.IsOvertimeB = new_is_overtime
+                     other_color = 'W'
 
                   # change the timer to the other player
                   game.TurnColor = other_color
-                  game.TurnStart = str(time.time())
 
                   # save the focusNode
                   game.FocusNode = int(new_node_id)
@@ -325,6 +214,15 @@ class GoServerProtocol(basic.LineReceiver):
                
             response = CTS
 
+         elif(cmd[0] == 'TIME'):
+            
+            # client requests we update the timer.  we only honor if game is 'I'n progress
+            if game.State == 'I':
+            
+               # update the timer for whoevers turn it is
+               self.timerUpdate( game )
+
+            response = CTS
 
          elif(cmd[0] == 'DEAD'):
 
@@ -363,10 +261,11 @@ class GoServerProtocol(basic.LineReceiver):
                game.TimePeriodRemainW = game.MainTime
                game.TimePeriodRemainB = game.MainTime
 
-               # its blacks turn, starting... NOW!
+               # always blacks turn
                game.TurnColor = 'B'
-               game.TurnStart = str(time.time())
 
+               # game starting now!
+               game.LastClock = str(time.time())
                game.save()
 
                # Determine which player is to be changed to what color and change them
@@ -685,8 +584,6 @@ class GoServerProtocol(basic.LineReceiver):
                    "Result: %s\n" 
 
                comment = comment_text % strvar
-
-               
         
                focus_node = GameNode.objects.get(pk = game.FocusNode)
                territorynode = GameNode( Game = game, ParentNode = focus_node )
@@ -721,13 +618,151 @@ class GoServerProtocol(basic.LineReceiver):
       if response[0] == 'SYNC':
          self.transport.loseConnection()
 
-
    def broadcastResult(self, game_id, winner_color, win_type, win_param):
       self.debug('Game %d won by %s %s %s' % (game_id, winner_color, win_type, win_param))
       for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
          if conn_game_id == game_id:
             self.writeToTransport(["RSLT", game_id, winner_color, win_type, win_param], transport = connection.transport)
+
+   def timerUpdate(self, game):
+      """ Update the timer.  If timer updates without causing a loss, return true.  If a loss, return false """
+
+      color = game.TurnColor
       
+      if color == 'W':
+         overtime_count = game.OvertimeCountW
+         period_remain = float(game.TimePeriodRemainW)
+         is_overtime = game.IsOvertimeW
+         other_color = 'B'               
+
+      else:
+         overtime_count = game.OvertimeCountB
+         period_remain = float(game.TimePeriodRemainB)
+         is_overtime = game.IsOvertimeB
+         other_color = 'W'            
+
+      # determine how much time has elapsed
+      now_timestamp = time.time()
+      time_taken_since_clock = now_timestamp - float(game.LastClock)
+      game.LastClock = str(now_timestamp)
+
+      time_loss = False
+
+      # figure out if that exhausted their current time period
+      if (period_remain - time_taken_since_clock) < 0:
+
+         exceeded_period_by = time_taken_since_clock - period_remain
+
+         self.debug("%s exceeded period time by %f" % (color, exceeded_period_by))
+
+         if game.OvertimeType == 'N': 
+            # there's no overtime and player exceeded the time period?  loser!
+            time_loss = 'Main timer exceeded'
+
+         elif game.OvertimeType == 'B':
+            # byo-yomi.  determine how many time periods they exceeded by
+            periods_exceeded = int( math.floor( exceeded_period_by / game.OvertimePeriod ) ) 
+
+            if is_overtime:
+               # we were already on overtime, so we need to add 1 to periods_exceeded to represent the period we just exceeded
+               periods_exceeded += 1
+
+            # if they exceeded all their overtime periods they had left, they lose
+            if periods_exceeded >= overtime_count:
+               time_loss = 'Byo yomi periods exceeded.'
+            else:
+               self.debug("Exceeded %d byo yomi periods" % periods_exceeded)
+               new_overtime_count = overtime_count - periods_exceeded
+               new_period_remain = game.OvertimePeriod
+               new_is_overtime = True
+
+         elif game.OvertimeType == 'C':
+
+            if is_overtime == False:
+               # player just moved to overtime?
+               new_is_overtime = True
+               new_period_remain = game.OvertimePeriod - exceeded_period_by
+               new_overtime_count = game.OvertimeCount - 1  # minus one for the stone they just played
+
+            else:
+               # player exceeded overtime?? loser!
+               time_loss = 'Canadian overtime period exceeded with %d stones remaining to be played' % period_remain
+
+      else:
+
+         if is_overtime:
+            # handle overtime
+
+            # ..yeah its overtime
+            new_is_overtime = True
+
+            if game.OvertimeType == 'C':
+
+               if overtime_count > 1:
+                  # 1 less stone they must meet
+                  new_overtime_count = overtime_count - 1  
+                  new_period_remain = period_remain - time_taken_since_clock
+               else:
+                  # they fulfilled the stone requirement to reset the overtime period
+                  new_overtime_count = game.OvertimeCount
+                  new_period_remain = game.OvertimePeriod
+
+            elif game.OvertimeType == 'B':
+               self.debug("Byo yomi period reset")
+               # byo yomi gets the period reset 
+               new_period_remain = game.OvertimePeriod
+               new_overtime_count = overtime_count
+
+         else:
+
+            self.debug('Regular time subtraction.. time taken since last clock is : %s' % str(time_taken_since_clock))
+            # regular time, and the move did not exhaust their time period.  simple!
+            new_period_remain = period_remain - time_taken_since_clock
+            new_overtime_count = overtime_count
+            new_is_overtime = is_overtime
+
+      
+      if time_loss:
+
+         # set game stats
+         game.State = 'F'
+         game.Winner = other_color
+         game.WinType = 'T'
+         game.save()
+
+         rootnode = GameNode.objects.get( Game = game, ParentNode__isnull = True )               
+         reprop = GameProperty( Node = rootnode, Property = 'RE', Value=other_color+'+T' )
+         reprop.save()
+
+         self.broadcastResult( game.id, other_color, 'T', False )
+
+         return False
+
+      else:
+
+         # set the newly calculated time variables
+         if color == 'W':
+            game.TimePeriodRemainW = str(new_period_remain)
+            game.OvertimeCountW = new_overtime_count
+            game.IsOvertimeW = new_is_overtime
+            game.save()
+
+         else:
+            game.TimePeriodRemainB = str(new_period_remain)
+            game.OvertimeCountB = new_overtime_count
+            game.IsOvertimeB = new_is_overtime
+            game.save()
+
+            
+         for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            if conn_game_id == game.id:
+               self.writeToTransport(["TIME", game.id, game.IsOvertimeW, game.IsOvertimeB, game.OvertimeCountW, 
+                                      game.OvertimeCountB, int(float(game.TimePeriodRemainW)), int(float(game.TimePeriodRemainB))], transport = connection.transport)
+
+
+         return True
+
+
    def writeToTransport(self, response, transport = False):
 
       if not transport:

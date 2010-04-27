@@ -64,6 +64,7 @@ function NetClient(session_key) {
         this.line.onopen = NetClient_onopen_wrapper;
         this.line.onlinereceived = NetClient_onlinereceived_wrapper;
         this.line.onclose = NetClient_onclose_wrapper;
+
     }
 
     this.onlinereceived = function(line) { 
@@ -169,6 +170,15 @@ function NetClient(session_key) {
             alert("Your client is not synchronized with the server; server said: "+dataAr[0]);
 
             // window.location.reload();
+
+        } else if(command == "TIME") { 
+            
+            NetClient_eidogo_player.updateTimerState( dataAr[0],
+                                                      dataAr[1],
+                                                      dataAr[2],
+                                                      dataAr[3],
+                                                      dataAr[4],
+                                                      dataAr[5] );
 
         } else { 
             alert("Unknown net command received from server: "+command);
@@ -335,7 +345,7 @@ function NetClient_onnav_wrapper(data) { NetClient_instance.onnav(data); }
 function NetClient_onundo_wrapper(data) { NetClient_instance.onundo(data); }
 function NetClient_onresign_wrapper(data) { NetClient_instance.onresign(data); }
 function NetClient_onscoresubmit_wrapper(data) { NetClient_instance.onscoresubmit(data); }
-
+function NetClient_ontime_wrapper(data) { NetClient_instance.ontime(data); }
 function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
 
 // init funcs
@@ -386,14 +396,24 @@ function initEidogo() {
         owgsNetMode:     true
     });
     
-    NetClient_eidogo_player.setGameType( eidogo_owgs_vars["gameType"], eidogo_owgs_vars["gameState"] );
+    NetClient_eidogo_player.setGameType( eidogo_owgs_vars["gameType"], 
+                                         eidogo_owgs_vars["gameState"] );
+        
+    NetClient_eidogo_player.setTimerType( eidogo_owgs_vars["gameMainTime"],
+                                          eidogo_owgs_vars["gameOvertimeType"],
+                                          eidogo_owgs_vars["gameOvertimePeriod"],
+                                          eidogo_owgs_vars["gameOvertimeCount"] );
     
-/*
-    NetClient_eidogo_player.setTimer( eidogo_owgs_vars["gameMainTime"],
-                                      eidogo_owgs_vars["gameOvertimeType"],
-                                      eigodo_owgs_vars["gameOvertimePeriod"],
-                                      eidogo_owgs_vars["gameOvertimeCount"] );
-*/
+    NetClient_eidogo_player.updateTimerState( eidogo_owgs_vars["gameIsOvertimeW"],
+                                              eidogo_owgs_vars["gameIsOvertimeB"],
+                                              eidogo_owgs_vars["gameOvertimeCountW"],
+                                              eidogo_owgs_vars["gameOvertimeCountB"],
+                                              eidogo_owgs_vars["gameTimePeriodRemainW"],
+                                              eidogo_owgs_vars["gameTimePeriodRemainB"] );
+
+    // initialize timer for both colors
+    NetClient_eidogo_player.timerTick('W');
+    NetClient_eidogo_player.timerTick('B');
 
     if(typeof(eidogo_owgs_vars["focusNode"]) != "undefined")
         NetClient_eidogo_player.goToNodeWithSN( eidogo_owgs_vars["focusNode"] );

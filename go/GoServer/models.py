@@ -95,7 +95,7 @@ class Game(models.Model):
                                                                          ('B', 'Black')), default='B')
 
     # exactly when did the turn start
-    TurnStart = models.DecimalField('Most Recent Turn Start', max_digits=15, decimal_places=3, default='0.0')
+    LastClock = models.DecimalField('Most Recent Clock Update', max_digits=15, decimal_places=3, default='0.0')
 
 
     ############## State Tracking ###############
@@ -139,7 +139,7 @@ class GameForm(ModelForm):
     class Meta:
         model = Game
         exclude = ('Owner', 'CreateDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode',
-                   'TimePeriodW', 'TimePeriodB', 'OvertimeCountW', 'OvertimeCountB', 'TimePeriodRemainW', 'TimePeriodRemainB', 'TurnColor', 'TurnStart',
+                   'TimePeriodW', 'TimePeriodB', 'OvertimeCountW', 'OvertimeCountB', 'TimePeriodRemainW', 'TimePeriodRemainB', 'TurnColor', 'LastClock',
                    'IsOvertimeW', 'IsOvertimeB')
 
         
