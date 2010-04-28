@@ -8,8 +8,16 @@ def GameList(request):
     from go.GoServer.models import GameForm, Game, GameParticipant
 
     return render_to_response('GoServer/GameList.html', 
-                              {'GameList': Game.objects.order_by('StartDate').order_by('-State')},
+                              {'GameList': Game.objects.filter(State__in = ['I','P']).order_by('StartDate').order_by('-State')},
                               context_instance=RequestContext(request))
+
+def GameArchive(request):
+    from go.GoServer.models import GameForm, Game, GameParticipant
+
+    return render_to_response('GoServer/GameList.html', 
+                              {'GameList': Game.objects.filter(State = 'F').order_by('StartDate').order_by('-State')},
+                              context_instance=RequestContext(request))
+
 
 def GameCreate(request):
     from go.GoServer.models import GameForm, Game, GameParticipant
@@ -71,6 +79,15 @@ def GameEdit(request, game_id):
     form = GameForm(instance=game)
 
     return render_to_response('GoServer/GameEdit.html', {"GameEditForm": form, "Game": game}, context_instance=RequestContext(request))   
+
+
+def Chat(request):
+    if request.user.is_anonymous():
+        return HttpResponseRedirect('/accounts/login')
+
+    return render_to_response('GoServer/Chat.html', 
+                              {},
+                              context_instance=RequestContext(request))
 
 
 def GameView(request, game_id):

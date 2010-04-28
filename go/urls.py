@@ -12,8 +12,10 @@ urlpatterns = patterns('',
                        url(r'^games/edit/(?P<game_id>\d+)', 'go.GoServer.views.GameEdit', name='game-edit'),
                        url(r'^games/view/(?P<game_id>\d+)', 'go.GoServer.views.GameView', name='game-view'),
                        url(r'^games/sgf/(?P<game_id>\d+)', 'go.GoServer.views.GameMakeSGF', name='game-makesgf'),
-                       url(r'^games', 'go.GoServer.views.GameList', name='game-list'),
-                       
+                       url(r'^games/active', 'go.GoServer.views.GameList', name='game-list'),
+                       url(r'^games/archive', 'go.GoServer.views.GameArchive', name='game-archive'),
+                       url(r'^chat', 'go.GoServer.views.Chat', name='chat'),
+
                        (r'^accounts/', include('registration.urls')),
 
                        url(r'^accounts/profile', 'go.GoServer.views.PlayerProfile', name='player-profile'),

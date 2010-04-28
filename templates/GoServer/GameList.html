@@ -2,8 +2,6 @@
 
 {% block content %}
 
-<a href="/games/new">New Game</a><br />
-
 <ul>
  {% for Game in GameList %}
  <li> {{Game}} <a href="/games/view/{{ Game.id }}">{% if not Game.PlayersAssigned %}Join{% else %}View{% endif %}</a></li>
