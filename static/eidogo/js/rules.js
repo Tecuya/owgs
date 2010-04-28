@@ -48,7 +48,7 @@ eidogo.Rules.prototype = {
         if( this.cfgRules.owgsNetMode && 
             (!skipColorCheck) &&
             (colorLetter != eidogo_owgs_vars["YouAreColor"]) ) {
-            violation = 'It is not your turn (Turn belongs to '+colorLetter+' but you are '+eidogo_owgs_vars["gameTurnColor"]+')';            
+            violation = 'It is not your turn (Turn belongs to '+colorLetter+' but you are '+eidogo_owgs_vars["YourAreColor"]+')';            
         }
 
         

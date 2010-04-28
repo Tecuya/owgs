@@ -157,8 +157,8 @@ class GoServerProtocol(basic.LineReceiver):
 
             # if the game is in progress we need to do a timer update to inform the joiner of the time...
             # TODO we *could* reduce traffic by forcing timerUpdate to only update the timer of this client...
-            if game.State == 'I':
-               self.timerUpdate(game)
+            if game.State == 'I':               
+               self.commitTimeVars( game, self.timerUpdate(game) )
 
             response = CTS
 
@@ -179,17 +179,25 @@ class GoServerProtocol(basic.LineReceiver):
             sn = cmd[4]            
             comments = cmd[5]
 
-            if self.timerUpdate(game):
-               
-               # We know they didn't lost on time now.. so see if we can legally make the move (and make it)
+            timerRet = self.timerUpdate(game, True)
+            if timerRet[0]:
+               # the game ended, we can commit our timer vars
+               self.commitTimeVars( game, timerRet )
+
+            else:
+
+               # We know they didn't lose on time now.. so see if we can legally make the move (and make it)
                new_node_id = self.factory.storeMove(game.id, coord, color, self.gamepartstate[ game.id ], sn, comments)
 
                if not new_node_id:
 
-                  # illegal move! give them the sync message which indicates they are out of sync
+                  # illegal move! give them the sync message which indicates they are out of sync.. dont record the time change
                   response = ["SYNC", game.id, "Move rejected"]
 
                else:
+                  
+                  # the move is valid so commit our calculated time variables
+                  self.commitTimeVars( game, timerRet )
                   
                   if color == 'W':
                      other_color = 'B'
@@ -222,7 +230,7 @@ class GoServerProtocol(basic.LineReceiver):
             if game.State == 'I':
             
                # update the timer for whoevers turn it is
-               self.timerUpdate( game )
+               self.commitTimeVars( game, self.timerUpdate(game) )
 
             response = CTS
 
@@ -626,8 +634,8 @@ class GoServerProtocol(basic.LineReceiver):
          if conn_game_id == game_id:
             self.writeToTransport(["RSLT", game_id, winner_color, win_type, win_param], transport = connection.transport)
 
-   def timerUpdate(self, game):
-      """ Update the timer.  If timer updates without causing a loss, return true.  If a loss, return false """
+   def timerUpdate(self, game, is_move = False):
+      """ Prospective update of the timer .. return the results, but nothing is committed to the game """
 
       color = game.TurnColor
       
@@ -642,6 +650,11 @@ class GoServerProtocol(basic.LineReceiver):
          period_remain = float(game.TimePeriodRemainB)
          is_overtime = game.IsOvertimeB
          other_color = 'W'            
+
+      # set the new vars to the current state so we dont have to bother later
+      new_period_remain = period_remain
+      new_is_overtime = is_overtime
+      new_overtime_count = overtime_count
 
       # determine how much time has elapsed
       now_timestamp = time.time()
@@ -670,7 +683,7 @@ class GoServerProtocol(basic.LineReceiver):
                periods_exceeded += 1
 
             # if they exceeded all their overtime periods they had left, they lose
-            if periods_exceeded >= overtime_count:
+            if periods_exceeded >= overtime_count-1:
                time_loss = 'Byo yomi periods exceeded.'
             else:
                self.debug("Exceeded %d byo yomi periods" % periods_exceeded)
@@ -684,7 +697,10 @@ class GoServerProtocol(basic.LineReceiver):
                # player just moved to overtime?
                new_is_overtime = True
                new_period_remain = game.OvertimePeriod - exceeded_period_by
-               new_overtime_count = game.OvertimeCount - 1  # minus one for the stone they just played
+               if is_move:
+                  new_overtime_count = game.OvertimeCount - 1
+               else:
+                  new_overtime_count = game.OvertimeCount 
 
             else:
                # player exceeded overtime?? loser!
@@ -701,8 +717,9 @@ class GoServerProtocol(basic.LineReceiver):
             if game.OvertimeType == 'C':
 
                if overtime_count > 1:
-                  # 1 less stone they must meet
-                  new_overtime_count = overtime_count - 1  
+                  if is_move:
+                     new_overtime_count = overtime_count - 1
+                     
                   new_period_remain = period_remain - time_taken_since_clock
                else:
                   # they fulfilled the stone requirement to reset the overtime period
@@ -713,17 +730,23 @@ class GoServerProtocol(basic.LineReceiver):
                self.debug("Byo yomi period reset")
                # byo yomi gets the period reset 
                new_period_remain = game.OvertimePeriod
-               new_overtime_count = overtime_count
+               
+            else:
+               # they are on the main timer.. just send them off to negative
+               new_period_remain = period_remain - time_taken_since_clock
 
          else:
 
             self.debug('Regular time subtraction.. time taken since last clock is : %s' % str(time_taken_since_clock))
             # regular time, and the move did not exhaust their time period.  simple!
             new_period_remain = period_remain - time_taken_since_clock
-            new_overtime_count = overtime_count
-            new_is_overtime = is_overtime
+            
+      return [time_loss, color, other_color, new_period_remain, new_overtime_count, new_is_overtime]
 
-      
+
+   def commitTimeVars(self, game, data):
+      (time_loss, color, other_color, new_period_remain, new_overtime_count, new_is_overtime) = data
+
       if time_loss:
 
          # set game stats
@@ -763,7 +786,6 @@ class GoServerProtocol(basic.LineReceiver):
 
 
          return True
-
 
    def writeToTransport(self, response, transport = False):
 
@@ -891,10 +913,25 @@ class GoServerFactory(protocol.ServerFactory):
       node = GameNode(Game = game, ParentNode = parent_node)
       node.save()
 
-      # create the property
+      # move property
       move_prop = GameProperty(Node = node, Property = color, Value = coord)
       move_prop.save()
-      
+
+      # time property
+      prop = GameProperty(Node = node, Property = 'BL', Value = game.TimePeriodRemainB)
+      prop.save()
+
+      prop = GameProperty(Node = node, Property = 'WL', Value = game.TimePeriodRemainW)
+      prop.save()
+
+      if game.IsOvertimeW:
+         prop = GameProperty(Node = node, Property = 'OW', Value = game.OvertimeCountW)
+         prop.save()
+
+      if game.IsOvertimeB:
+         prop = GameProperty(Node = node, Property = 'OB', Value = game.OvertimeCountB)
+         prop.save()
+               
       # success!
       return node.id
 

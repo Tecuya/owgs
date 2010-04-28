@@ -54,7 +54,7 @@ eidogo.Player.prototype = {
 
         // indicates whether this instance is used in an owgs network game
         this.owgsNetMode = (typeof cfg.owgsNetMode != 'undefined' ? true : false);
-        
+
         // if owgsNetMode, we are going to update the timer display every second, so set the tick
         if(this.owgsNetMode) { 
             var myself = this;
@@ -3206,6 +3206,10 @@ eidogo.Player.prototype = {
     },
     
     timerTick: function( forceColor ) { 
+        
+        // if the game is finished the timer doesnt tick anymore
+        if(this.owgsGameState == 'F') 
+            return true;
 
         testColor = (forceColor ? forceColor : this.currentColor);
 
@@ -3225,13 +3229,18 @@ eidogo.Player.prototype = {
         
         this.timerData[period_remain] -= 1;
         
-        // handle timer period changes.. we really only need to worry about byo yomi, it's the only timing period that 
+        // handle timer period changes.. 
         if(this.timerData[period_remain] < 1) { 
             
             if(this.timerSettings['overtime_type'] == 'B') { 
                 if(this.timerData[overtime_count] > 1) { 
-                    this.timerData[overtime_count]--;
+
+                    // when they are transitioning from main to byo yomi we dont charge them a period
+                    if(this.timerData[is_overtime])
+                        this.timerData[overtime_count]--;
+
                     this.timerData[period_remain] = this.timerSettings['overtime_period'];
+                    this.timerData[is_overtime] = true;
                 }
             }
 
@@ -3249,11 +3258,11 @@ eidogo.Player.prototype = {
         
         // if the timer is *still* negative, even though the game ended, then we need to update all clients time status.  
         // since we only need this to be requested once, we only have the client who is actually present (to lose) request it
-        if( (this.timerData[period_remain] < 1) && (testColor == eidogo_owgs_vars["YouAreColor"]) ) { 
+        if( (this.timerData[period_remain] < 1) && (this.currentColor == eidogo_owgs_vars["YouAreColor"]) ) { 
             NetClient_instance.send([ "TIME", eidogo_owgs_vars["gameID"] ]);
         }
 
-        // this draws a negative indicator if the time has gone past the end of the game.. 
+        // this draws a negative indicator if the time has gone past the end of the game.. wont really ever see this except for net lag scenarios
         var timesign = (this.timerData[period_remain] < 0) ? '-' : '';
 
         var secs = Math.abs( this.timerData[period_remain] );
@@ -3266,8 +3275,8 @@ eidogo.Player.prototype = {
         if(timer_minutes < 10) timer_minutes = '0' + timer_minutes;
         if(timer_seconds < 10) timer_seconds = '0' + timer_seconds;
         
-        this[setProp] = timesign + timer_hours + ':' + timer_minutes + ':' + timer_seconds + ' ' + 
-            (this.timerData[is_overtime] ? this.timerData[overtime_count] : 'Main ') + '/' + this.timerSettings['overtime_count'];
+        this[setProp] = timesign + timer_hours + ':' + timer_minutes + ':' + timer_seconds + 
+            (this.timerData[is_overtime] ? (' ('+this.timerData[overtime_count]+'/') : ' Main (') + this.timerSettings['overtime_count'] + ')';
         
         this.updateControls();
     },
