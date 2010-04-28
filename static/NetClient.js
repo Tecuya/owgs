@@ -239,10 +239,15 @@ function NetClient(session_key) {
     // higher level commands
 
     this.joingame = function(game_id) { 
-        this.game_id = game_id
+        this.game_id = game_id;
         this.sendq.push( ["JOIN", this.game_id] );
     }
 
+    this.joinchat = function(chat_id) { 
+        this.chat_id = chat_id;
+        this.sendq.push( ["???", this.chat_id] );
+    }
+    
     this.chat = function(chatinput) {
         this.send( ["CHAT", this.game_id, chatinput.value] );
         chatinput.value = '';

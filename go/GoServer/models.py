@@ -32,6 +32,10 @@ class GameProperty(models.Model):
         return '%s %s' % (self.Property, self.Value)
 
 
+class Chat(models.Model):
+    
+    Name = models.CharField('Channel Name', max_length=255)
+
 class Game(models.Model):
     import datetime
     
@@ -71,7 +75,6 @@ class Game(models.Model):
     
     # the length of an overtime period
     OvertimePeriod = models.IntegerField('Overtime Period Length')
-    
     # in N, meaningless, in B, the number of byo-yomi periods. in C, the number of stones 
     OvertimeCount = models.IntegerField('Overtime Count')
 

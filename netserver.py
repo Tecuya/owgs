@@ -161,8 +161,8 @@ class GoServerProtocol(basic.LineReceiver):
                self.commitTimeVars( game, self.timerUpdate(game) )
 
             response = CTS
-
-
+                        
+            
          elif(cmd[0] == 'CHAT'):
             message = cmd[2]
 
@@ -181,6 +181,7 @@ class GoServerProtocol(basic.LineReceiver):
 
             timerRet = self.timerUpdate(game, True)
             if timerRet[0]:
+
                # the game ended, we can commit our timer vars
                self.commitTimeVars( game, timerRet )
 
