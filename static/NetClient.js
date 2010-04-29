@@ -59,7 +59,7 @@ function NetClient(session_key, debug_mode) {
 
         this.tcp = new Orbited.TCPSocket();
         this.line = new LineProtocol(this.tcp);
-        this.line.open('mirrormere.longstair.com',8002,false);
+        this.line.open(window.location.hostname,8002,false);
 
         // theres gotta be a cleaner way to do this!
         this.line.onopen = NetClient_onopen_wrapper;

@@ -82,6 +82,7 @@ def GameEdit(request, game_id):
 
 
 def Chat(request):
+
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
 
