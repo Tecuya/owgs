@@ -1,6 +1,15 @@
 {% extends "Skin.html" %}
 
 {% block content %}
-Player Profile
+
+<h2>Your Profile</h2>
+
+<div>
+<form method="post">
+{{ UserProfileForm.as_p }}
+<input type="submit" value="Submit" />
+</form>
+</div>
+
 {% endblock %}
 

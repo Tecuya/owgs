@@ -2,7 +2,7 @@
 <script type="text/javascript" src="/static/Orbited.js"></script>
 <script type="text/javascript" src="/static/NetClient.js"></script>
 <script> 
-NetClient_preload("{{ request.session.session_key }}");
+NetClient_preload("{{ request.session.session_key }}", {{ DebugMode }});
 window.addEventListener("load", NetClient_start, false); 
 window.addEventListener("unload", NetClient_unload, false); 
 </script>

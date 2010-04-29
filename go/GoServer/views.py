@@ -86,12 +86,12 @@ def Chat(request):
         return HttpResponseRedirect('/accounts/login')
 
     return render_to_response('GoServer/Chat.html', 
-                              {},
+                              {"DebugMode": request.user.get_profile().DebugMode},
                               context_instance=RequestContext(request))
 
 
 def GameView(request, game_id):
-    from go.GoServer.models import Game, GameParticipant, GameTree
+    from go.GoServer.models import Game, GameParticipant, GameTree, UserProfile
     from django.contrib.auth.models import User
 
     if request.user.is_anonymous():
@@ -130,6 +130,8 @@ def GameView(request, game_id):
                                "PreGame": (game.State == 'P'),
                                "Finished": (game.State == 'F'),
                                "SGF": sgf,
+                               "EidogoPlayerStyle": request.user.get_profile().EidogoPlayerMode,
+                               "DebugMode": request.user.get_profile().DebugMode,
                                "YouAreColor": you_are,
                                "YouAreOwner": you_are_owner,
                                "UserBlack": user_b,
@@ -142,7 +144,24 @@ def NetClientUnloadWrapper():
     pass
 
 def PlayerProfile(request):
-    return render_to_response('GoServer/PlayerProfile.html', context_instance=RequestContext(request))
+
+    from go.GoServer.models import UserProfile, UserProfileForm
+    
+    prof = UserProfile.objects.get(user = request.user.id)
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance = prof)
+        
+        if form.is_valid():
+            form.save()
+            
+            return HttpResponseRedirect('/accounts/profile')
+    else:
+        form = UserProfileForm(instance = prof)
+
+    return render_to_response('GoServer/PlayerProfile.html', 
+                              { 'UserProfileForm': form },
+                              context_instance=RequestContext(request))
 
 def Index(request):
     return render_to_response('GoServer/Index.html', context_instance=RequestContext(request))

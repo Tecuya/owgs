@@ -16,7 +16,7 @@ setup_environ(settings)
 from django.db.models import F, Max, Min, Count
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User, AnonymousUser
-from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree
+from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree, Chat
 
 
 # our CTS command
@@ -44,8 +44,11 @@ class GoServerProtocol(basic.LineReceiver):
       self.debug('Connection opened')
    
    def connectionLost(self, reason):
-                     
-      for oldentry in self.factory.delFromConnectionDB(self):
+
+      # remove from any chats we are in
+      self.factory.delFromChatConnectionDB(self)
+
+      for oldentry in self.factory.delFromGameConnectionDB(self):
  
          game = Game.objects.get(pk = oldentry[1])
 
@@ -55,7 +58,7 @@ class GoServerProtocol(basic.LineReceiver):
 
          # determine if this was the last connection from this user
          users_other_conns = 0
-         for (connection, conn_game_id, user_id) in self.factory.connectionList:
+         for (connection, conn_game_id, user_id) in self.factory.gameConnectionList:
             if user_id == oldentry[2]:
                users_other_conns += 1
 
@@ -69,7 +72,7 @@ class GoServerProtocol(basic.LineReceiver):
             GameParticipant.objects.filter( Game = game, Participant = self.user).update( Present = False )
 
             # let everyone in this game know
-            for (connection, conn_game_id, user_id) in self.factory.connectionList:
+            for (connection, conn_game_id, user_id) in self.factory.gameConnectionList:
                if conn_game_id == game.id:
                   self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
 
@@ -105,8 +108,15 @@ class GoServerProtocol(basic.LineReceiver):
 
       else:
 
-         # load the game object
-         game = self.factory.getGame( cmd[1] )
+         if cmd[0] in ('JCHT','CHAT'):
+
+            # load the chat object if this is a chat command
+            chat = self.factory.getChat( cmd[1] )
+
+         else:
+            
+            # load the game object
+            game = self.factory.getGame( cmd[1] )
 
          # join game command ; index 1 is a game name
          if(cmd[0] == 'JOIN'):        
@@ -148,10 +158,10 @@ class GoServerProtocol(basic.LineReceiver):
             self.gamepartstate[ game.id ] = part_that_joined.State
 
             # register this connection as being associated with this game in the factory.             
-            self.factory.addToConnectionDB(self, game.id, self.user.id)
+            self.factory.addToGameConnectionDB(self, game.id, self.user.id)
 
             # now find all connections associated with this game and tell them about the newcomer 
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                if conn_game_id == game.id:
                   self.writeToTransport(["JOIN", game.id, self.user.id, self.user.username, part_that_joined.State], transport = connection.transport)
 
@@ -163,12 +173,12 @@ class GoServerProtocol(basic.LineReceiver):
             response = CTS
                         
             
-         elif(cmd[0] == 'CHAT'):
+         elif(cmd[0] == 'CMNT'):
             message = cmd[2]
 
-            for (connection,conn_game_id, conn_user_id) in self.factory.connectionList:
+            for (connection,conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                if conn_game_id == game.id:
-                  self.writeToTransport(["CHAT", game.id, self.user.username, message], transport = connection.transport)
+                  self.writeToTransport(["CMNT", game.id, self.user.username, message], transport = connection.transport)
 
             response = CTS
 
@@ -214,7 +224,7 @@ class GoServerProtocol(basic.LineReceiver):
                   # save changes to the game
                   game.save()
 
-                  for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                      # send it to all players associated with the current game.. but not the user who made the move
                      if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
                         self.writeToTransport(["MOVE", game.id, coord, new_node_id], transport = connection.transport)
@@ -241,7 +251,7 @@ class GoServerProtocol(basic.LineReceiver):
 
             coord = cmd[2]
 
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                # send it to all players associated with the current game.. but not the user who made the move
                if self.transport.sessionno != connection.transport.sessionno:
                   self.writeToTransport(["DEAD", game.id, coord], transport = connection.transport)
@@ -329,7 +339,7 @@ class GoServerProtocol(basic.LineReceiver):
 
 
                # Send a message to all participants notifying them that the game has begun
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                   self.writeToTransport(["BEGN", game.id], transport = connection.transport)
 
                response = CTS
@@ -347,7 +357,7 @@ class GoServerProtocol(basic.LineReceiver):
             self.factory.user_game_offers[ int(self.user.id) ] = [ cmd[2], cmd[3], cmd[4], cmd[5] ]
 
             # Send a message to all participants notifying them about your offer
-            for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+            for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                self.writeToTransport(["OFFR", game.id, cmd[2], cmd[3], cmd[4], cmd[5], self.user.id, self.user.username], transport = connection.transport)
 
             response = CTS
@@ -364,7 +374,7 @@ class GoServerProtocol(basic.LineReceiver):
                game.FocusNode = int(cmd[2])
                game.save()
 
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                   
                   # not the right game? skip!
                   if conn_game_id != game.id:
@@ -409,7 +419,7 @@ class GoServerProtocol(basic.LineReceiver):
             if undoForPass:
                
                # give a NAVI to all clients to navigate back to the node we did an undo to
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                   self.writeToTransport(["NAVI", game.id, undoForPass], transport = connection.transport)
                
                game.FocusNode = undoForPass
@@ -438,7 +448,7 @@ class GoServerProtocol(basic.LineReceiver):
                   
                if not invalid:                  
                   self.debug("Undo validated ; resolves to node " + str(game.PendingUndoNode))
-                  for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+                  for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                      # send it to all players associated with the current game.. but not the user who made the request
                      if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
                         self.writeToTransport(["UNDO", game.id, self.gamepartstate[ game.id]], transport = connection.transport)
@@ -458,7 +468,7 @@ class GoServerProtocol(basic.LineReceiver):
             if game.PendingUndoNode:
                
                # give a NAVI to all clients to navigate back to the node we did an undo to
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                   self.writeToTransport(["NAVI", game.id, game.PendingUndoNode], transport = connection.transport)
                
                game.FocusNode = game.PendingUndoNode
@@ -476,7 +486,7 @@ class GoServerProtocol(basic.LineReceiver):
 
                game.PendingUndoNode = 0
 
-               for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+               for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                   # send it to all players associated with the current game.. but not the user who made the request
                   if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
                      self.writeToTransport(["NOUN", game.id], transport = connection.transport)
@@ -621,6 +631,32 @@ class GoServerProtocol(basic.LineReceiver):
             
             response = CTS
 
+         elif cmd[0] == 'JCHT':
+
+            already_present = False
+            for (conn, conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
+               if chat.id == conn_chat_id and self.user.id == conn_user_id:
+                  already_preset = True
+                  break
+            
+            if not already_present:
+               self.factory.addToChatConnectionDB(self, chat.id, self.user.id)
+            
+               for (conn, conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
+                  if conn_chat_id == chat.id:
+                     self.writeToTransport(["JCHT", chat.id, self.user.id, self.user.username])
+
+            response = CTS
+
+
+         elif(cmd[0] == 'CHAT'):
+            message = cmd[2]
+
+            for (connection,conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
+               if conn_chat_id == chat.id:
+                  self.writeToTransport(["CHAT", chat.id, self.user.username, message], transport = connection.transport)
+
+            response = CTS
 
       # write whatever response we came up with above
       self.writeToTransport(response, self.transport)
@@ -631,7 +667,7 @@ class GoServerProtocol(basic.LineReceiver):
 
    def broadcastResult(self, game_id, winner_color, win_type, win_param):
       self.debug('Game %d won by %s %s %s' % (game_id, winner_color, win_type, win_param))
-      for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+      for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
          if conn_game_id == game_id:
             self.writeToTransport(["RSLT", game_id, winner_color, win_type, win_param], transport = connection.transport)
 
@@ -780,7 +816,7 @@ class GoServerProtocol(basic.LineReceiver):
             game.save()
 
             
-         for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+         for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
             if conn_game_id == game.id:
                self.writeToTransport(["TIME", game.id, game.IsOvertimeW, game.IsOvertimeB, game.OvertimeCountW, 
                                       game.OvertimeCountB, int(float(game.TimePeriodRemainW)), int(float(game.TimePeriodRemainB))], transport = connection.transport)
@@ -812,14 +848,20 @@ class GoServerFactory(protocol.ServerFactory):
       print '%s Fac | %s' % (datetime.datetime.now(), msg)
          
    def __init__(self):      
-      # this maps connections to user IDs
-      self.connectionList = []
+      # this maps connections to games & user IDs
+      self.gameConnectionList = []
+
+      # this maps connections to chat channels & user IDs
+      self.chatConnectionList = []
 
       # this contains all the games which the server is currently tracking.
       self.games = {}      
 
       # this contains a board object for each game
       self.boards = {}
+
+      # this contains a cache of chat objects                                              
+      self.chats = {}
 
       # this is a dict storing the offers users make to play games
       # { user_id: [ board size, main time, komi, color ], .... } 
@@ -829,30 +871,52 @@ class GoServerFactory(protocol.ServerFactory):
       # this holds scores submitted by users for comparison/validation with their opponent's submitted scores
       self.user_game_scoring = {}
 
-   def addToConnectionDB(self, connection, game_id, user_id):
-      self.connectionList.append( [connection, game_id, user_id] )
+   def addToChatConnectionDB(self, connection, chat_id, user_id):
+      self.chatConnectionList.append( [connection, chat_id, user_id] )
 
-   def delFromConnectionDB(self, connection):
+   def addToGameConnectionDB(self, connection, game_id, user_id):
+      self.gameConnectionList.append( [connection, game_id, user_id] )
+
+   def delFromGameConnectionDB(self, connection):
       """Delete an entry from the connection database.  Return the entry itself as it was before being deleted."""
 
       deletedList = []
       deleteKeys = []
-      for i in range(0,len(self.connectionList)): 
-         (db_connection,db_game_id,db_user_id) = self.connectionList[i]
+      for i in range(0,len(self.gameConnectionList)): 
+         (db_connection,db_game_id,db_user_id) = self.gameConnectionList[i]
          
          if connection.transport.sessionno == db_connection.transport.sessionno:
             deleteKeys.append(i)
-            deletedList.append( self.connectionList[i] )
+            deletedList.append( self.gameConnectionList[i] )
 
       for key in deleteKeys:
-         del self.connectionList[key];
+         del self.gameConnectionList[key];
 
       return deletedList
 
 
-   def getConnectionForUserState(self, game_id, state):
+   def delFromChatConnectionDB(self, connection):
+      """Delete an entry from the connection database.  Return the entry itself as it was before being deleted."""
 
-      for (connection, conn_game_id, conn_user_id) in self.factory.connectionList:
+      deletedList = []
+      deleteKeys = []
+      for i in range(0,len(self.chatConnectionList)): 
+         (db_connection,db_chat_id,db_user_id) = self.chatConnectionList[i]
+         
+         if connection.transport.sessionno == db_connection.transport.sessionno:
+            deleteKeys.append(i)
+            deletedList.append( self.chatConnectionList[i] )
+
+      for key in deleteKeys:
+         del self.chatConnectionList[key];
+
+      return deletedList
+
+
+   # TODO decide if we really want this, this is not used anywhere
+   def getConnectionForUserState(self, game_id, state):
+      
+      for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
          # this is the right game at least?
          if conn_game_id == game_id:            
             user = User.objects.get(pk = conn_user_id)
@@ -870,6 +934,16 @@ class GoServerFactory(protocol.ServerFactory):
          self.games[ game_id ] = Game.objects.get(pk = game_id)
          
       return self.games[ game_id ]
+      
+
+                  
+   def getChat(self, chat_id, refresh = False):
+      """ This func provides a chat object.  it caches chats to prevent needless reloading """
+      
+      if refresh or not self.chats.has_key( chat_id ):
+         self.chats[ chat_id ] = Chat.objects.get(pk = chat_id)
+         
+      return self.chats[ chat_id ]
       
       
    def getBoard(self, game_id):

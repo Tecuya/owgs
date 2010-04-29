@@ -33,8 +33,14 @@ class GameProperty(models.Model):
 
 
 class Chat(models.Model):
-    
     Name = models.CharField('Channel Name', max_length=255)
+
+
+class ChatParticipant(models.Model):
+    Chat = models.ForeignKey(Chat)
+    Participant = models.ForeignKey(User)
+    
+    
 
 class Game(models.Model):
     import datetime
@@ -179,7 +185,51 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User)
     activation_key = models.CharField(max_length=40)
     key_expires = models.DateTimeField()
+    DebugMode = models.BooleanField('Debug Mode', default=False)
+    EidogoPlayerMode = models.CharField('Eidogo Player Style', max_length=1, choices=(('S','Standard'),
+                                                                                      ('C','Compact')), default='S')
 
+    Rank = models.CharField('Rank', max_length=3, choices=(('N', 'N'),
+                                                          ('25k', '25k'),
+                                                          ('24k', '24k'),
+                                                          ('23k', '23k'),
+                                                          ('22k', '22k'),    
+                                                          ('21k', '21k'),
+                                                          ('20k', '20k'),
+                                                          ('19k', '19k'),
+                                                          ('18k', '18k'),
+                                                          ('17k', '17k'),
+                                                          ('16k', '16k'),
+                                                          ('15k', '15k'),
+                                                          ('14k', '14k'),
+                                                          ('13k', '13k'),
+                                                          ('12k', '12k'),
+                                                          ('11k', '11k'),
+                                                          ('10k', '10k'),
+                                                          ('9k', '9k'),
+                                                          ('8k', '8k'),
+                                                          ('7k', '7k'),
+                                                          ('6k', '6k'),
+                                                          ('5k', '5k'),
+                                                          ('4k', '4k'),
+                                                          ('3k', '3k'),
+                                                          ('2k', '2k'),
+                                                          ('1k', '1k'),
+                                                          ('1d', '1d'),
+                                                          ('2d', '2d'),
+                                                          ('3d', '3d'),
+                                                          ('4d', '4d'),
+                                                          ('5d', '5d'),
+                                                          ('6d', '6d'),
+                                                          ('7d', '7d'),
+                                                          ('8d', '8d'),
+                                                          ('9d', '9d')), default='N')
+                                                          
+                                                          
+class UserProfileForm(ModelForm):
+    class Meta:
+        model = UserProfile
+        exclude = ('user','activation_key','key_expires')
 
 
 class GameTree:

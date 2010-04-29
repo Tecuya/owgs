@@ -4,10 +4,11 @@ Orbited.settings.port = 8001
 
 var NetClient_instance = null;
 
-var NetClient_debug = true;
+function NetClient(session_key, debug_mode) { 
 
-function NetClient(session_key) { 
-
+    // debug mode
+    this.NetClient_debug = debug_mode
+    
     // track our session_key
     this.session_key = session_key;
 
@@ -28,13 +29,13 @@ function NetClient(session_key) {
 
     this.start = function() { 
 
-        if(NetClient_debug) {
+        if(this.NetClient_debug) {
             debug_div = document.createElement("DIV");
 
             debug_textarea = document.createElement("TEXTAREA");
             debug_textarea.setAttribute("cols", 80);
             debug_textarea.setAttribute("rows", 20);
-            debug_textarea.setAttribute("id", "NetClient_debug");
+            debug_textarea.setAttribute("id", "this.NetClient_debug");
 
             debug_input = document.createElement("INPUT");
             debug_input.setAttribute("id", "sendraw");
@@ -94,7 +95,7 @@ function NetClient(session_key) {
             
             part_select.options.add( new Option(dataAr[1] + ' ('+dataAr[2]+')', dataAr[0]) );
 
-            this.updatechat('*** '+dataAr[1]+' has joined the game');
+            this.updatecomment('*** '+dataAr[1]+' has joined the game');
 
         } else if(command == "PART") { 
 
@@ -106,7 +107,11 @@ function NetClient(session_key) {
                 }
             }
             
-            this.updatechat('*** '+dataAr[1]+' has left the game');
+            this.updatecomment('*** '+dataAr[1]+' has left the game');
+
+        } else if(command == "CMNT") {
+
+            this.updatecomment('<'+dataAr[0]+'> '+dataAr[1]);
 
         } else if(command == "CHAT") {
 
@@ -180,6 +185,13 @@ function NetClient(session_key) {
                                                       dataAr[4],
                                                       dataAr[5] );
 
+        } else if(command == "JCHT") { 
+            this.updatechat( "*** "+dataAr[1]+" has joined the chat" );
+
+        } else if(command == "CMNT") {
+
+            this.updatechat('<'+dataAr[0]+'> '+dataAr[1]);
+           
         } else { 
             alert("Unknown net command received from server: "+command);
         }
@@ -232,7 +244,8 @@ function NetClient(session_key) {
     
     this.debug = function(msg) { 
         curdate = new Date();
-        document.getElementById("NetClient_debug").value += curdate.toLocaleString() + ": " + msg;
+        if(document.getElementById("NetClient_debug"))
+            document.getElementById("NetClient_debug").value += curdate.toLocaleString() + ": " + msg;
     }
 
     /////////////////////////////////////////
@@ -245,22 +258,30 @@ function NetClient(session_key) {
 
     this.joinchat = function(chat_id) { 
         this.chat_id = chat_id;
-        this.sendq.push( ["???", this.chat_id] );
+        this.sendq.push( ["JCHT", this.chat_id] );
     }
-    
+
     this.chat = function(chatinput) {
-        this.send( ["CHAT", this.game_id, chatinput.value] );
+        this.send( ["CHAT", this.chat_id, chatinput.value] );
         chatinput.value = '';
     }
 
     this.updatechat = function(msg) { 
         if(ta = document.getElementById("ChatTextarea"))
-            ta.value += msg + "\r\n";
+            ta.value += msg + "\r\n";        
+    }
+    
+    this.comment = function(commentinput) {
+        this.send( ["CMNT", this.game_id, commentinput.value] );
+        commentinput.value = '';
+    }
 
+    this.updatecomment = function(msg) { 
+        if(ta = document.getElementById("CommentTextarea"))
+            ta.value += msg + "\r\n";
         
         if(NetClient_eidogo_player != null) 
-            NetClient_eidogo_player.dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";
-            
+            NetClient_eidogo_player.dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";            
     }
 
     this.onmove = function(data) { 
@@ -351,7 +372,7 @@ function NetClient_onundo_wrapper(data) { NetClient_instance.onundo(data); }
 function NetClient_onresign_wrapper(data) { NetClient_instance.onresign(data); }
 function NetClient_onscoresubmit_wrapper(data) { NetClient_instance.onscoresubmit(data); }
 function NetClient_ontime_wrapper(data) { NetClient_instance.ontime(data); }
-function NetClient_preload(session_key) { NetClient_instance = new NetClient(session_key); }
+function NetClient_preload(session_key, debug_mode) { NetClient_instance = new NetClient(session_key, debug_mode); }
 
 // init funcs
 function NetClient_start() { 
@@ -375,11 +396,15 @@ var NetClient_eidogo_player = null;
 // attached to load event by GameView
 function initEidogo() { 
 
+    if(eidogo_owgs_vars["EidogoPlayerStyle"] == "C") 
+        use_theme = "compact"
+    else
+        use_theme = "standard"
 
     // type: showTools showOptions    
     NetClient_eidogo_player = new eidogo.Player({
         container:       "eidogo",
-        // theme:           "compact", // TODO standard or compact should be a player pref or something
+        theme:           use_theme, // TODO standard or compact should be a player pref or something
         theme:           "standard", // TODO standard or compact should be a player pref or something
         sgf:             eidogo_owgs_vars["sgf"],
         // sgfPath:         "/static/eidogo/sgf/",

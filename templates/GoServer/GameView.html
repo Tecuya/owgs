@@ -19,6 +19,7 @@ NetClient_instance.joingame( {{ Game.id }} );
 
 eidogo_owgs_vars = {
 "sgf": "{{ SGF }}",
+"EidogoPlayerStyle": "{{ EidogoPlayerStyle }}",
 "YouAreColor": "{{ YouAreColor }}",
 "gameID": "{{ Game.id }}",
 "gameTurnColor": "{{ Game.TurnColor }}",
@@ -42,9 +43,6 @@ eidogo_owgs_vars = {
 window.addEventListener("load", initEidogo, false);
 {% endif %}
 </script>
-<style type="text/css">
-  .gamebox { border: solid black 1px; padding: 5px; margin: 5px; float:left; };
-</style>
 {% endblock %}
 
 {% block content %}
@@ -53,15 +51,15 @@ window.addEventListener("load", initEidogo, false);
 <p>
  <h2>Game #{{ Game.id }}</h2>
  {% if not Game.PlayersAssigned %} 
- {% if YouAreOwner %}You{% else %}The owner{% endif %} suggested parameters: <b>{{ Game }}</b>
+  <b>{{ Game }}</b>
  {% endif %}
 </p>
 
 {% if not PreGame %} 
 <div class="gamebox">
  <div id="eidogo"></div>     
- <input size=60 type=text id="ChatInput">
- <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
+ <input size=60 type=text id="CommentInput">
+ <button type=button onClick="NetClient_instance.comment( document.getElementById('CommentInput') );">
   Chat
  </button>
 </div>
@@ -114,8 +112,8 @@ window.addEventListener("load", initEidogo, false);
 {% if PreGame %}
 <div id="Chat" class="gamebox">
  <h3>Chat</h3>
- <textarea cols=60 rows=7 id="ChatTextarea" readonly></textarea><br>
- <input size=60 type=text id="ChatInput">
+ <textarea cols=60 rows=7 id="CommentTextarea" readonly></textarea><br>
+ <input size=60 type=text id="CommentInput">
  <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
   Send
  </button>

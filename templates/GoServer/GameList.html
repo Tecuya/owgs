@@ -2,11 +2,18 @@
 
 {% block content %}
 
+<div id="gamelist">
 <ul>
  {% for Game in GameList %}
- <li> {{Game}} <a href="/games/view/{{ Game.id }}">{% if not Game.PlayersAssigned %}Join{% else %}View{% endif %}</a></li>
+ <li>
+   <a href="/games/view/{{ Game.id }}">
+     {% if not Game.PlayersAssigned %}Join{% else %}View{% endif %}</a>
+   <a href="/games/download/{{ Game.id }}">SGF</a>
+ {{Game}} 
+ </li>
  {% endfor %}
 </ul>
+</div>
 
 {% endblock %}
 

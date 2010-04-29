@@ -3,14 +3,14 @@
 {% block head %}
 {% include "GoServer/HeaderJavascript.html" %}
 <script>
-NetClient_instance.joinchat( {{ Game.id }} );
+NetClient_instance.joinchat( 1 );
 </script>
 {% endblock %}
 
 
 {% block content %}
  <h3>Chat</h3>
- <textarea cols=60 rows=7 id="ChatTextarea" readonly></textarea><br>
+ <textarea cols=80 rows=25 id="ChatTextarea" readonly></textarea><br>
  <input size=60 type=text id="ChatInput">
  <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
   Send
