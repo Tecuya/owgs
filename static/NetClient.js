@@ -35,7 +35,7 @@ function NetClient(session_key, debug_mode) {
             debug_textarea = document.createElement("TEXTAREA");
             debug_textarea.setAttribute("cols", 80);
             debug_textarea.setAttribute("rows", 20);
-            debug_textarea.setAttribute("id", "this.NetClient_debug");
+            debug_textarea.setAttribute("id", "NetClient_debug");
 
             debug_input = document.createElement("INPUT");
             debug_input.setAttribute("id", "sendraw");
