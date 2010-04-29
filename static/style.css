@@ -1,0 +1,132 @@
+body 
+{
+    font-family: verdana, arial, helvetica;
+    background-color: #DDDDCC;
+    font-size: 12px;
+}
+
+h1 
+{
+    font-size: 19px;
+    margin: 0;
+    padding: 0;
+    color: #333311;
+}
+
+h2
+{
+    font-size: 14px;
+    margin: 0;
+    padding: 0;
+    color: #333311;
+}
+
+h3
+{
+    margin: 0;
+    padding: 0;
+    font-size: 9px;    
+}
+
+
+
+a {
+	color: #847440;
+    font-weight: bold;
+}
+
+a:hover {
+	color: #558899;
+    text-decoration: underline;
+}
+
+#topright {
+    padding: 8px;
+    font-weight: bold;
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	color: #000000;   
+    display: block;
+    float: right;
+    height: 10px;
+    padding: 8px;
+}
+
+#topright a { 
+    margin-left: 8px;
+	color: #847440;
+    text-decoration: none;
+}
+
+#topright a:hover {
+	color: #558899;
+    text-decoration: underline;
+}
+
+#topmenu {
+    padding-top: 5px;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+#topmenu ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	line-height: normal;
+}
+
+#topmenu li {
+	float: left;
+}
+
+.activelink { 
+    background-color: #CCCCBB;
+    border: solid #CACAB9 2px !important;
+    color: #000000 !important;
+}
+
+#topmenu a {
+	display: block;
+	float: left;
+    font-weight: bold;
+    padding: 6px;
+	height: 10px;
+	text-decoration: none;
+	font-size: 12px;
+	color: #847440;
+    border: solid #DDDDCC 2px;
+}
+
+#topmenu a:hover {
+	color: #558899;
+    text-decoration: underline;
+    background-color: #DADAC9;
+    border: solid #CACAB9 2px;
+}
+
+#content {
+    clear: both;
+    padding: 5px;
+    overflow: hidden;
+    background-color: #CCCCBB;
+    border: solid #BBBBAA 2px;
+}
+
+.gamebox { 
+    border: solid black 1px; 
+    padding: 5px; 
+    margin: 5px; 
+    float:left; 
+}
+
+#gamelist ul { 
+    list-style: none;
+}
+
+#gamelist a {
+    padding-right: 9px; 
+}
+
+#footer { 
+    font-size: 8px;
+}
