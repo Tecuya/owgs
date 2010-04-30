@@ -151,7 +151,7 @@ def PlayerProfile(request):
     try:
         prof = UserProfile.objects.get(user = request.user.id)
     except:
-        prof = UserProfile( user = request.user)
+        prof = UserProfile( user = request.user )
         prof.save()
 
     if request.method == 'POST':
