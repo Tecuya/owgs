@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # python included modules
-import datetime, time, math, json
+import datetime, time, math, cjson
 
 # twisted
 from twisted.internet import protocol, reactor
@@ -103,7 +103,7 @@ class GoServerProtocol(basic.LineReceiver):
       response = ["ERROR","Unspecified error"]
 
 
-      cmd = json.loads(data)
+      cmd = cjson.decode(data)
 
       self.debug( '< '+str(cmd) )
 
@@ -863,7 +863,7 @@ class GoServerProtocol(basic.LineReceiver):
       if not transport:
          transport = self.transport
 
-      out_json = json.dumps(response)
+      out_json = cjson.encode(response)
 
       if transport.sessionno != self.transport.sessionno:
          pre_char = transport.sessionno
