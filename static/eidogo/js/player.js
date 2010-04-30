@@ -2404,6 +2404,9 @@ eidogo.Player.prototype = {
                 <textarea id='comments-edit-ta' class='comments-edit-ta'></textarea>\
                 <div id='comments-edit-done' class='comments-edit-done'>" + t['done'] + "</div>\
             </div>\
+            <div id='chat-input' class='chat-input'>\
+                <input type=text name='chat-input'>\
+            </div>\
             <div id='game-info-edit' class='game-info-edit'>\
                 <div id='game-info-edit-form' class='game-info-edit-form'></div>\
                 <div id='game-info-edit-done' class='game-info-edit-done'>" + t['done'] + "</div>\

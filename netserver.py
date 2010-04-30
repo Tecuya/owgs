@@ -42,15 +42,36 @@ class GoServerProtocol(basic.LineReceiver):
       self.gamepartstate = {}
 
       self.debug('Connection opened')
+
    
    def connectionLost(self, reason):
 
+      self.debug('connectionLost fired')
+
       # remove from any chats we are in
-      self.factory.delFromChatConnectionDB(self)
+      for oldentry in self.factory.delFromChatConnectionDB(self):
+         
+         # load the chat object
+         chat = self.factory.getChat( oldentry[1] )
+
+         # determine if this was the last connection from this user
+         users_other_conns = 0
+         for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
+            if user_id == oldentry[2]:
+               users_other_conns += 1
+
+         self.debug('User other conns %d' % users_other_conns)
+
+         if users_other_conns == 0:
+            # let everyone in this game know
+            for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
+               if conn_chat_id == chat.id:
+                  self.writeToTransport(["PCHT", chat.id, self.user.id, self.user.username], transport = connection.transport)
+         
 
       for oldentry in self.factory.delFromGameConnectionDB(self):
- 
-         game = Game.objects.get(pk = oldentry[1])
+
+         game = self.factory.getGame( oldentry[1] )
 
          self.debug('Unregistering where game=%d and user=%s' % (game.id, self.user.username) )
 
@@ -74,7 +95,7 @@ class GoServerProtocol(basic.LineReceiver):
             # let everyone in this game know
             for (connection, conn_game_id, user_id) in self.factory.gameConnectionList:
                if conn_game_id == game.id:
-                  self.writeToTransport(["PART", self.user.id, self.user.username], transport = connection.transport)
+                  self.writeToTransport(["PART", game.id, self.user.id, self.user.username], transport = connection.transport)
 
 
    def lineReceived(self, data):
@@ -108,7 +129,7 @@ class GoServerProtocol(basic.LineReceiver):
 
       else:
 
-         if cmd[0] in ('JCHT','CHAT'):
+         if cmd[0] in ('JCHT','CHAT','PCHT'):
 
             # load the chat object if this is a chat command
             chat = self.factory.getChat( cmd[1] )
@@ -631,20 +652,33 @@ class GoServerProtocol(basic.LineReceiver):
             
             response = CTS
 
+         elif cmd[0] == 'PART':
+            # todo we should support this
+            pass
+
+         elif cmd[0] == 'PCHT':
+            # todo we should support this
+            pass
+
          elif cmd[0] == 'JCHT':
 
             already_present = False
             for (conn, conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
                if chat.id == conn_chat_id and self.user.id == conn_user_id:
-                  already_preset = True
+                  already_present = True
                   break
             
+            a = self.factory.chatConnectionList
+            print 'list', a
+
             if not already_present:
+               self.debug('User joined chat who is not present')
+
                self.factory.addToChatConnectionDB(self, chat.id, self.user.id)
             
                for (conn, conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
                   if conn_chat_id == chat.id:
-                     self.writeToTransport(["JCHT", chat.id, self.user.id, self.user.username])
+                     self.writeToTransport(["JCHT", chat.id, self.user.id, self.user.username], transport = conn.transport)
 
             response = CTS
 

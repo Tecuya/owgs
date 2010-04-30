@@ -74,9 +74,15 @@ function NetClient(session_key, debug_mode) {
         dataAr = JSON.parse(line);
 
         command = dataAr.shift();
-        
-        if(dataAr.length > 0) 
-            game_id = dataAr.shift()
+
+        if(dataAr.length > 0) {         
+            if( (command == 'JCHT') || 
+                (command == 'CHAT') ||
+                (command == 'PCHT') ) 
+                chat_id = dataAr.shift()
+            else
+                game_id = dataAr.shift()
+        }
 
         // if there are pending messages, then paste them 
         if(command == "CTS") {
@@ -102,7 +108,7 @@ function NetClient(session_key, debug_mode) {
             part_select = document.getElementById("ParticipantSelect");
             
             for(var i=0 ; i < part_select.options.length ; i++) { 
-                if(part_select.options[i].value == dataAr[1]) { 
+                if(part_select.options[i].value == dataAr[0]) { 
                     part_select.remove(i);
                 }
             }
@@ -187,6 +193,9 @@ function NetClient(session_key, debug_mode) {
 
         } else if(command == "JCHT") { 
             this.updatechat( "*** "+dataAr[1]+" has joined the chat" );
+
+        } else if(command == "PCHT") {
+            this.updatechat( "*** "+dataAr[1]+" has left the chat" );
 
         } else if(command == "CMNT") {
 

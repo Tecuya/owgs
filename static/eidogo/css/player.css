@@ -247,7 +247,7 @@
 	clear: right;
 	float: right;
 	width: 356px;
-	height: 243px;
+	height: 213px;
 	font-size: 11px;
 	margin: 5px 0 0 0;
 	padding: 15px 8px 40px 8px;
@@ -294,6 +294,19 @@
 }
 .eidogo-player .comments a {
     color: #008;
+}
+.eidogo-player .chat-input { 
+    float: right;
+    width: 356px;
+    padding: 0px;
+    margin: 0px;
+    margin-left: 4px;
+    width: 355px;
+    background: #eee;
+}
+.eidogo-player .chat-input input { 
+    width: 355px;
+    background: #ccc;
 }
 .eidogo-player .game-info-edit {
     display: none;
