@@ -147,8 +147,12 @@ def NetClientUnloadWrapper():
 def PlayerProfile(request):
 
     from go.GoServer.models import UserProfile, UserProfileForm
-    
-    prof = UserProfile.objects.get(user = request.user.id)
+
+    try:
+        prof = UserProfile.objects.get(user = request.user.id)
+    except:
+        prof = UserProfile( user = request.user)
+        prof.save()
 
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance = prof)

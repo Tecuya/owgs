@@ -183,8 +183,8 @@ class GameParticipant(models.Model):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User)
-    activation_key = models.CharField(max_length=40)
-    key_expires = models.DateTimeField()
+    activation_key = models.CharField(max_length=40, blank=True)
+    key_expires = models.DateTimeField(blank=True, null=True)
     DebugMode = models.BooleanField('Debug Mode', default=False)
     EidogoPlayerMode = models.CharField('Eidogo Player Style', max_length=1, choices=(('S','Standard'),
                                                                                       ('C','Compact')), default='S')
