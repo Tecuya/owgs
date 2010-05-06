@@ -48,15 +48,13 @@ window.addEventListener("load", initEidogo, false);
 {% block content %}
 
 
-<p>
- <h2>Game #{{ Game.id }}</h2>
- {% if not Game.PlayersAssigned %} 
-  <b>{{ Game }}</b>
- {% endif %}
-</p>
+{% if not Game.PlayersAssigned %} 
+ <b>Game #{{ Game.id }} - {{ Game }}</b>
+{% endif %}
 
 {% if not PreGame %} 
 <div class="gamebox">
+ <h3>Board</h3>
  <div id="eidogo"></div>     
  <input size=60 type=text id="CommentInput">
  <button type=button onClick="NetClient_instance.comment( document.getElementById('CommentInput') );">
@@ -72,7 +70,6 @@ window.addEventListener("load", initEidogo, false);
  <select multiple size=4 id="ParticipantSelect">
    <option value=0>Loading...</option>
  </select>
-
  {% if YouAreOwner and PreGame %}
  <p>
   <button type=button onClick="NetClient_instance.startgame();">Accept Selected Offer</button>

@@ -16,7 +16,7 @@ setup_environ(settings)
 from django.db.models import F, Max, Min, Count
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User, AnonymousUser
-from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree, Chat
+from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree, Chat, ChatParticipant
 
 
 # our CTS command
@@ -63,6 +63,9 @@ class GoServerProtocol(basic.LineReceiver):
          self.debug('User other conns %d' % users_other_conns)
 
          if users_other_conns == 0:
+
+            ChatParticipant.objects.filter( Chat = chat, Participant = self.user).update( Present = False )
+
             # let everyone in this game know
             for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
                if conn_chat_id == chat.id:
@@ -669,7 +672,10 @@ class GoServerProtocol(basic.LineReceiver):
                   break
             
             a = self.factory.chatConnectionList
-            print 'list', a
+
+            for part in ChatParticipant.objects.filter(Chat = chat, Present = True):
+               if part.Participant.id != self.user.id:
+                  self.writeToTransport(["JCHT", chat.id, part.Participant.id, part.Participant.username])
 
             if not already_present:
                self.debug('User joined chat who is not present')
@@ -679,6 +685,14 @@ class GoServerProtocol(basic.LineReceiver):
                for (conn, conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
                   if conn_chat_id == chat.id:
                      self.writeToTransport(["JCHT", chat.id, self.user.id, self.user.username], transport = conn.transport)
+
+               existing_rows = ChatParticipant.objects.filter(Chat = chat, Participant=self.user)
+               if(len(existing_rows) > 0):
+                  existing_rows.update( Present = True )
+               else:
+                  # now make a participant entry to tie this user to the game in the database
+                  part_that_joined = ChatParticipant( Participant=self.user, Chat=chat, Present=True )
+                  part_that_joined.save()
 
             response = CTS
 

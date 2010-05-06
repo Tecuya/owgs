@@ -71,7 +71,7 @@ function NetClient(session_key, debug_mode) {
     this.onlinereceived = function(line) { 
         this.debug("RECV: " + line + "\n");
 
-        dataAr = JSON.parse(line);
+        dataAr = Orbited.JSON.parse(line);
 
         command = dataAr.shift();
 
@@ -192,15 +192,35 @@ function NetClient(session_key, debug_mode) {
                                                       dataAr[5] );
 
         } else if(command == "JCHT") { 
-            this.updatechat( "*** "+dataAr[1]+" has joined the chat" );
 
+            part_select = document.getElementById("ParticipantSelect");
+
+            if(part_select.options[0].value == 0) { 
+                part_select.remove(0);
+            }
+
+            part_select.options.add( new Option(dataAr[1], dataAr[0]) );
+            
+            this.updatechat( "*** "+dataAr[1]+" has joined the chat" );
+            
         } else if(command == "PCHT") {
+
+            part_select = document.getElementById("ParticipantSelect");
+            
+            for(var i=0 ; i < part_select.options.length ; i++) { 
+                if(part_select.options[i].value == dataAr[0]) { 
+                    part_select.remove(i);
+                }
+            }
+
             this.updatechat( "*** "+dataAr[1]+" has left the chat" );
 
         } else if(command == "CMNT") {
 
             this.updatechat('<'+dataAr[0]+'> '+dataAr[1]);
-           
+            
+            
+            
         } else { 
             alert("Unknown net command received from server: "+command);
         }
@@ -225,11 +245,10 @@ function NetClient(session_key, debug_mode) {
         } else if (this.tcp.readyState > 3 ) {
             this.debug("ERR: Disconnect(ed)(ing)\n");
         } else {
-            json_out = JSON.stringify(data);
+            json_out = Orbited.JSON.stringify(data);
             this.debug("SEND: " + json_out + "\n");
             this.cts = false;
 
-            // JSON is imported by orbited
             this.tcp.send(json_out + "\r\n");
         }
     }

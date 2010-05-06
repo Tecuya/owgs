@@ -137,9 +137,8 @@ a:hover {
 }
 
 .gamebox { 
-    border: solid black 1px; 
-    padding: 5px; 
-    margin: 5px; 
+    padding: 2px; 
+    margin: 0px; 
     float:left; 
 }
 

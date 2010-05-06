@@ -3,17 +3,28 @@
 {% block head %}
 {% include "GoServer/HeaderJavascript.html" %}
 <script>
-NetClient_instance.joinchat( 1 );
+ NetClient_instance.joinchat( 1 );
 </script>
 {% endblock %}
 
 
 {% block content %}
+
+<div class="gamebox">
  <h3>Chat</h3>
  <textarea cols=80 rows=25 id="ChatTextarea" readonly></textarea><br>
- <input size=60 type=text id="ChatInput">
+ <input size=90 type=text id="ChatInput">
  <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
   Send
  </button>
+</div>
+
+<div id="Participants" class="gamebox">
+ <h3>Participants</h3>
+ <select multiple size=4 id="ParticipantSelect" style="width:100px;">
+   <option value=0>Loading...</option>
+ </select>
+</div>
+
 {% endblock %}
 

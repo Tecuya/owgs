@@ -9,7 +9,7 @@
    <a href="/games/view/{{ Game.id }}">
      {% if not Game.PlayersAssigned %}Join{% else %}View{% endif %}</a>
    <a href="/games/download/{{ Game.id }}">SGF</a>
- {{Game}} 
+  {{ Game.params }} - <b>{{ Game.present_participants }}</b> participants connected.
  </li>
  {% endfor %}
 </ul>

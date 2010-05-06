@@ -7,15 +7,27 @@ from django.template import RequestContext
 def GameList(request):
     from go.GoServer.models import GameForm, Game, GameParticipant
 
+    gamelist = []
+    for game in Game.objects.filter(State__in = ['I','P']).order_by('CreateDate').order_by('-State'):
+        gamelist.append( {'id': game.id,
+                          'params':unicode(game), 
+                          'present_participants':unicode(len(GameParticipant.objects.filter( Game = game, Present=True ))) } )
+
     return render_to_response('GoServer/GameList.html', 
-                              {'GameList': Game.objects.filter(State__in = ['I','P']).order_by('StartDate').order_by('-State')},
+                              {'GameList': gamelist},
                               context_instance=RequestContext(request))
 
 def GameArchive(request):
     from go.GoServer.models import GameForm, Game, GameParticipant
 
+    gamelist = []
+    for game in Game.objects.filter(State = 'F').order_by('CreateDate'):
+        gamelist.append( {'id': game.id,
+                          'params': unicode(game), 
+                          'present_participants': unicode(len(GameParticipant.objects.filter( Game = game, Present=True ))) } )
+
     return render_to_response('GoServer/GameList.html', 
-                              {'GameList': Game.objects.filter(State = 'F').order_by('StartDate').order_by('-State')},
+                              {'GameList': gamelist},
                               context_instance=RequestContext(request))
 
 
@@ -42,7 +54,6 @@ def GameCreate(request):
         form = GameForm()
 
     return render_to_response('GoServer/GameCreate.html', {"GameForm": form}, context_instance=RequestContext(request))   
-
 
 
 def GameMakeSGF(request, game_id):
@@ -87,7 +98,7 @@ def Chat(request):
         return HttpResponseRedirect('/accounts/login')
 
     return render_to_response('GoServer/Chat.html', 
-                              {"DebugMode": request.user.get_profile().DebugMode},
+                              {"DebugMode": request.user.get_profile().DebugMode},                              
                               context_instance=RequestContext(request))
 
 
@@ -125,7 +136,7 @@ def GameView(request, game_id):
         user_b = {}
 
     sgf = GameTree( game.id ).dumpSGF().replace("\n","\\n")
-        
+    
     return render_to_response('GoServer/GameView.html', 
                               {"Game": game,
                                "PreGame": (game.State == 'P'),
@@ -171,3 +182,10 @@ def PlayerProfile(request):
 def Index(request):
     return render_to_response('GoServer/Index.html', context_instance=RequestContext(request))
 
+
+
+def GenerateUserList():
+
+    GameParticipant.objects.filter( Present = True )
+    
+    

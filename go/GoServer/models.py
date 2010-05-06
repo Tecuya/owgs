@@ -39,8 +39,8 @@ class Chat(models.Model):
 class ChatParticipant(models.Model):
     Chat = models.ForeignKey(Chat)
     Participant = models.ForeignKey(User)
-    
-    
+    Present = models.BooleanField('Present')
+
 
 class Game(models.Model):
     import datetime
