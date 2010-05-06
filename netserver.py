@@ -112,8 +112,6 @@ class GoServerProtocol(basic.LineReceiver):
 
       # connect command ; index 1 is a session_key
       if(cmd[0] == 'SESS'):
-         self.session_key = cmd[1]
-
          # load up the session's user object
          session = Session.objects.get(session_key = self.session_key)
          uid = session.get_decoded().get('_auth_user_id')
@@ -125,10 +123,32 @@ class GoServerProtocol(basic.LineReceiver):
 
          response = CTS
 
+      # AUTH command; allow a user to log in over the network rather than using a web session
+      elif(cmd[0] == 'AUTH'):
+         
+         user = cmd[1]
+         password = cmd[2]
+         
+         uqs = User.objects.filter(username = user)
 
+         # TODO have a more robust method of deterring brute-force attacks
+         time.sleep(1)
+         
+         if(len(uqs) == 0):
+            self.writeToTransport(["AUTH", 0])
+         else:
+            user = uqs[0]
+            if not user.check_password(cmd[2]):
+               self.writeToTransport(["AUTH", 0])
+            else:
+               self.user = user
+               self.writeToTransport(["AUTH", 1])
+         
+         response = CTS
+         
       # we arent connected and we dont have a session? not allowed!
-      elif( self.session_key == False ):
-         response = ['ERROR','No session_key; you must SESS first.']
+      elif( self.user == False ):
+         response = ['ERROR','No user attached to this connection; you must SESS or AUTH first.']
 
       else:
 
