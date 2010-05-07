@@ -126,7 +126,7 @@ class Game(models.Model):
                                                                   ('U', 'Unset')), default='U')
     
     # the difference between W & B's score
-    ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1)
+    ScoreDelta = models.DecimalField('Score Delta', max_digits=5, decimal_places=1, default=0)
     
     # stores the node which is currently focused in this game
     FocusNode = models.IntegerField('Focus Node Id', blank=True, null=True)

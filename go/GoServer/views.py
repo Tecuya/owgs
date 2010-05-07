@@ -40,15 +40,11 @@ def GameCreate(request):
 
     if request.method == 'POST':
 
-        game = Game( Owner = request.user, ScoreDelta=0)
+        game = Game( Owner = request.user )
         form = GameForm(request.POST, instance=game)
         
         if form.is_valid():
-            newgame = form.save()
-            
-            # gp = GameParticipant(Game=newgame, Participant=request.user, State='O')
-            # gp.save()
-
+            newgame = form.save()            
             return HttpResponseRedirect('/games/view/%d' % newgame.id)
     else:
         form = GameForm()

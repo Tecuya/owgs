@@ -49,7 +49,9 @@ window.addEventListener("load", initEidogo, false);
 
 
 {% if not Game.PlayersAssigned %} 
+<div>
  <b>Game #{{ Game.id }} - {{ Game }}</b>
+</div>
 {% endif %}
 
 {% if not PreGame %} 

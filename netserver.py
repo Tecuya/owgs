@@ -113,7 +113,7 @@ class GoServerProtocol(basic.LineReceiver):
       # connect command ; index 1 is a session_key
       if(cmd[0] == 'SESS'):
          # load up the session's user object
-         session = Session.objects.get(session_key = self.session_key)
+         session = Session.objects.get(session_key = cmd[1])
          uid = session.get_decoded().get('_auth_user_id')
          if uid == None:
             # TODO support anonymous users
@@ -156,6 +156,10 @@ class GoServerProtocol(basic.LineReceiver):
 
             # load the chat object if this is a chat command
             chat = self.factory.getChat( cmd[1] )
+
+         elif cmd[0] in ('GAME'):
+            
+            pass
 
          else:
             
@@ -338,6 +342,9 @@ class GoServerProtocol(basic.LineReceiver):
                   other_color = 'B'
                else:
                   other_color = 'W'
+
+               # store our game state so we are aware what color/state we are in this game later
+               self.gamepartstate[ game.id ] = other_color
 
                username = {}
 
@@ -726,6 +733,20 @@ class GoServerProtocol(basic.LineReceiver):
 
             response = CTS
 
+         elif(cmd[0] == 'GAME'):
+            # create a new game
+            
+            game = Game( Owner = self.user, 
+                         Type = cmd[1], BoardSize = cmd[2], Komi = cmd[3], 
+                         MainTime = cmd[4], OvertimeType = cmd[5], 
+                         OvertimePeriod = cmd[6], OvertimeCount = cmd[7] )
+            game.save()
+
+            self.writeToTransport(["GAME", game.id])
+            
+            response = CTS
+            
+            
       # write whatever response we came up with above
       self.writeToTransport(response, self.transport)
 
