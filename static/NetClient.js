@@ -218,9 +218,11 @@ function NetClient(session_key, debug_mode) {
         } else if(command == "CMNT") {
 
             this.updatechat('<'+dataAr[0]+'> '+dataAr[1]);
-            
-            
-            
+                        
+        } else if(command == "SCOR") { 
+
+            // the SCOR command is really only used by bots or for client debugging, this is not information that is pertinent to eidogo / the web interface
+
         } else { 
             alert("Unknown net command received from server: "+command);
         }

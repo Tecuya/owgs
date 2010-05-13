@@ -89,16 +89,8 @@ class GoServerProtocol(basic.LineReceiver):
          self.debug('User has %d other connections on this game' % users_other_conns)
 
          # inform others that this user left if this was the last connection belonging to the user
-         if users_other_conns == 0:
-
-            # mark this user as not-present
-            self.debug('Marking user game participant row Present=False')
-            GameParticipant.objects.filter( Game = game, Participant = self.user).update( Present = False )
-
-            # let everyone in this game know
-            for (connection, conn_game_id, user_id) in self.factory.gameConnectionList:
-               if conn_game_id == game.id:
-                  self.writeToTransport(["PART", game.id, self.user.id, self.user.username], transport = connection.transport)
+         if users_other_conns == 0:            
+            self.removeUserFromGame( game )
 
 
    def lineReceived(self, data):
@@ -276,7 +268,6 @@ class GoServerProtocol(basic.LineReceiver):
                      # send it to all players associated with the current game.. but not the user who made the move
                      if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
                         self.writeToTransport(["MOVE", game.id, coord, new_node_id], transport = connection.transport)
-
 
                   # notify the client of the node ID for the node
                   self.writeToTransport(["NODE", game.id, new_node_id], self.transport)
@@ -582,44 +573,44 @@ class GoServerProtocol(basic.LineReceiver):
             else:
                other_color = 'W'
 
-            # store the results from the player in the factory 
-            score = {'color': client_is_color, 
-                        'territory_w': cmd[2],
-                        'captures_w': cmd[3],
-                        'prisoners_b': cmd[4],
-                        'score_w': cmd[5],
-                        'territory_b': cmd[6],
-                        'captures_b': cmd[7],
-                        'prisoners_w': cmd[8],
-                        'score_b': cmd[9]}
-
             # if the scoring dict doesnt have our game then add it
             if not self.factory.user_game_scoring.has_key( game.id ):
-               self.factory.user_game_scoring[game.id] = []
+               self.factory.user_game_scoring[game.id] = {'W': False, 'B': False}
 
-            # if the other player has also had his results stored in the factory, compare the
-            # results and make sure they match            
-            accepted_entry = False
-            for item in self.factory.user_game_scoring[ game.id ]:
-               if (item['color'] == other_color and
-                   len(item['territory_w']) == len(score['territory_w']) and
-                   item['captures_w'] == score['captures_w'] and 
-                   item['prisoners_b'] == score['prisoners_b'] and
-                   item['score_w'] == score['score_w'] and
-                   len(item['territory_b']) == len(score['territory_b']) and
-                   item['captures_b'] == score['captures_b'] and
-                   item['prisoners_w'] == score['prisoners_w'] and
-                   item['score_b'] == score['score_b']):
-
-                  accepted_entry = score
-                  break
-            
-            if not accepted_entry:
-               self.factory.user_game_scoring[game.id].append( score )
+            # store the results from the player in the factory 
+            score = {
+               'color': client_is_color, 
+               'territory_w': cmd[2],
+               'captures_w': cmd[3],
+               'prisoners_b': cmd[4],
+               'score_w': cmd[5],
+               'territory_b': cmd[6],
+               'captures_b': cmd[7],
+               'prisoners_w': cmd[8],
+               'score_b': cmd[9]}
+                              
+            item = self.factory.user_game_scoring[ game.id ][ other_color ]
+            if not ( item and 
+                     len(item['territory_w']) == len(score['territory_w']) and 
+                     item['captures_w'] == score['captures_w'] and 
+                     item['prisoners_b'] == score['prisoners_b'] and
+                     item['score_w'] == score['score_w'] and
+                     len(item['territory_b']) == len(score['territory_b']) and 
+                     item['captures_b'] == score['captures_b'] and
+                     item['prisoners_w'] == score['prisoners_w'] and
+                     item['score_b'] == score['score_b'] ):
                
+               # broadcast the score to other connected clients
+               for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
+                  if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
+                     self.writeToTransport(cmd, transport = connection.transport)
+                     
+               # set the score as this players submitted score
+               self.factory.user_game_scoring[game.id][ client_is_color ] = score
+            
             else:
 
-               # calculate results and store them in the game
+               # calculate results and store them in the game, transmit results to clients
                
                if score['score_w'] > score['score_b']:
                   winner_color = 'W'
@@ -678,13 +669,14 @@ class GoServerProtocol(basic.LineReceiver):
                reprop = GameProperty( Node = rootnode, Property = 'RE', Value=result )
                reprop.save()
 
+               # transmit result
                self.broadcastResult(game.id, winner_color, 'S', result)
             
             response = CTS
 
-         elif cmd[0] == 'PART':
-            # todo we should support this
-            pass
+         elif cmd[0] == 'PART':            
+            self.removeUserFromGame( game )
+            response = CTS
 
          elif cmd[0] == 'PCHT':
             # todo we should support this
@@ -868,6 +860,18 @@ class GoServerProtocol(basic.LineReceiver):
             new_period_remain = period_remain - time_taken_since_clock
             
       return [time_loss, color, other_color, new_period_remain, new_overtime_count, new_is_overtime]
+
+
+   def removeUserFromGame(self, game):
+
+      # mark this user as not-present
+      self.debug('Marking user game participant row Present=False')
+      GameParticipant.objects.filter( Game = game, Participant = self.user).update( Present = False )
+
+      # let everyone in this game know
+      for (connection, conn_game_id, user_id) in self.factory.gameConnectionList:
+         if conn_game_id == game.id:
+            self.writeToTransport(["PART", game.id, self.user.id, self.user.username], transport = connection.transport)
 
 
    def commitTimeVars(self, game, data):

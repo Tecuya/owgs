@@ -401,7 +401,8 @@ class Board:
                 self.lastColor = color
 
                 if prop.Value == "tt":
-                    continue
+                    # pass cleares koImmune
+                    self.koImmune = False
                 else:
                     (x,y) = self.sgfPointToXY( prop.Value )
                     self.setPoint(x, y, color)

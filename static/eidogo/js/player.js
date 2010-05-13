@@ -3168,14 +3168,7 @@ eidogo.Player.prototype = {
     // accept a game result and notify the user, update the interface, etc
     setResult: function(wincolor, wintype, results) { 
         
-        if(wintype == 'R') { 
-            msg = "Game over.  " + wincolor + " wins by resignation.";
-        } else if(wintype == 'T') { 
-            msg = "Game over.  " + wincolor + " wins by time.";
-        } else {
-            msg = "Game over.  " + wincolor + " " + results;
-        }
-
+        msg = "Game over. " + results;
         alert(msg);
 
         // todo cleanup
