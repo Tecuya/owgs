@@ -292,7 +292,7 @@ class GoServerProtocol(basic.LineReceiver):
 
             for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                # send it to all players associated with the current game.. but not the user who made the move
-               if self.transport.sessionno != connection.transport.sessionno:
+               if conn_game_id == game.id and  self.transport.sessionno != connection.transport.sessionno:
                   self.writeToTransport(["DEAD", game.id, coord], transport = connection.transport)
 
             response = CTS
@@ -377,18 +377,15 @@ class GoServerProtocol(basic.LineReceiver):
                   prop = GameProperty(Node = gi_node, Property = prop, Value = value)
                   prop.save()
 
-
                # Send a message to all participants notifying them that the game has begun
                for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
-                  self.writeToTransport(["BEGN", game.id], transport = connection.transport)
-
-               response = CTS
+                  if conn_game_id == game.id:
+                     self.writeToTransport(["BEGN", game.id], transport = connection.transport)
 
             else:
-
                self.writeToTransport(["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[2]) ])
 
-               response = CTS
+            response = CTS
 
 
          elif cmd[0] == 'OFFR':
@@ -398,7 +395,8 @@ class GoServerProtocol(basic.LineReceiver):
 
             # Send a message to all participants notifying them about your offer
             for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
-               self.writeToTransport(["OFFR", game.id, cmd[2], cmd[3], cmd[4], cmd[5], self.user.id, self.user.username], transport = connection.transport)
+               if conn_game_id == game.id:
+                  self.writeToTransport(["OFFR", game.id, cmd[2], cmd[3], cmd[4], cmd[5], self.user.id, self.user.username], transport = connection.transport)
 
             response = CTS
 
@@ -415,13 +413,9 @@ class GoServerProtocol(basic.LineReceiver):
                game.save()
 
                for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
-                  
-                  # not the right game? skip!
-                  if conn_game_id != game.id:
-                     continue
 
                   # dont send to the connection that made the move
-                  if self.transport.sessionno != connection.transport.sessionno:
+                  if conn_game_id == game.id and self.transport.sessionno != connection.transport.sessionno:
                      self.writeToTransport(cmd, transport = connection.transport)
 
                response = CTS
@@ -460,7 +454,8 @@ class GoServerProtocol(basic.LineReceiver):
                
                # give a NAVI to all clients to navigate back to the node we did an undo to
                for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
-                  self.writeToTransport(["NAVI", game.id, undoForPass], transport = connection.transport)
+                  if conn_game_id == game.id:
+                     self.writeToTransport(["NAVI", game.id, undoForPass], transport = connection.transport)
                
                game.FocusNode = undoForPass
                game.PendingUndoNode = 0
@@ -509,7 +504,8 @@ class GoServerProtocol(basic.LineReceiver):
                
                # give a NAVI to all clients to navigate back to the node we did an undo to
                for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
-                  self.writeToTransport(["NAVI", game.id, game.PendingUndoNode], transport = connection.transport)
+                  if conn_game_id == game.id:
+                     self.writeToTransport(["NAVI", game.id, game.PendingUndoNode], transport = connection.transport)
                
                game.FocusNode = game.PendingUndoNode
                game.PendingUndoNode = 0
