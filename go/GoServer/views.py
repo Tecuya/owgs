@@ -8,7 +8,7 @@ def GameList(request):
     from go.GoServer.models import GameForm, Game, GameParticipant
 
     gamelist = []
-    for game in Game.objects.filter(State__in = ['I','P']).order_by('CreateDate').order_by('-State'):
+    for game in Game.objects.filter(State__in = ['I','P']).order_by('-State').order_by('CreateDate'):
         gamelist.append( {'id': game.id,
                           'params':unicode(game), 
                           'present_participants':unicode(len(GameParticipant.objects.filter( Game = game, Present=True ))) } )
