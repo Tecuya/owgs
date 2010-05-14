@@ -1,8 +1,12 @@
+# for debugging stdout flushes
+import sys
+
 from django.db import models
 from django.forms import ModelForm
 
 # so we can have user foreign keys
 from django.contrib.auth.models import User
+
 
 class GameNode(models.Model):
     """ 
@@ -366,7 +370,8 @@ class Board:
         # produce a blank board
         for i in range(0, (self.size ** 2)):
             self.board.append( self.EMPTY )
-            
+
+        self.groupPoints = []
         
     def makeMove( self, parent_node, coord, color ):
 
@@ -384,17 +389,19 @@ class Board:
         
     def syncBoardToNode( self, syncnode ):        
         
+        
         # TODO implement some manner of caching here so its not necessary to always
         # do a complete lookup of the game history!  This is going to get slllooow..
 
         nodes = GameTree( self.game.id ).getFullNodePath( syncnode )
-
+        
         if len(nodes) == 0:
             return False
                 
         self.clearBoard()
 
         for (node,properties) in nodes:
+            
             for prop in properties:
                 
                 color = self.colorMap[ prop.Property ]
@@ -414,8 +421,6 @@ class Board:
                     # if we only captured one stone, this move's is marked koImmune
                     if len(caps) == 1:
                         self.koImmune = [x, y]
-                    else:
-                        self.koImmune = False
 
         return True
 
@@ -490,6 +495,7 @@ class Board:
         for (gx, gy) in groupPoints:
             groupLibs += len(self.getStoneLiberties( gx, gy ))
 
+
         # this will be reused in the ko check
         thisMoveCaptures = self.findMoveCaptures( x, y, color)
 
@@ -520,16 +526,17 @@ class Board:
         for i in range(0, len(self.board)):
             self.board[i] = self.EMPTY
             
-    def findGroupPoints( self, x, y, groupPoints = False ):
-        
+    def findGroupPoints( self, x, y, recursing = False ):
+
         color = self.getPoint( x, y )
         
-        if not groupPoints:
-            groupPoints = []
+        if not recursing:
+            self.groupPoints = []
             
-        groupPoints.append( [x,y] )
+        self.groupPoints.append( [x,y] )
         
         checkPoints = []
+            
         if x > 0: 
             checkPoints.append( [x-1, y] )
         if y > 0:
@@ -539,21 +546,22 @@ class Board:
         if y < self.size - 1:
             checkPoints.append( [x, y+1] )
 
-        for (x,y) in checkPoints:
+        for (cx,cy) in checkPoints:
             
             # if this points already been checked, skip it
             ptInGp = False
-
-            for (gx, gy) in groupPoints:
-                if x == gx and y == gy:
+            
+            for (gx, gy) in self.groupPoints:
+                if cx == gx and cy == gy:
                     ptInGp = True
                     break
             
-            if not ptInGp and color == self.getPoint( x, y ):
-                groupPoints.extend( self.findGroupPoints( x, y, groupPoints ) )
-        
-        return groupPoints
-    
+            if not ptInGp and color == self.getPoint( cx, cy ):
+                self.findGroupPoints( cx, cy, True )
+
+        if not recursing:
+            return self.groupPoints
+
     def getStoneLiberties(self, x, y):
         
         checkPoints = []

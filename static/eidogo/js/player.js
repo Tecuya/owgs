@@ -1781,11 +1781,8 @@ eidogo.Player.prototype = {
         if(this.owgsNetMode && (!owgs_serverMove) && this.pendingSnProp.length) 
             return;
 
-        // can't click there?        
-        var pt = this.sgfCoordToPoint(coord);
-
-        // check the move for validity; unless its server-generated, in that case just accept it
-        if(!this.rules.check(pt, this.currentColor, owgs_serverMove)) { 
+        // if its not a pass, then let the rule checker validate it
+        if((coord != "tt") && (!this.rules.check(this.sgfCoordToPoint(coord), this.currentColor, owgs_serverMove))) { 
             return;
         }
                 
@@ -3168,7 +3165,14 @@ eidogo.Player.prototype = {
     // accept a game result and notify the user, update the interface, etc
     setResult: function(wincolor, wintype, results) { 
         
-        msg = "Game over. " + results;
+        if(wintype == 'R') { 
+            msg = "Game over.  " + wincolor + " wins by resignation.";
+        } else if(wintype == 'T') { 
+            msg = "Game over.  " + wincolor + " wins by time.";
+        } else {
+            msg = "Game over.  " + results;
+        }
+
         alert(msg);
 
         // todo cleanup

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # python included modules
-import datetime, time, math, cjson
+import datetime, time, math, cjson, sys
 
 # twisted
 from twisted.internet import protocol, reactor
@@ -297,10 +297,8 @@ class GoServerProtocol(basic.LineReceiver):
 
             response = CTS
 
-         # ignore any BEGN that doesnt come from the game owner
-         elif cmd[0] == 'BEGN' and game.Owner == self.user:
-
-            # TODO prevent BEGN messages on games which are already started
+         # ignore any BEGN that doesnt come from the game owner, or is for a game that is not in progress
+         elif cmd[0] == 'BEGN' and game.Owner == self.user and game.State == 'P':
 
             accepted_user = int(cmd[2])
 
