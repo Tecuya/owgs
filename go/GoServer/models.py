@@ -143,7 +143,7 @@ class Game(models.Model):
         player_list = []
 
         for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
-            player_list.append(part.Participant.username)
+            player_list.append('%s: %s' % (part.State, part.Participant.username) )
 
         translate_state = {'P': 'Pre-Game',
                            'I': 'In Progress',
@@ -153,7 +153,15 @@ class Game(models.Model):
                           'T': 'Teaching',
                           'R': 'Ranked'}
 
-        return u'State: %s | Type: %s | Size: %s | Players: %s' % (translate_state[self.State], translate_type[self.Type], self.BoardSize, ' vs '.join(player_list))
+        if self.Winner != 'U':
+            if self.WinType == 'S':
+                winner = '| Result: %s+%.01f' % (self.Winner, self.ScoreDelta)
+            else:
+                winner = '| Result: %s+%s' % (self.Winner, self.WinType)
+        else:
+            winner = ''
+
+        return u'State: %s | Type: %s | Size: %s | %s %s' % (translate_state[self.State], translate_type[self.Type], self.BoardSize, ' '.join(player_list), winner)
 
     
 class GameForm(ModelForm):
