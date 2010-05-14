@@ -145,7 +145,15 @@ class Game(models.Model):
         for part in GameParticipant.objects.filter(Game = self, State__in = ['W','B','O']):
             player_list.append(part.Participant.username)
 
-        return u'State: %s | Type: %s | Size: %s | Time: %s | Komi: %s | Players: %s' % (self.State, self.Type, self.BoardSize, self.MainTime, self.Komi, ' vs '.join(player_list))
+        translate_state = {'P': 'Pre-Game',
+                           'I': 'In Progress',
+                           'F': 'Finished'}
+        
+        translate_type = {'F': 'Free',
+                          'T': 'Teaching',
+                          'R': 'Ranked'}
+
+        return u'State: %s | Type: %s | Size: %s | Players: %s' % (translate_state[self.State], translate_type[self.Type], self.BoardSize, ' vs '.join(player_list))
 
     
 class GameForm(ModelForm):
