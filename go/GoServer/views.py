@@ -60,8 +60,12 @@ def GameMakeSGF(request, game_id):
         return HttpResponseRedirect('/accounts/login')
     
     sgf = GameTree( game_id ).dumpSGF()
+    
+    response = HttpResponse(sgf)
+    response['Content-Type'] = 'application/x-go-sgf'
+    response['Content-Disposition'] = 'attachment; filename=owgs-%d.sgf' % int(game_id)
 
-    return HttpResponse(sgf)
+    return response
 
 
 def GameEdit(request, game_id):
