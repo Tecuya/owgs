@@ -18,6 +18,7 @@
    <li><a {% ifequal request.path "/games/active" %}class="activelink"{% endifequal %} href="{% url game-list %}">Active Game List</a></li>
    <li><a {% ifequal request.path "/games/archive" %}class="activelink"{% endifequal %} href="{% url game-archive %}">Game Archives</a></li>
    <li><a {% ifequal request.path "/games/new" %}class="activelink"{% endifequal %} href="{% url game-create %}">New Game</a></li>
+   <li><a {% ifequal request.path "/iiface" %}class="activelink"{% endifequal %} href="{% url iiface %}">Experimental Interface</a></li>
  </ul>
 </div>
 

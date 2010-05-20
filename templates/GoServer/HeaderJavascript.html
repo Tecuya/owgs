@@ -1,8 +1,14 @@
-<script> document.domain = document.domain; </script>
+<script>document.domain = document.domain; // for orbited </script>
 <script type="text/javascript" src="/static/Orbited.js"></script>
+<script type="text/javascript" src="/static/jquery/jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="/static/jquery/jquery-ui-1.8.1.custom.min.js"></script>
 <script type="text/javascript" src="/static/NetClient.js"></script>
 <script> 
+
 NetClient_preload("{{ request.session.session_key }}", {{ DebugMode }});
-window.addEventListener("load", NetClient_start, false); 
-window.addEventListener("unload", NetClient_unload, false); 
+
+$( NetClient_start );
+
+$(document).unload(NetClient_unload);
+
 </script>

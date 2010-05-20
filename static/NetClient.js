@@ -45,7 +45,7 @@ function NetClient(session_key, debug_mode) {
             debug_button = document.createElement("BUTTON");
             debug_button.innerHTML = "Send";
             debug_button.setAttribute("type", "button");
-            debug_button.setAttribute("onClick", 'NetClient_instance.sendraw( document.getElementById("sendraw").value)')
+            debug_button.setAttribute("onClick", 'NetClient_instance.sendraw( $("#sendraw").val())')
             
             debug_div.appendChild(debug_input);
             debug_div.appendChild(debug_button);
@@ -93,7 +93,7 @@ function NetClient(session_key, debug_mode) {
             }
 
         } else if(command == "JOIN") { 
-            part_select = document.getElementById("ParticipantSelect");
+            part_select = $("#ParticipantSelect")[0];
 
             if(part_select.options[0].value == 0) { 
                 part_select.remove(0);
@@ -105,7 +105,7 @@ function NetClient(session_key, debug_mode) {
 
         } else if(command == "PART") { 
 
-            part_select = document.getElementById("ParticipantSelect");
+            part_select = $("#ParticipantSelect")[0];
             
             for(var i=0 ; i < part_select.options.length ; i++) { 
                 if(part_select.options[i].value == dataAr[0]) { 
@@ -193,7 +193,7 @@ function NetClient(session_key, debug_mode) {
 
         } else if(command == "JCHT") { 
 
-            part_select = document.getElementById("ParticipantSelect");
+            part_select = $("#ParticipantSelect")[0];
 
             if(part_select.options[0].value == 0) { 
                 part_select.remove(0);
@@ -205,7 +205,7 @@ function NetClient(session_key, debug_mode) {
             
         } else if(command == "PCHT") {
 
-            part_select = document.getElementById("ParticipantSelect");
+            part_select = $("#ParticipantSelect")[0];
             
             for(var i=0 ; i < part_select.options.length ; i++) { 
                 if(part_select.options[i].value == dataAr[0]) { 
@@ -274,8 +274,8 @@ function NetClient(session_key, debug_mode) {
     
     this.debug = function(msg) { 
         curdate = new Date();
-        if(document.getElementById("NetClient_debug"))
-            document.getElementById("NetClient_debug").value += curdate.toLocaleString() + ": " + msg;
+        if($("#NetClient_debug")[0])
+            $("#NetClient_debug")[0].value += curdate.toLocaleString() + ": " + msg;
     }
 
     /////////////////////////////////////////
@@ -297,7 +297,7 @@ function NetClient(session_key, debug_mode) {
     }
 
     this.updatechat = function(msg) { 
-        if(ta = document.getElementById("ChatTextarea"))
+        if(ta = $("#ChatTextarea")[0])
             ta.value += msg + "\r\n";        
     }
     
@@ -307,7 +307,7 @@ function NetClient(session_key, debug_mode) {
     }
 
     this.updatecomment = function(msg) { 
-        if(ta = document.getElementById("CommentTextarea"))
+        if(ta = $("#CommentTextarea")[0])
             ta.value += msg + "\r\n";
         
         if(NetClient_eidogo_player != null) 
@@ -349,7 +349,7 @@ function NetClient(session_key, debug_mode) {
 
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 
-        parts = document.getElementById('ParticipantSelect');
+        parts = $("#ParticipantSelect")[0];
         selected_user = parts.options[ parts.selectedIndex ].value;
 
         this.send( ["BEGN", this.game_id, selected_user ] )
@@ -357,16 +357,18 @@ function NetClient(session_key, debug_mode) {
 
     // this func is called when challenders click the "Offer to Play" button
     this.makeoffer = function() { 
-        board_size = document.getElementById("offer_BoardSize").value;
-        main_time = document.getElementById("offer_MainTime").value;
-        komi = document.getElementById("offer_Komi").value;
-        my_color = document.getElementById("offer_Color").value;
+        board_size = $("#offer_BoardSize").val();
+        main_time = $("#offer_MainTime").val();
+        komi = $("#offer_Komi").val();
+        my_color = $("#offer_Color").val();
         
         this.send( ["OFFR", this.game_id, board_size, main_time, komi, my_color] )
     }
 
     // this func is called when an offer is received
     this.receivedoffer = function(board_size, main_time, komi, color, user_id, username) { 
+
+        part_select = $("#ParticipantSelect")[0];
 
         // remove the previous participant select entry
         for(var i=0 ; i < part_select.options.length ; i++) { 

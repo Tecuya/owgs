@@ -183,9 +183,12 @@ def Index(request):
     return render_to_response('GoServer/Index.html', context_instance=RequestContext(request))
 
 
+def IntegratedInterface(request):
+    return render_to_response('GoServer/Interface.html', 
+                              {"DebugMode": request.user.get_profile().DebugMode},                              
+                              context_instance=RequestContext(request))
+    pass
 
-def GenerateUserList():
 
-    GameParticipant.objects.filter( Present = True )
-    
-    
+
+
