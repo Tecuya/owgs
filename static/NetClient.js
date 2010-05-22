@@ -283,12 +283,12 @@ function NetClient(session_key, debug_mode) {
 
     this.joingame = function(game_id) { 
         this.game_id = game_id;
-        this.sendq.push( ["JOIN", this.game_id] );
+        this.send( ["JOIN", this.game_id] );
     }
 
     this.joinchat = function(chat_id) { 
         this.chat_id = chat_id;
-        this.sendq.push( ["JCHT", this.chat_id] );
+        this.send( ["JCHT", this.chat_id] );
     }
 
     this.chat = function(chatinput) {
@@ -365,6 +365,11 @@ function NetClient(session_key, debug_mode) {
         this.send( ["OFFR", this.game_id, board_size, main_time, komi, my_color] )
     }
 
+    // this func loads game vars from the server and returns them
+    this.getgamevariables = function() { 
+        this.send( ["GVAR", self.game_id] );
+    }
+
     // this func is called when an offer is received
     this.receivedoffer = function(board_size, main_time, komi, color, user_id, username) { 
 
@@ -426,7 +431,7 @@ function NetClient_unload() {
 var NetClient_eidogo_player = null;
 
 // attached to load event by GameView
-function initEidogo() { 
+function initEidogo(game_id) { 
 
     if(eidogo_owgs_vars["EidogoPlayerStyle"] == "C") 
         use_theme = "compact"

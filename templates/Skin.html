@@ -8,18 +8,9 @@
 
 <div id="header">
 
+<div style="float:left;">
 <h1>OWGS</h1>
 <h3>Open Web Go Server</h3>
-
-<div id="topmenu">
- <ul>
-   <li><a {% ifequal request.path "/" %}class="activelink"{% endifequal %} href="{% url site-homepage %}">News</a></li>
-   <li><a {% ifequal request.path "/chat" %}class="activelink"{% endifequal %} href="{% url chat %}">Chat</a></li>
-   <li><a {% ifequal request.path "/games/active" %}class="activelink"{% endifequal %} href="{% url game-list %}">Active Game List</a></li>
-   <li><a {% ifequal request.path "/games/archive" %}class="activelink"{% endifequal %} href="{% url game-archive %}">Game Archives</a></li>
-   <li><a {% ifequal request.path "/games/new" %}class="activelink"{% endifequal %} href="{% url game-create %}">New Game</a></li>
-   <li><a {% ifequal request.path "/iiface" %}class="activelink"{% endifequal %} href="{% url iiface %}">Experimental Interface</a></li>
- </ul>
 </div>
 
 <div id="topright">

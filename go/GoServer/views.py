@@ -184,10 +184,15 @@ def Index(request):
 
 
 def IntegratedInterface(request):
+    print 'uname',request.user
+    if request.user.is_anonymous():
+        DebugMode = 'false'
+    else:
+        DebugMode = request.user.get_profile().DebugMode
+
     return render_to_response('GoServer/Interface.html', 
-                              {"DebugMode": request.user.get_profile().DebugMode},                              
+                              {"DebugMode": DebugMode},                              
                               context_instance=RequestContext(request))
-    pass
 
 
 

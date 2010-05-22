@@ -1,20 +1,4 @@
-{% extends "Skin.html" %}
-
-{% block head %}
-{% include "GoServer/HeaderJavascript.html" %}
-<script type="text/javascript" src="/static/eidogo/js/lang.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/eidogo.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/util.js"></script>
-<script type="text/javascript" src="/static/eidogo/i18n/en.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/gametree.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/sgf.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/board.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/rules.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/player.js"></script>
-<script type="text/javascript" src="/static/eidogo/js/init.js"></script> 
 <script>
-NetClient_instance.joingame( {{ Game.id }} );
-
 {% if not PreGame %}
 
 eidogo_owgs_vars = {
@@ -39,15 +23,8 @@ eidogo_owgs_vars = {
 {% if Game.FocusNode %}"focusNode": "{{ Game.FocusNode }}",{% endif %}
 };
 
-// init eidogo event
-$(document).ready(initEidogo);
-
 {% endif %}
 </script>
-{% endblock %}
-
-{% block content %}
-
 
 {% if not Game.PlayersAssigned %} 
 <div>
@@ -120,5 +97,5 @@ $(document).ready(initEidogo);
 </div>
 {% endif %}
 
-{% endblock %}
-
+<!-- jquery-ui seems unhappy to have a window full of floating content, this fixes it -->
+<div style="clear:both;"></div>

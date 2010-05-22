@@ -1,15 +1,3 @@
-{% extends "Skin.html" %}
-
-{% block head %}
-{% include "GoServer/HeaderJavascript.html" %}
-<script>
- NetClient_instance.joinchat( 1 );
-</script>
-{% endblock %}
-
-
-{% block content %}
-
 <div class="gamebox">
  <h3>Chat</h3>
  <textarea cols=80 rows=25 id="ChatTextarea" readonly></textarea><br>
@@ -26,5 +14,5 @@
  </select>
 </div>
 
-{% endblock %}
-
+<!-- jquery-ui seems unhappy to have a window full of floating content, this fixes it -->
+<div style="clear:both;"></div>
