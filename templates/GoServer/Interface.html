@@ -1,20 +1,21 @@
 {% extends "Skin.html" %}
 
 {% block head %}
-<script>document.domain = document.domain; // for orbited </script>
+<script>
+// for orbited
+document.domain = document.domain;  
+
+// netclient vars provided by django
+netclient_session_key = "{{ request.session.session_key }}";
+netclient_debug_mode = {{ DebugMode }};
+
+</script>
 <script type="text/javascript" src="/static/Orbited.js"></script>
-<script type="text/javascript" src="/static/NetClient.js"></script>
 <script type="text/javascript" src="/static/jquery/js/jquery-1.4.2.min.js"></script>
 <script type="text/javascript" src="/static/jquery/js/jquery-ui-1.8.1.custom.min.js"></script>
+<script type="text/javascript" src="/static/NetClient.js"></script>
 <script type="text/javascript" src="/static/interface.js"></script>
-<link type="text/css" href="/static/jquery/css/owgs/jquery-ui-1.8.1.custom.css" rel="stylesheet" />	
-<script type="text/javascript">
- // this instantiates netclient and puts it in the global namespace
- NetClient_preload("{{ request.session.session_key }}", {{ DebugMode }});
- // start netclient on-load
- $( NetClient_start );
-</script>
-
+<link type="text/css" href="/static/jquery/css/owgs/jquery-ui-1.8.1.custom.css" rel="stylesheet" />
 {% endblock %}
 
 {% block content %}
@@ -31,5 +32,7 @@
    </ul>
   </div>
 </div>
+
 {% endblock %}
+
 

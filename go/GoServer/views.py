@@ -92,13 +92,14 @@ def GameEdit(request, game_id):
     return render_to_response('GoServer/GameEdit.html', {"GameEditForm": form, "Game": game}, context_instance=RequestContext(request))   
 
 
-def Chat(request):
+def Chat(request, chat_id):
 
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
 
     return render_to_response('GoServer/Chat.html', 
-                              {"DebugMode": request.user.get_profile().DebugMode},                              
+                              {"DebugMode": request.user.get_profile().DebugMode,
+                               "ChatID": chat_id},                              
                               context_instance=RequestContext(request))
 
 

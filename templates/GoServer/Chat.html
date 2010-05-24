@@ -1,15 +1,15 @@
 <div class="gamebox">
- <h3>Chat</h3>
- <textarea cols=80 rows=25 id="ChatTextarea" readonly></textarea><br>
- <input size=90 type=text id="ChatInput">
- <button type=button onClick="NetClient_instance.chat( document.getElementById('ChatInput') );">
+ <h3>Chat {{ ChatID }}</h3>
+ <textarea cols=80 rows=25 id="chat_{{ ChatID }}_Textarea" readonly></textarea><br>
+ <input size=90 type=text id="chat_{{ ChatID }}_Input">
+ <button type=button onClick="NetClient_instance.chat( {{ ChatID }}, $('#chat_{{ ChatID }}_Input').val()); $('#chat_{{ ChatID }}_Input')[0].value = '';">
   Send
  </button>
 </div>
 
-<div id="Participants" class="gamebox">
+<div class="gamebox">
  <h3>Participants</h3>
- <select multiple size=4 id="ParticipantSelect" style="width:100px;">
+ <select multiple size=4 id="chat_{{ ChatID }}_ParticipantSelect" style="width:100px;">
    <option value=0>Loading...</option>
  </select>
 </div>

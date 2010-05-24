@@ -2,8 +2,6 @@
 
 Orbited.settings.port = 8001
 
-var NetClient_instance = null;
-
 function NetClient(session_key, debug_mode) { 
 
     // debug mode
@@ -23,9 +21,6 @@ function NetClient(session_key, debug_mode) {
 
     // our send queue
     this.sendq = Array();
-
-    // the game_id of the game we are viewing, when applicable
-    this.game_id = false;
 
     this.start = function() { 
 
@@ -159,6 +154,9 @@ function NetClient(session_key, debug_mode) {
 
             this.receivedoffer(dataAr[0], dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5]);
 
+        } else if(command == "GVAR") { 
+
+
         } else if(command == "BEGN") { 
 
             window.location.reload();
@@ -282,7 +280,7 @@ function NetClient(session_key, debug_mode) {
     // higher level commands
 
     this.joingame = function(game_id) { 
-        this.game_id = game_id;
+        // this.game_id = game_id;
         this.send( ["JOIN", this.game_id] );
     }
 
@@ -291,9 +289,8 @@ function NetClient(session_key, debug_mode) {
         this.send( ["JCHT", this.chat_id] );
     }
 
-    this.chat = function(chatinput) {
-        this.send( ["CHAT", this.chat_id, chatinput.value] );
-        chatinput.value = '';
+    this.chat = function(chat_id, chattext) {
+        this.send( ["CHAT", chat_id, chattext] );
     }
 
     this.updatechat = function(msg) { 
@@ -365,11 +362,6 @@ function NetClient(session_key, debug_mode) {
         this.send( ["OFFR", this.game_id, board_size, main_time, komi, my_color] )
     }
 
-    // this func loads game vars from the server and returns them
-    this.getgamevariables = function() { 
-        this.send( ["GVAR", self.game_id] );
-    }
-
     // this func is called when an offer is received
     this.receivedoffer = function(board_size, main_time, komi, color, user_id, username) { 
 
@@ -409,7 +401,6 @@ function NetClient_onundo_wrapper(data) { NetClient_instance.onundo(data); }
 function NetClient_onresign_wrapper(data) { NetClient_instance.onresign(data); }
 function NetClient_onscoresubmit_wrapper(data) { NetClient_instance.onscoresubmit(data); }
 function NetClient_ontime_wrapper(data) { NetClient_instance.ontime(data); }
-function NetClient_preload(session_key, debug_mode) { NetClient_instance = new NetClient(session_key, debug_mode); }
 
 // init funcs
 function NetClient_start() { 
@@ -428,7 +419,7 @@ function NetClient_unload() {
 // Eidogo loader
 
 // global var to hold the player
-var NetClient_eidogo_player = null;
+var NetClient_eidogo_players = Array();
 
 // attached to load event by GameView
 function initEidogo(game_id) { 
@@ -621,3 +612,11 @@ LineProtocol = function(transport) {
     self.onrawdatareceived = function(data) {};
 };
 
+// start netclient on-load
+$( NetClient_start );
+
+// this makes netclient fire its unload when the page unloads (unreliable)
+$(document).unload(NetClient_unload);
+
+// finally instantiate netclient in to its global
+NetClient_instance = new NetClient(netclient_session_key, netclient_debug_mode);

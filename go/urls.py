@@ -15,7 +15,7 @@ urlpatterns = patterns('',
                        url(r'^games/active', 'go.GoServer.views.GameList', name='game-list'),
                        url(r'^games/archive', 'go.GoServer.views.GameArchive', name='game-archive'),
                        url(r'^iiface', 'go.GoServer.views.IntegratedInterface', name='iiface'),
-                       url(r'^chat', 'go.GoServer.views.Chat', name='chat'),
+                       url(r'^chat/(?P<chat_id>\d+)', 'go.GoServer.views.Chat', name='chat'),
 
                        (r'^accounts/', include('registration.urls')),
 
