@@ -673,8 +673,13 @@ class GoServerProtocol(basic.LineReceiver):
             response = CTS
 
          elif cmd[0] == 'PCHT':
-            # todo we should support this
-            pass
+
+            # let everyone know
+            for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
+               if conn_chat_id == chat.id:
+                  self.writeToTransport(["PCHT", chat.id, self.user.id, self.user.username], transport = connection.transport)
+            
+            response = CTS
 
          elif cmd[0] == 'JCHT':
 
@@ -690,15 +695,16 @@ class GoServerProtocol(basic.LineReceiver):
                if part.Participant.id != self.user.id:
                   self.writeToTransport(["JCHT", chat.id, part.Participant.id, part.Participant.username])
 
+
             if not already_present:
                self.debug('User joined chat who is not present')
 
                self.factory.addToChatConnectionDB(self, chat.id, self.user.id)
-            
+
                for (conn, conn_chat_id, conn_user_id) in self.factory.chatConnectionList:
                   if conn_chat_id == chat.id:
                      self.writeToTransport(["JCHT", chat.id, self.user.id, self.user.username], transport = conn.transport)
-
+            
                existing_rows = ChatParticipant.objects.filter(Chat = chat, Participant=self.user)
                if(len(existing_rows) > 0):
                   existing_rows.update( Present = True )

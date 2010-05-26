@@ -1,14 +1,16 @@
 // this is the network client that connects to our real-time server via orbited
 
+// set orbited port
 Orbited.settings.port = 8001
 
-function NetClient(session_key, debug_mode) { 
+// instantiate netclient in to its global
+NetClient_instance = new function NetClient() { 
 
     // debug mode
-    this.NetClient_debug = debug_mode
+    this.NetClient_debug = netclient_debug_mode;
     
     // track our session_key
-    this.session_key = session_key;
+    this.session_key = netclient_session_key;
 
     // to hold our TCPSocket object
     this.tcp = null;
@@ -88,7 +90,7 @@ function NetClient(session_key, debug_mode) {
             }
 
         } else if(command == "JOIN") { 
-            part_select = $("#ParticipantSelect")[0];
+            part_select = $("#game_"+game_id+"_ParticipantSelect")[0];
 
             if(part_select.options[0].value == 0) { 
                 part_select.remove(0);
@@ -100,7 +102,7 @@ function NetClient(session_key, debug_mode) {
 
         } else if(command == "PART") { 
 
-            part_select = $("#ParticipantSelect")[0];
+            part_select = $("#game_"+game_id+"_ParticipantSelect")[0];
             
             for(var i=0 ; i < part_select.options.length ; i++) { 
                 if(part_select.options[i].value == dataAr[0]) { 
@@ -191,7 +193,7 @@ function NetClient(session_key, debug_mode) {
 
         } else if(command == "JCHT") { 
 
-            part_select = $("#ParticipantSelect")[0];
+            part_select = $("#chat_"+chat_id+"_ParticipantSelect")[0];
 
             if(part_select.options[0].value == 0) { 
                 part_select.remove(0);
@@ -203,7 +205,7 @@ function NetClient(session_key, debug_mode) {
             
         } else if(command == "PCHT") {
 
-            part_select = $("#ParticipantSelect")[0];
+            part_select = $("#chat_"+chat_id+"_ParticipantSelect")[0];
             
             for(var i=0 ; i < part_select.options.length ; i++) { 
                 if(part_select.options[i].value == dataAr[0]) { 
@@ -287,6 +289,11 @@ function NetClient(session_key, debug_mode) {
     this.joinchat = function(chat_id) { 
         this.chat_id = chat_id;
         this.send( ["JCHT", this.chat_id] );
+    }
+
+    this.partchat = function(chat_id) { 
+        this.chat_id = chat_id;
+        this.send( ["PCHT", this.chat_id] );
     }
 
     this.chat = function(chat_id, chattext) {
@@ -618,5 +625,3 @@ $( NetClient_start );
 // this makes netclient fire its unload when the page unloads (unreliable)
 $(document).unload(NetClient_unload);
 
-// finally instantiate netclient in to its global
-NetClient_instance = new NetClient(netclient_session_key, netclient_debug_mode);

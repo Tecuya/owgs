@@ -1,21 +1,36 @@
 {% extends "Skin.html" %}
 
 {% block head %}
-<script>
-// for orbited
-document.domain = document.domain;  
-
-// netclient vars provided by django
-netclient_session_key = "{{ request.session.session_key }}";
-netclient_debug_mode = {{ DebugMode }};
-
-</script>
+<script>document.domain = document.domain; // for orbited </script>
 <script type="text/javascript" src="/static/Orbited.js"></script>
+
+<link type="text/css" href="/static/jquery/css/owgs/jquery-ui-1.8.1.custom.css" rel="stylesheet" />	
 <script type="text/javascript" src="/static/jquery/js/jquery-1.4.2.min.js"></script>
 <script type="text/javascript" src="/static/jquery/js/jquery-ui-1.8.1.custom.min.js"></script>
+<style type="text/css">
+#ifacetabs { margin-top: 1em; }
+#ifacetabs li .ui-icon-close { float: left; margin: 0.4em 0.2em 0 0; cursor: pointer; }
+</style>
+
+<script type="text/javascript"> 
+// init netclient vars from django
+netclient_session_key = "{{ request.session.session_key }}";
+netclient_debug_mode = {{ DebugMode }};
+</script>
 <script type="text/javascript" src="/static/NetClient.js"></script>
-<script type="text/javascript" src="/static/interface.js"></script>
-<link type="text/css" href="/static/jquery/css/owgs/jquery-ui-1.8.1.custom.css" rel="stylesheet" />
+
+<script type="text/javascript" src="/static/Interface.js"></script>
+
+<script type="text/javascript" src="/static/eidogo/js/lang.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/eidogo.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/util.js"></script>
+<script type="text/javascript" src="/static/eidogo/i18n/en.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/gametree.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/sgf.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/board.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/rules.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/player.js"></script>
+<script type="text/javascript" src="/static/eidogo/js/init.js"></script> 
 {% endblock %}
 
 {% block content %}
@@ -28,7 +43,7 @@ netclient_debug_mode = {{ DebugMode }};
    <ul>
     <li><a href="javascript:void(0);" onClick="javascript:$('#ifacetabs').tabs('add', '/games/active', 'Active Games');">Active Game List</a></li>
     <li><a href="javascript:void(0);" onClick="javascript:$('#ifacetabs').tabs('add', '/games/archive', 'Archived Games');">Archived Game List</a></li>
-    <li><a href="javascript:void(0);" onClick="openChatTab();">Chat</a></li>
+    <li><a href="javascript:void(0);" onClick="iface.openChatTab();">Chat</a></li>
    </ul>
   </div>
 </div>

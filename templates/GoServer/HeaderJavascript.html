@@ -1,10 +1,15 @@
 <script>document.domain = document.domain; // for orbited </script>
 <script type="text/javascript" src="/static/Orbited.js"></script>
-<script type="text/javascript" src="/static/NetClient.js"></script>
 
 <link type="text/css" href="/static/jquery/css/owgs/jquery-ui-1.8.1.custom.css" rel="stylesheet" />	
 <script type="text/javascript" src="/static/jquery/js/jquery-1.4.2.min.js"></script>
 <script type="text/javascript" src="/static/jquery/js/jquery-ui-1.8.1.custom.min.js"></script>
+
+<script type="text/javascript"> 
+netclient_session_key = "{{ request.session.session_key }}";
+netclient_debug_mode = {{ DebugMode }};
+</script>
+<script type="text/javascript" src="/static/NetClient.js"></script>
 
 <script type="text/javascript" src="/static/eidogo/js/lang.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/eidogo.js"></script>
@@ -16,9 +21,3 @@
 <script type="text/javascript" src="/static/eidogo/js/rules.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/player.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/init.js"></script> 
-
-<script type="text/javascript"> 
-NetClient_preload("{{ request.session.session_key }}", {{ DebugMode }});
-$( NetClient_start );
-$(document).unload(NetClient_unload);
-</script>
