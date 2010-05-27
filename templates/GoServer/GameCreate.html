@@ -1,4 +1,3 @@
-{% extends "Skin.html" %}
 
 {% block content %}
 <h2>Create Game</h2>
@@ -7,9 +6,8 @@
 <div>
  <form method="post">
  {{ GameForm.as_p }}
- <input type="submit" value="Create Game" />
+ <button type="button" onClick="iface.createGame()">Create</button>
  </form>
 </div>
-
 
 {% endblock %}

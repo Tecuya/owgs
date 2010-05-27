@@ -7,7 +7,19 @@ iface = new function Interface() {
 
     this.tabCloseCallbacks = Array();
 
+    // store what chats are open in which tabs
+    this.chatTabs = Array();
+
+    // store what games are open in which tabs
+    this.gameTabs = Array();
+
     this.openChatTab = function(chat_id) { 
+
+        // if this chat is already open, then just go to the already-opened tab
+        if(this.chatTabs[ chat_id ]) { 
+            $tabs.tabs('select', this.chatTabs[ chat_id ]);
+            return;
+        }
 
         // if a chat ID was not passed the default chat is 1
         if(typeof(chat_id) == "undefined") {
@@ -17,14 +29,22 @@ iface = new function Interface() {
         // create chat tab for this chat
         $("#ifacetabs").tabs('add', '/chat/'+chat_id, 'Chat #'+chat_id); 
 
-        this.registerTabCloseCallback( $tabs.tabs('option', 'selected'),
-                                       function() { NetClient_instance.partchat( chat_id ); } );
-        
+        var tab_index = $tabs.tabs('option', 'selected');
+
+        this.registerTabCloseCallback( tab_index,
+                                       function() { 
+                                           iface.chatTabs[ chat_id ] = false; 
+                                           NetClient_instance.partchat( chat_id ); 
+                                       } );
+
+        // store the tab index in chatTabs so we know whats opened where
+        this.chatTabs[ chat_id ] = tab_index;
+
         // join the chat 
         NetClient_instance.joinchat( chat_id );
     },
 
-    this.openViewGameTab = function(game_id) { 
+    this.openGameTab = function(game_id) { 
         $("#ifacetabs").tabs('add', '/games/view/'+game_id, 'Game #'+game_id);
         
         // make us join the game on the server
@@ -39,7 +59,7 @@ iface = new function Interface() {
         // MORE NOTES FOR LATER:
 
         // * It will be a big priority to make NetClient understand that it isnt only tracking 
-        // one game per instance anymore!  not one chat per instance too! (doing that first)
+        //   one game per instance anymore!  not one chat per instance too! (doing that first)
 
         // * all participants lists need to co-exist.. all eidogo players need to co-exist.. the
         //   html elements ALL need unique IDs!! and netclient has to use them!!!! 
@@ -51,17 +71,31 @@ iface = new function Interface() {
         //   PREVENT IT FROM TRYING TO LOAD THEM FROM THE OLD eidogo_owgs_vars GLOBAL!  IT WONT WORK!
     },
 
-    this.tabClosed = function(index) {
-        // call the callback if its set
+    this.closeTab = function(index) {
+        // execute the callback, then clear the callback, if there is one
         if(this.tabCloseCallbacks[index]) { 
             this.tabCloseCallbacks[index]();
+            this.tabCloseCallbacks[index] = false;
         }
-        // now clear the callback so it doesnt get called again when this index is reused
-        this.tabCloseCallbacks[index] = false;
+
+		$tabs.tabs('remove', index);
     },
     
     this.registerTabCloseCallback = function(index, callback) { 
         this.tabCloseCallbacks[index] = callback;
+    },
+
+    this.createGame = function() { 
+        NetClient_instance.creategame(
+            $("#id_Type").val(),
+            $("#id_BoardSize").val(),
+            $("#id_Komi").val(),
+            $("#id_AllowUndo").val() == "on" ? 1 : 0,
+            $("#id_MainTime").val(),
+            $("#id_OvertimeType").val() ,
+            $("#id_OvertimePeriod").val(),
+            $("#id_OvertimeCount").val() );
+        this.closeTab( $tabs.tabs('option','selected') );
     }
 }
 
@@ -77,10 +111,7 @@ $(function() {
     $tabs = $("#ifacetabs").tabs( { 
         add: function(event, ui) {
             // immediately select tabs that we just opened
-            $tabs.tabs('select', '#' + ui.panel.id);
-            
-            // store the tab index and div id in the interface_tabs array for use later
-            interface_tabs[ $tabs.tabs('option', 'selected') ] = ui.panel.id;
+            $tabs.tabs('select', '#' + ui.panel.id);            
         },
         
         // set up the tab template with the close button
@@ -88,12 +119,9 @@ $(function() {
     } );
     
     // tab close click event
-	$('#ifacetabs span.ui-icon-close').live('click', function() {
-		var index = $('li',$tabs).index($(this).parent());
-        
-		$tabs.tabs('remove', index);
-        
-        iface.tabClosed(index);
-	});
-    
+	$('#ifacetabs span.ui-icon-close').live('click', 
+                                            function() { 
+                                                index = $('li',$tabs).index($(this).parent());
+                                                iface.closeTab(index);
+                                            });
 });

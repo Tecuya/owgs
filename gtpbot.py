@@ -62,7 +62,7 @@ class OWGSClient(LineReceiver):
         
     def newGame(self):
         # Create a new game
-        self.sendCommand(["GAME", G_TYPE, G_SIZE, G_KOMI, G_MAINTIME, G_OTTYPE, G_OTPERIOD, G_OTCOUNT])
+        self.sendCommand(["GAME", G_TYPE, G_SIZE, G_KOMI, 0, G_MAINTIME, G_OTTYPE, G_OTPERIOD, G_OTCOUNT])
 
         
     def connectionMade(self):

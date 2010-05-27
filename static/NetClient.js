@@ -168,9 +168,10 @@ NetClient_instance = new function NetClient() {
             this.navi(dataAr);
 
         } else if(command == "GAME") { 
+            
+            // our game command was accepted and a new game was created
 
-            // this command allows the server to update our game state & type.. currently unused
-            NetClient_eidogo_player.setGameType( dataAr[0], dataAr[1] );
+            iface.openGameTab( game_id );
 
         } else if(command == "RSLT") { 
             
@@ -204,16 +205,18 @@ NetClient_instance = new function NetClient() {
             this.updatechat( "*** "+dataAr[1]+" has joined the chat" );
             
         } else if(command == "PCHT") {
-
-            part_select = $("#chat_"+chat_id+"_ParticipantSelect")[0];
             
-            for(var i=0 ; i < part_select.options.length ; i++) { 
-                if(part_select.options[i].value == dataAr[0]) { 
-                    part_select.remove(i);
-                }
-            }
+            if( $("#chat_"+chat_id+"_ParticipantSelect")[0] ) { 
+                part_select = $("#chat_"+chat_id+"_ParticipantSelect")[0];            
 
-            this.updatechat( "*** "+dataAr[1]+" has left the chat" );
+                for(var i=0 ; i < part_select.options.length ; i++) { 
+                    if(part_select.options[i].value == dataAr[0]) { 
+                        part_select.remove(i);
+                    }
+                }
+
+                this.updatechat( "*** "+dataAr[1]+" has left the chat" );
+            }
 
         } else if(command == "CMNT") {
 
@@ -282,18 +285,15 @@ NetClient_instance = new function NetClient() {
     // higher level commands
 
     this.joingame = function(game_id) { 
-        // this.game_id = game_id;
-        this.send( ["JOIN", this.game_id] );
+        this.send( ["JOIN", game_id] );
     }
 
     this.joinchat = function(chat_id) { 
-        this.chat_id = chat_id;
-        this.send( ["JCHT", this.chat_id] );
+        this.send( ["JCHT", chat_id] );
     }
 
     this.partchat = function(chat_id) { 
-        this.chat_id = chat_id;
-        this.send( ["PCHT", this.chat_id] );
+        this.send( ["PCHT", chat_id] );
     }
 
     this.chat = function(chat_id, chattext) {
@@ -350,6 +350,11 @@ NetClient_instance = new function NetClient() {
         data.unshift("SCOR");
         this.send( data );
     }
+
+    this.creategame = function(type, boardsize, komi, allowundo, maintime, ot_type, ot_period, ot_count) { 
+        this.send( ["GAME", type, boardsize, komi, allowundo, maintime, ot_type, ot_period, ot_count] );
+    }
+
 
     // this func is called when the game owner decides he's ready to start the game
     this.startgame = function(data) { 

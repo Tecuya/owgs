@@ -63,13 +63,7 @@ class GoServerProtocol(basic.LineReceiver):
          self.debug('User other conns %d' % users_other_conns)
 
          if users_other_conns == 0:
-
-            ChatParticipant.objects.filter( Chat = chat, Participant = self.user).update( Present = False )
-
-            # let everyone in this game know
-            for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
-               if conn_chat_id == chat.id:
-                  self.writeToTransport(["PCHT", chat.id, self.user.id, self.user.username], transport = connection.transport)
+            self.removeUserFromChat( chat )
          
 
       for oldentry in self.factory.delFromGameConnectionDB(self):
@@ -673,11 +667,8 @@ class GoServerProtocol(basic.LineReceiver):
             response = CTS
 
          elif cmd[0] == 'PCHT':
-
-            # let everyone know
-            for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
-               if conn_chat_id == chat.id:
-                  self.writeToTransport(["PCHT", chat.id, self.user.id, self.user.username], transport = connection.transport)
+            
+            self.removeUserFromChat( chat )
             
             response = CTS
 
@@ -713,6 +704,8 @@ class GoServerProtocol(basic.LineReceiver):
                   part_that_joined = ChatParticipant( Participant=self.user, Chat=chat, Present=True )
                   part_that_joined.save()
 
+            else:
+               self.debug('User joined chat where user is already present')
             response = CTS
 
 
@@ -730,8 +723,9 @@ class GoServerProtocol(basic.LineReceiver):
             
             game = Game( Owner = self.user, 
                          Type = cmd[1], BoardSize = cmd[2], Komi = cmd[3], 
-                         MainTime = cmd[4], OvertimeType = cmd[5], 
-                         OvertimePeriod = cmd[6], OvertimeCount = cmd[7] )
+                         AllowUndo = cmd[4],
+                         MainTime = cmd[5], OvertimeType = cmd[6], 
+                         OvertimePeriod = cmd[7], OvertimeCount = cmd[8] )
             game.save()
 
             self.writeToTransport(["GAME", game.id])
@@ -864,6 +858,8 @@ class GoServerProtocol(basic.LineReceiver):
 
    def removeUserFromGame(self, game):
 
+      self.factory.delFromGameConnectionDB(self)
+
       # mark this user as not-present
       self.debug('Marking user game participant row Present=False')
       GameParticipant.objects.filter( Game = game, Participant = self.user).update( Present = False )
@@ -872,6 +868,20 @@ class GoServerProtocol(basic.LineReceiver):
       for (connection, conn_game_id, user_id) in self.factory.gameConnectionList:
          if conn_game_id == game.id:
             self.writeToTransport(["PART", game.id, self.user.id, self.user.username], transport = connection.transport)
+
+
+   def removeUserFromChat(self, chat):
+
+      self.factory.delFromChatConnectionDB(self)
+
+      # mark this user as not-present
+      self.debug('Marking user chat participant row Present=False')
+      ChatParticipant.objects.filter( Chat = chat, Participant = self.user).update( Present = False )
+
+      # let everyone in this chat know
+      for (connection, conn_chat_id, user_id) in self.factory.chatConnectionList:
+         if conn_chat_id == chat.id:
+            self.writeToTransport(["PCHT", chat.id, self.user.id, self.user.username], transport = connection.transport)
 
 
    def commitTimeVars(self, game, data):
