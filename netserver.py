@@ -167,9 +167,6 @@ class GoServerProtocol(basic.LineReceiver):
                part_that_joined.Present = True
                part_that_joined.save()
             
-            # TODO .. can't figure out why this next line does not work the same as the preceeding 'for' block.. but it doesn't.. i dunno
-            # new_user = ( GameParticipant.objects.filter(Game = self.game, Participant=self.user).update(Present = True) != 0 )
-
             # inform new user about all present participants besides himself (that'll happen latter when we broadcast this join to *everyone*)
             for part in GameParticipant.objects.filter(Game = game, Present=True):
                if part.Participant.id != self.user.id:
@@ -199,10 +196,39 @@ class GoServerProtocol(basic.LineReceiver):
                if conn_game_id == game.id:
                   self.writeToTransport(["JOIN", game.id, self.user.id, self.user.username, part_that_joined.State], transport = connection.transport)
 
+
             # if the game is in progress we need to do a timer update to inform the joiner of the time...
             # TODO we *could* reduce traffic by forcing timerUpdate to only update the timer of this client...
             if game.State == 'I':               
                self.commitTimeVars( game, self.timerUpdate(game) )
+
+
+            if game.State != 'P':
+               if game.FocusNode == None:
+                  focusNode = 0
+               else:
+                  focusNode = game.FocusNode.id
+
+               out = ["GVAR", 
+                      game.id,
+                      GameTree( game.id ).dumpSGF().replace("\n","\\n"),
+                      part_that_joined.State,
+                      game.Type,
+                      game.State,
+                      game.MainTime,
+                      game.OvertimeType,
+                      game.OvertimePeriod,
+                      game.OvertimeCount,
+                      game.IsOvertimeW,
+                      game.IsOvertimeB,
+                      game.OvertimeCountW,
+                      game.OvertimeCountB,
+                      str(game.TimePeriodRemainW),
+                      str(game.TimePeriodRemainB),
+                      focusNode]
+
+               self.writeToTransport(out)
+               
 
             response = CTS
                         
@@ -667,9 +693,7 @@ class GoServerProtocol(basic.LineReceiver):
             response = CTS
 
          elif cmd[0] == 'PCHT':
-            
             self.removeUserFromChat( chat )
-            
             response = CTS
 
          elif cmd[0] == 'JCHT':

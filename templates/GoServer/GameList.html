@@ -2,10 +2,9 @@
 <ul>
  {% for Game in GameList %}
  <li>
-   <a href="/games/view/{{ Game.id }}">{% if not Game.PlayersAssigned %}Join{% else %}View{% endif %}</a>
-   <a href="javascript:void(0);" onClick="iface.openGameTab({{ Game.id }});">ViewNew</a>
+   <a href="javascript:void(0);" onClick="iface.makeGameTab({{ Game.id }});">Join</a>
    <a href="/games/sgf/{{ Game.id }}">SGF</a>
-  {{ Game.params }} - <b>{{ Game.present_participants }}</b> participants connected.
+  {{ Game.id }} - {{ Game.params }} - <b>{{ Game.present_participants }}</b> participants connected.
  </li>
  {% endfor %}
 </ul>

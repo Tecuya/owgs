@@ -1,9 +1,9 @@
 
-var interface_tabs = Array();
-
-var tabs = false;
 
 iface = new function Interface() { 
+
+    // global so we can always get to our eidogo instances
+    this.eidogoPlayers = Array();
 
     this.tabCloseCallbacks = Array();
 
@@ -13,10 +13,14 @@ iface = new function Interface() {
     // store what games are open in which tabs
     this.gameTabs = Array();
 
-    this.openChatTab = function(chat_id) { 
+    // when create game is clicked this stores the tab index so we know, 
+    // once we get the GAME command back, which tab to open it in
+    this.pendingGameTab = false;
+
+    this.makeChatTab = function(chat_id) { 
 
         // if this chat is already open, then just go to the already-opened tab
-        if(this.chatTabs[ chat_id ]) { 
+        if(typeof(this.chatTabs[ chat_id ]) != "undefined") { 
             $tabs.tabs('select', this.chatTabs[ chat_id ]);
             return;
         }
@@ -44,31 +48,50 @@ iface = new function Interface() {
         NetClient_instance.joinchat( chat_id );
     },
 
-    this.openGameTab = function(game_id) { 
-        $("#ifacetabs").tabs('add', '/games/view/'+game_id, 'Game #'+game_id);
-        
+    this.onNewGameCreated = function( game_id ) {
+
+        // if for whatever reason we couldnt resolve the tab index to load into, just open a new tab
+        if( (!this.pendingGameTab) || (this.pendingGameTab > $tabs.tabs('length'))) {
+            this.makeGameTab( game_id, false );
+        } else { 
+            this.makeGameTab( game_id, this.pendingGameTab );
+        }
+
+        // reset pendingGameTab
+        this.pendingGameTab = false;
+    },
+
+    this.newTabTarget = function( index, url, label ) { 
+        $tabs.tabs('label', index, label );
+        $tabs.tabs('url', index, url );
+        $tabs.tabs('load', index );
+    },
+
+    this.makeGameTab = function(game_id, in_tab, force_reload) {
+
+        if( typeof(this.gameTabs[ game_id ]) != "undefined" ) { 
+            $tabs.tabs('select', this.gameTabs[ game_id ]);            
+            if(!force_reload)
+                return;
+        }
+
+        if(in_tab) { 
+            this.newTabTarget( in_tab, '/games/view/'+game_id, 'Game #'+game_id);
+        } else { 
+            $("#ifacetabs").tabs('add', '/games/view/'+game_id, 'Game #'+game_id);
+            in_tab = $("#ifacetabs").tabs('option', 'selected');;
+        }
+
+        this.gameTabs[ game_id ] = in_tab;
+
+        this.registerTabCloseCallback( in_tab,
+                                       function() { 
+                                           iface.gameTabs[ game_id ] = false; 
+                                           NetClient_instance.partgame( game_id ); 
+                                       } );
+
         // make us join the game on the server
         NetClient_instance.joingame( game_id );
-
-        // get the game variables from the server
-        // eidogo_owgs_vars = NetClient_instance.getgamevariables( game_id );  
-
-        // now load the game variables and init eidogo
-        // initEidogo( game_id, eidogo_owgs_vars );
-
-        // MORE NOTES FOR LATER:
-
-        // * It will be a big priority to make NetClient understand that it isnt only tracking 
-        //   one game per instance anymore!  not one chat per instance too! (doing that first)
-
-        // * all participants lists need to co-exist.. all eidogo players need to co-exist.. the
-        //   html elements ALL need unique IDs!! and netclient has to use them!!!! 
-
-        // * Implement getgamevariables in a *blocking* fashion, we need the game vars *NOW!* 
-        //   - not sure how im going to do this..
-
-        // * now that eidogo has been passed all the game variables
-        //   PREVENT IT FROM TRYING TO LOAD THEM FROM THE OLD eidogo_owgs_vars GLOBAL!  IT WONT WORK!
     },
 
     this.closeTab = function(index) {
@@ -86,6 +109,9 @@ iface = new function Interface() {
     },
 
     this.createGame = function() { 
+
+        // validate me!
+
         NetClient_instance.creategame(
             $("#id_Type").val(),
             $("#id_BoardSize").val(),
@@ -94,9 +120,74 @@ iface = new function Interface() {
             $("#id_MainTime").val(),
             $("#id_OvertimeType").val() ,
             $("#id_OvertimePeriod").val(),
-            $("#id_OvertimeCount").val() );
-        this.closeTab( $tabs.tabs('option','selected') );
+            $("#id_OvertimeCount").val() );        
+        
+        this.pendingGameTab = $tabs.tabs('option', 'selected');
+    },
+
+    this.initEidogo = function(game_id, sgf, myColor, type, state, mainTime, overtimeType, overtimePeriod, overtimeCount, isOvertimeW, isOvertimeB, overtimeCountW, overtimeCountB, timePeriodRemainW, timePeriodRemainB, focusNode) { 
+
+        // init if not already initted
+        if(typeof(this.eidogoPlayers[ game_id ]) != "undefined") {
+            alert("attempt to init an already initted eidogo instance");
+            return;
+        }
+
+        // TODO - make this load real player preferences somehow!
+        // use_theme = "compact"            
+        use_theme = "standard"
+
+        // type: showTools showOptions    
+        this.eidogoPlayers[ game_id ] = new eidogo.Player({
+            container:       "game_"+game_id+"_eidogo",
+            theme:           use_theme, // TODO standard or compact should be a player pref or something
+            sgf:             sgf,
+            mode:            "play",
+            hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
+                              "owgs_scoreToggleStone": NetClient_ondead_wrapper,
+                              "owgs_nav": NetClient_onnav_wrapper,
+                              "owgs_undo": NetClient_onundo_wrapper,
+                              "owgs_resign": NetClient_onresign_wrapper,
+                              "owgs_scoresubmit": NetClient_onscoresubmit_wrapper,
+                             },
+            loadPath:        [0, 0],
+            markCurrent:     true,
+            markVariations:  true,
+            markNext:        false,
+            enableShortcuts: false,
+            problemMode:     false,
+            allowUndo:       true,
+            owgsNetMode:     true
+        });
+        
+        this.eidogoPlayers[ game_id ].setGameType( type,
+                                                   state );
+        
+        this.eidogoPlayers[ game_id ].setTimerType( mainTime,
+                                                    overtimeType,
+                                                    overtimePeriod,
+                                                    overtimeCount );
+        
+        this.eidogoPlayers[ game_id ].updateTimerState( isOvertimeW,
+                                                        isOvertimeB,
+                                                        overtimeCountW,
+                                                        overtimeCountB,
+                                                        timePeriodRemainW,
+                                                        timePeriodRemainB );
+
+        // initialize timer for both colors
+        this.eidogoPlayers[ game_id ].timerTick('W');
+        this.eidogoPlayers[ game_id ].timerTick('B');
+
+        if(focusNode)
+            this.eidogoPlayers[ game_id ].goToNodeWithSN( focusNode );
+        else 
+            this.eidogoPlayers[ game_id ].last();
+
+        this.eidogoPlayers[ game_id ].checkForDoublePass();       
     }
+
+
 }
 
 

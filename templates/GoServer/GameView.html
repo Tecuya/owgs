@@ -1,32 +1,3 @@
-<script>
-{% if not PreGame %}
-
-// TODO this stuff cant come from django!  
-
-eidogo_owgs_vars[ {{ Game.id }} ] = {
-"sgf": "{{ SGF }}",
-"EidogoPlayerStyle": "{{ EidogoPlayerStyle }}",
-"YouAreColor": "{{ YouAreColor }}",
-"gameID": "{{ Game.id }}",
-"gameTurnColor": "{{ Game.TurnColor }}",
-"gameType": "{{ Game.Type }}",
-"gameState": "{{ Game.State }}",
-"gameMainTime": {{ Game.MainTime }},
-"gameOvertimeType": "{{ Game.OvertimeType }}",
-"gameOvertimePeriod": {{ Game.OvertimePeriod }},
-"gameOvertimeCount": {{ Game.OvertimeCount }},
-"gameIsOvertimeW": {{ Game.IsOvertimeW }},
-"gameIsOvertimeB": {{ Game.IsOvertimeB }},
-"gameOvertimeCountW": {{ Game.OvertimeCountW }},
-"gameOvertimeCountB": {{ Game.OvertimeCountB }},
-"gameTimePeriodRemainW": {{ Game.TimePeriodRemainW }},
-"gameTimePeriodRemainB": {{ Game.TimePeriodRemainB }},
-
-{% if Game.FocusNode %}"focusNode": "{{ Game.FocusNode }}",{% endif %}
-};
-
-{% endif %}
-</script>
 
 {% if not Game.PlayersAssigned %} 
 <div>

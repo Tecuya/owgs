@@ -98,7 +98,7 @@ NetClient_instance = new function NetClient() {
             
             part_select.options.add( new Option(dataAr[1] + ' ('+dataAr[2]+')', dataAr[0]) );
 
-            this.updatecomment('*** '+dataAr[1]+' has joined the game');
+            this.updatecomment(game_id, '*** '+dataAr[1]+' has joined the game');
 
         } else if(command == "PART") { 
 
@@ -110,23 +110,23 @@ NetClient_instance = new function NetClient() {
                 }
             }
             
-            this.updatecomment('*** '+dataAr[1]+' has left the game');
+            this.updatecomment(game_id, '*** '+dataAr[1]+' has left the game');
 
         } else if(command == "CMNT") {
 
-            this.updatecomment('<'+dataAr[0]+'> '+dataAr[1]);
+            this.updatecomment(game_id, '<'+dataAr[0]+'> '+dataAr[1]);
 
         } else if(command == "CHAT") {
 
-            this.updatechat('<'+dataAr[0]+'> '+dataAr[1]);
+            this.updatechat(chat_id, '<'+dataAr[0]+'> '+dataAr[1]);
 
         } else if(command == "MOVE") { 
 
-            NetClient_eidogo_player.doMove(dataAr[0], true, dataAr[1]);
+            iface.eidogoPlayers[ game_id ].doMove(dataAr[0], true, dataAr[1]);
 
         } else if(command == "NODE") {             
 
-            NetClient_eidogo_player.assignSnProp( dataAr[0] );
+            iface.eidogoPlayers[ game_id ].assignSnProp( dataAr[0] );
 
         } else if(command == "UNDO") { 
 
@@ -139,7 +139,7 @@ NetClient_instance = new function NetClient() {
         } else if(command == "OKUN") { 
             
             alert("Undo accepted");
-            NetClient_eidogo_player.back();
+            iface.eidogoPlayers[ game_id ].back();
 
         } else if(command == "NOUN") { 
 
@@ -148,21 +148,22 @@ NetClient_instance = new function NetClient() {
         } else if(command == "DEAD") { 
 
             // translate coord to a point (thats how scoreToggleStone likes it)
-            coord = NetClient_eidogo_player.sgfCoordToPoint(dataAr[0]);
+            coord = iface.eidogoPlayers[ game_id ].sgfCoordToPoint(dataAr[0]);
 
-            NetClient_eidogo_player.scoreToggleStone( coord.x, coord.y, false );
+            iface.eidogoPlayers[ game_id ].scoreToggleStone( coord.x, coord.y, false );
             
         } else if(command == "OFFR") { 
 
-            this.receivedoffer(dataAr[0], dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5]);
+            this.receivedoffer(game_id, dataAr[0], dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5]);
 
         } else if(command == "GVAR") { 
-
+            
+            iface.initEidogo(game_id, dataAr[0], dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5], dataAr[6], dataAr[7], dataAr[8], dataAr[9], dataAr[10], dataAr[11], dataAr[12], dataAr[13], dataAr[14]);
 
         } else if(command == "BEGN") { 
-
-            window.location.reload();
-
+            
+            iface.makeGameTab( game_id, false, true );
+            
         } else if(command == "NAVI") { 
             
             this.navi(dataAr);
@@ -171,11 +172,11 @@ NetClient_instance = new function NetClient() {
             
             // our game command was accepted and a new game was created
 
-            iface.openGameTab( game_id );
+            iface.onNewGameCreated( game_id );
 
         } else if(command == "RSLT") { 
             
-            NetClient_eidogo_player.setResult( dataAr[0], dataAr[1], dataAr[2]);
+            iface.eidogoPlayers[ game_id ].setResult( dataAr[0], dataAr[1], dataAr[2]);
 
         } else if(command == "SYNC") { 
             
@@ -185,12 +186,15 @@ NetClient_instance = new function NetClient() {
 
         } else if(command == "TIME") { 
             
-            NetClient_eidogo_player.updateTimerState( dataAr[0],
-                                                      dataAr[1],
-                                                      dataAr[2],
-                                                      dataAr[3],
-                                                      dataAr[4],
-                                                      dataAr[5] );
+            // make sure that the player exists
+            if(typeof(iface.eidogoPlayers[ game_id ]) != "undefined") { 
+                iface.eidogoPlayers[ game_id ].updateTimerState( dataAr[0],
+                                                                     dataAr[1],
+                                                                     dataAr[2],
+                                                                     dataAr[3],
+                                                                     dataAr[4],
+                                                                     dataAr[5] );
+            }
 
         } else if(command == "JCHT") { 
 
@@ -215,12 +219,12 @@ NetClient_instance = new function NetClient() {
                     }
                 }
 
-                this.updatechat( "*** "+dataAr[1]+" has left the chat" );
+                this.updatechat(chat_id, "*** "+dataAr[1]+" has left the chat" );
             }
 
         } else if(command == "CMNT") {
 
-            this.updatechat('<'+dataAr[0]+'> '+dataAr[1]);
+            this.updatecomment(game_id, '<'+dataAr[0]+'> '+dataAr[1]);
                         
         } else if(command == "SCOR") { 
 
@@ -288,6 +292,10 @@ NetClient_instance = new function NetClient() {
         this.send( ["JOIN", game_id] );
     }
 
+    this.partgame = function(game_id) { 
+        this.send( ["PART", game_id] );
+    }
+
     this.joinchat = function(chat_id) { 
         this.send( ["JCHT", chat_id] );
     }
@@ -300,22 +308,22 @@ NetClient_instance = new function NetClient() {
         this.send( ["CHAT", chat_id, chattext] );
     }
 
-    this.updatechat = function(msg) { 
-        if(ta = $("#ChatTextarea")[0])
+    this.updatechat = function(chat_id, msg) { 
+        if(ta = $("#chat_"+chat_id+"_ChatTextarea")[0])
             ta.value += msg + "\r\n";        
     }
     
-    this.comment = function(commentinput) {
-        this.send( ["CMNT", this.game_id, commentinput.value] );
+    this.comment = function(game_id, commentinput) {
+        this.send( ["CMNT", game_id, commentinput.value] );
         commentinput.value = '';
     }
 
-    this.updatecomment = function(msg) { 
-        if(ta = $("#CommentTextarea")[0])
+    this.updatecomment = function(game_id, msg) { 
+        if(ta = $("#game_"+game_id+"_CommentTextarea")[0])
             ta.value += msg + "\r\n";
         
-        if(NetClient_eidogo_player != null) 
-            NetClient_eidogo_player.dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";            
+        if(typeof(iface.eidogoPlayers[ game_id ]) != "undefined") 
+            iface.eidogoPlayers[ game_id ].dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";            
     }
 
     this.onmove = function(data) { 
@@ -330,7 +338,7 @@ NetClient_instance = new function NetClient() {
     }
 
     this.ondead = function(data) { 
-        this.send( ["DEAD", this.game_id, NetClient_eidogo_player.pointToSgfCoord({'x': data[0], 'y': data[1]})] )
+        this.send( ["DEAD", this.game_id, iface.eidogoPlayers[ game_id ].pointToSgfCoord({'x': data[0], 'y': data[1]})] )
     }
 
     this.onnav = function(path) { 
@@ -357,27 +365,27 @@ NetClient_instance = new function NetClient() {
 
 
     // this func is called when the game owner decides he's ready to start the game
-    this.startgame = function(data) { 
-        parts = $("#ParticipantSelect")[0];
+    this.startgame = function(game_id) { 
+        parts = $("#game_"+game_id+"_ParticipantSelect")[0];
         selected_user = parts.options[ parts.selectedIndex ].value;
 
-        this.send( ["BEGN", this.game_id, selected_user ] )
+        this.send( ["BEGN", game_id, selected_user ] )
     }
 
     // this func is called when challenders click the "Offer to Play" button
-    this.makeoffer = function() { 
+    this.makeoffer = function(game_id) { 
         board_size = $("#offer_BoardSize").val();
         main_time = $("#offer_MainTime").val();
         komi = $("#offer_Komi").val();
         my_color = $("#offer_Color").val();
         
-        this.send( ["OFFR", this.game_id, board_size, main_time, komi, my_color] )
+        this.send( ["OFFR", game_id, board_size, main_time, komi, my_color] )
     }
 
     // this func is called when an offer is received
-    this.receivedoffer = function(board_size, main_time, komi, color, user_id, username) { 
+    this.receivedoffer = function(game_id, board_size, main_time, komi, color, user_id, username) { 
 
-        part_select = $("#ParticipantSelect")[0];
+        part_select = $("#game_"+game_id+"_ParticipantSelect")[0];
 
         // remove the previous participant select entry
         for(var i=0 ; i < part_select.options.length ; i++) { 
@@ -390,12 +398,12 @@ NetClient_instance = new function NetClient() {
     }
 
     this.navi = function(data) { 
-        NetClient_eidogo_player.goToNodeWithSN( data[0] );
+        iface.eidogoPlayers[ game_id ].goToNodeWithSN( data[0] );
 
         // if the player is on restricted nav, we need to make sure that if they are in score mode,
         // that we move them out of it whenever we do a navi, otherwise they get stuck in score mode
-        if(NetClient_eidogo_player.owgsRestrictedNav)
-            NetClient_eidogo_player.selectTool("play");
+        if(iface.eidogoPlayers[ game_id ].owgsRestrictedNav)
+            iface.eidogoPlayers[ game_id ].selectTool("play");
     }
 }
 
@@ -425,76 +433,6 @@ function NetClient_start() {
 function NetClient_unload() { 
     NetClient_instance.unload();
 }
-
-
-/////////////////////////////////////////////////////////////////////////////
-// Eidogo loader
-
-// global var to hold the player
-var NetClient_eidogo_players = Array();
-
-// attached to load event by GameView
-function initEidogo(game_id) { 
-
-    if(eidogo_owgs_vars["EidogoPlayerStyle"] == "C") 
-        use_theme = "compact"
-    else
-        use_theme = "standard"
-
-    // type: showTools showOptions    
-    NetClient_eidogo_player = new eidogo.Player({
-        container:       "eidogo",
-        theme:           use_theme, // TODO standard or compact should be a player pref or something
-        theme:           "standard", // TODO standard or compact should be a player pref or something
-        sgf:             eidogo_owgs_vars["sgf"],
-        // sgfPath:         "/static/eidogo/sgf/",
-        mode:            "play",
-        hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
-                          "owgs_scoreToggleStone": NetClient_ondead_wrapper,
-                          "owgs_nav": NetClient_onnav_wrapper,
-                          "owgs_undo": NetClient_onundo_wrapper,
-                          "owgs_resign": NetClient_onresign_wrapper,
-                          "owgs_scoresubmit": NetClient_onscoresubmit_wrapper,
-                         },
-        loadPath:        [0, 0],
-        markCurrent:     true,
-        markVariations:  true,
-        markNext:        false,
-        enableShortcuts: false,
-        problemMode:     false,
-        allowUndo:       true,
-        owgsNetMode:     true
-    });
-    
-    NetClient_eidogo_player.setGameType( eidogo_owgs_vars["gameType"], 
-                                         eidogo_owgs_vars["gameState"] );
-        
-    NetClient_eidogo_player.setTimerType( eidogo_owgs_vars["gameMainTime"],
-                                          eidogo_owgs_vars["gameOvertimeType"],
-                                          eidogo_owgs_vars["gameOvertimePeriod"],
-                                          eidogo_owgs_vars["gameOvertimeCount"] );
-    
-    NetClient_eidogo_player.updateTimerState( eidogo_owgs_vars["gameIsOvertimeW"],
-                                              eidogo_owgs_vars["gameIsOvertimeB"],
-                                              eidogo_owgs_vars["gameOvertimeCountW"],
-                                              eidogo_owgs_vars["gameOvertimeCountB"],
-                                              eidogo_owgs_vars["gameTimePeriodRemainW"],
-                                              eidogo_owgs_vars["gameTimePeriodRemainB"] );
-
-    // initialize timer for both colors
-    NetClient_eidogo_player.timerTick('W');
-    NetClient_eidogo_player.timerTick('B');
-
-    if(typeof(eidogo_owgs_vars["focusNode"]) != "undefined")
-        NetClient_eidogo_player.goToNodeWithSN( eidogo_owgs_vars["focusNode"] );
-    else 
-        NetClient_eidogo_player.last();
-
-    NetClient_eidogo_player.checkForDoublePass();
-    
-}
-
-
 
 
 
