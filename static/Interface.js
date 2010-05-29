@@ -253,6 +253,12 @@ $(function() {
                                  }
                              }
                          });
+
+    // if the fragment selector (http://URL.com#thisthing) 
+    if( window.location.href.match(/#login/) ) { 
+        iface.openLogin();
+    }
+    
 });
 
 

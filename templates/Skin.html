@@ -12,15 +12,17 @@
 <h1><a style="color: #333311; text-decoration:none;" href="/">OWGS</a></h1>
 </div>
 
-{% if IsInterface %}
 <div id="topright">
 {% if user.is_authenticated %}
  Logged in as {{ user.username }} <a href="/accounts/profile">Edit Profile</a> <a href="/accounts/logout">Log Out</a>
  {% else %}
- <a href="javascript:void(0);" onClick="javascript:iface.openLogin();">Log In</a>
+  {% if IsInterface %}
+   <a href="javascript:void(0);" onClick="javascript:iface.openLogin();">Log In</a>
+  {% else %}
+   <a href="/#login">Log In</a>
+  {% endif %}  
  {% endif %}
 </div>
-{% endif %}
 
 </div>
 
