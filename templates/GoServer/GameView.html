@@ -1,7 +1,9 @@
 <script>
 {% if not PreGame %}
 
-eidogo_owgs_vars = {
+// TODO this stuff cant come from django!  
+
+eidogo_owgs_vars[ {{ Game.id }} ] = {
 "sgf": "{{ SGF }}",
 "EidogoPlayerStyle": "{{ EidogoPlayerStyle }}",
 "YouAreColor": "{{ YouAreColor }}",
@@ -35,7 +37,7 @@ eidogo_owgs_vars = {
 {% if not PreGame %} 
 <div class="gamebox">
  <h3>Board</h3>
- <div id="eidogo"></div>     
+ <div id="game_{{ Game.id }}_eidogo"></div>     
  <input size=60 type=text id="CommentInput">
  <button type=button onClick="NetClient_instance.comment( document.getElementById('CommentInput') );">
   Chat
@@ -44,15 +46,15 @@ eidogo_owgs_vars = {
 {% endif %}
 
 
-<div id="Participants" class="gamebox" >
+<div id="game_{{ Game.id }}_Participants" class="gamebox" >
  <h3>Participants</h3>
  <form method="post">
- <select multiple size=4 id="ParticipantSelect">
+ <select multiple size=4 id="game_{{ Game.id }}_ParticipantSelect">
    <option value=0>Loading...</option>
  </select>
  {% if YouAreOwner and PreGame %}
  <p>
-  <button type=button onClick="NetClient_instance.startgame();">Accept Selected Offer</button>
+  <button type=button onClick="NetClient_instance.startgame( game_id );">Accept Selected Offer</button>
  </p>
  {% endif %}
 
@@ -82,16 +84,16 @@ eidogo_owgs_vars = {
     <option value="W">I'm white, owner is black</option>
    </select></p>
 
- <button type=button onClick="NetClient_instance.makeoffer();" id="SuggestButton">Offer to Play</button>
+ <button type=button onClick="NetClient_instance.makeoffer( {{ Game.id }} );" id="SuggestButton">Offer to Play</button>
 </div>
 {% endif %}
 
 {% if PreGame %}
-<div id="Chat" class="gamebox">
+<div id="game_{{ Game.id }}_Chat" class="gamebox">
  <h3>Chat</h3>
- <textarea cols=60 rows=7 id="CommentTextarea" readonly></textarea><br>
- <input size=60 type=text id="CommentInput">
- <button type=button onClick="NetClient_instance.comment( document.getElementById('CommentInput') );">
+ <textarea cols=60 rows=7 id="game_{{ Game.id }}_CommentTextarea" readonly></textarea><br>
+ <input size=60 type=text id="game_{{ Game.id }}_CommentInput">
+ <button type=button onClick="NetClient_instance.comment( {{ Game.id }}, document.getElementById('game_{{ Game.id }}_CommentInput') );">
   Send
  </button>
 </div>
