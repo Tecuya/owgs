@@ -326,7 +326,7 @@ NetClient_instance = new function NetClient() {
             iface.eidogoPlayers[ game_id ].dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";            
     }
 
-    this.onmove = function(data) { 
+    this.onmove = function(game_id, data) { 
         coord = data[0];
         color = data[1];
         sn = data[2]
@@ -334,27 +334,27 @@ NetClient_instance = new function NetClient() {
         // TODO support getting a copy of all the comments made since the last move from eidogo
         comments = "";
         
-        this.send( ["MOVE", this.game_id, coord, color, sn, comments] )
+        this.send( ["MOVE", game_id, coord, color, sn, comments] )
     }
 
-    this.ondead = function(data) { 
-        this.send( ["DEAD", this.game_id, iface.eidogoPlayers[ game_id ].pointToSgfCoord({'x': data[0], 'y': data[1]})] )
+    this.ondead = function(game_id, data) { 
+        this.send( ["DEAD", game_id, iface.eidogoPlayers[ game_id ].pointToSgfCoord({'x': data[0], 'y': data[1]})] )
     }
 
-    this.onnav = function(path) { 
-        this.send( ["NAVI", this.game_id, path] );
+    this.onnav = function(game_id, path) { 
+        this.send( ["NAVI", game_id, path] );
     }
     
-    this.onundo = function() { 
-        this.send( ["UNDO", this.game_id] );
+    this.onundo = function(game_id) { 
+        this.send( ["UNDO", game_id] );
     }
 
-    this.onresign = function() { 
-        this.send( ["RSGN", this.game_id] );
+    this.onresign = function(game_id) { 
+        this.send( ["RSGN", game_id] );
     }
     
-    this.onscoresubmit = function(data) {         
-        data.unshift(this.game_id);
+    this.onscoresubmit = function(game_id, data) {         
+        data.unshift(game_id);
         data.unshift("SCOR");
         this.send( data );
     }
@@ -410,16 +410,10 @@ NetClient_instance = new function NetClient() {
 
 // annoying wrappers for various event handlers
 
-// TODO perhaps there's a better way of accessing NetClient_instance from event handlers?  some kind of singleton technique?
+// TODO kill these
 function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
 function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
 function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
-function NetClient_onmove_wrapper(data) { NetClient_instance.onmove(data); }
-function NetClient_ondead_wrapper(data) { NetClient_instance.ondead(data); }
-function NetClient_onnav_wrapper(data) { NetClient_instance.onnav(data); }
-function NetClient_onundo_wrapper(data) { NetClient_instance.onundo(data); }
-function NetClient_onresign_wrapper(data) { NetClient_instance.onresign(data); }
-function NetClient_onscoresubmit_wrapper(data) { NetClient_instance.onscoresubmit(data); }
 function NetClient_ontime_wrapper(data) { NetClient_instance.ontime(data); }
 
 // init funcs

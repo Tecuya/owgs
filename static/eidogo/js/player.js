@@ -55,6 +55,8 @@ eidogo.Player.prototype = {
         // indicates whether this instance is used in an owgs network game
         this.owgsNetMode = (typeof cfg.owgsNetMode != 'undefined' ? true : false);
 
+        this.owgsGameID = (typeof cfg.owgsGameID != 'undefined' ? cfg.owgsGameID : 0);
+
         // if owgsNetMode, we are going to update the timer display every second, so set the tick
         if(this.owgsNetMode) { 
             var myself = this;
@@ -68,9 +70,11 @@ eidogo.Player.prototype = {
         this.cfgRules = {
             'allowSuicide': (typeof cfg.allowSuicide != 'undefined' ? cfg.allowSuicide : false),
             'koRule': (typeof cfg.koRule != 'undefined' ? cfg.koRule : 'simple'),
-            'owgsNetMode': this.owgsNetMode
+            'owgsNetMode': this.owgsNetMode,
+            'owgsColor': (typeof cfg.owgsColor != 'undefined' ? cfg.owgsColor : false),
         };
         
+
         this.allowUndo = cfg.allowUndo;
 
         // play, add_b, add_w, region, tr, sq, cr, label, number, score(?)
@@ -3258,8 +3262,8 @@ eidogo.Player.prototype = {
         
         // if the timer is *still* negative, even though the game ended, then we need to update all clients time status.  
         // since we only need this to be requested once, we only have the client who is actually present (to lose) request it
-        if( (this.timerData[period_remain] < 1) && (this.currentColor == eidogo_owgs_vars["YouAreColor"]) ) { 
-            NetClient_instance.send([ "TIME", eidogo_owgs_vars["gameID"] ]);
+        if( (this.timerData[period_remain] < 1) && (this.currentColor == this.cfgRules['owgsColor']) ) { 
+            NetClient_instance.send([ "TIME", this.owgsGameID ]);
         }
 
         // this draws a negative indicator if the time has gone past the end of the game.. wont really ever see this except for net lag scenarios

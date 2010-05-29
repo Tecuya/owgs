@@ -207,7 +207,7 @@ class GoServerProtocol(basic.LineReceiver):
                if game.FocusNode == None:
                   focusNode = 0
                else:
-                  focusNode = game.FocusNode.id
+                  focusNode = game.FocusNode
 
                out = ["GVAR", 
                       game.id,

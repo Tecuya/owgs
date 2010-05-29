@@ -143,13 +143,12 @@ iface = new function Interface() {
             theme:           use_theme, // TODO standard or compact should be a player pref or something
             sgf:             sgf,
             mode:            "play",
-            hooks:           {"owgs_createMove": NetClient_onmove_wrapper,
-                              "owgs_scoreToggleStone": NetClient_ondead_wrapper,
-                              "owgs_nav": NetClient_onnav_wrapper,
-                              "owgs_undo": NetClient_onundo_wrapper,
-                              "owgs_resign": NetClient_onresign_wrapper,
-                              "owgs_scoresubmit": NetClient_onscoresubmit_wrapper,
-                             },
+            hooks:           {"owgs_createMove": function(data) { NetClient_instance.onmove( game_id, data ); },
+                              "owgs_scoreToggleStone": function(data) { NetClient_instance.ondead( game_id, data); },
+                              "owgs_nav": function(data) { NetClient_instance.onnav( game_id, data); },
+                              "owgs_undo": function(data) { NetClient_instance.onundo( game_id ); }, 
+                              "owgs_resign": function(data) { NetClient_instance.onresign( game_id ); },
+                              "owgs_scoresubmit": function(data) { NetClient_instance.onscoresubmit( game_id, data); } },
             loadPath:        [0, 0],
             markCurrent:     true,
             markVariations:  true,
@@ -157,7 +156,10 @@ iface = new function Interface() {
             enableShortcuts: false,
             problemMode:     false,
             allowUndo:       true,
-            owgsNetMode:     true
+            owgsNetMode:     true,
+            owgsColor:       myColor,
+            owgsGameID:      game_id
+
         });
         
         this.eidogoPlayers[ game_id ].setGameType( type,
