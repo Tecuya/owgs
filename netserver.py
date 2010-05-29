@@ -998,6 +998,9 @@ class GoServerFactory(protocol.ServerFactory):
       # this holds scores submitted by users for comparison/validation with their opponent's submitted scores
       self.user_game_scoring = {}
 
+      # initial model presence sync
+      self.initModelPresence()
+
    def addToChatConnectionDB(self, connection, chat_id, user_id):
       self.chatConnectionList.append( [connection, chat_id, user_id] )
 
@@ -1039,6 +1042,39 @@ class GoServerFactory(protocol.ServerFactory):
 
       return deletedList
 
+   
+   def syncModelPresence(self):
+      """ 
+      This func causes us to sync our connection DBs with presence-tracking models,
+      by setting Present=False on any participant row which we do not think is present
+      """
+      
+      usersInChats = {}
+      for (chat_conn, chat_id, chat_user_id) in self.chatConnectionList:
+         if chat_id not in usersInChats:
+            usersInChats[ chat_id ] = []
+
+         usersInChats[ chat_id ].append( chat_user_id )
+         
+      for (chat_id, userList) in usersInChats:
+         ChatParticipant.objects.filter( Chat_id = chat_id ).exclude( Participant__in = userList ).update( Present = False )
+
+
+      usersInGames = {}
+      for (game_conn, game_id, game_user_id) in self.gameConnectionList:
+         if game_id not in usersInGames:
+            usersInGames[ game_id ] = []
+
+         usersInGames[ game_id ].append( game_user_id )
+         
+      for (game_id, userList) in usersInGames:
+         GameParticipant.objects.filter( Game_id = game_id ).exclude( Participant__in = userList ).update( Present = False )
+
+         
+   def initModelPresence(self):
+      """ When we first start up the net server, we *know* nobody is present anywhere. Sync the models with that knowledge """
+      ChatParticipant.objects.update( Present = False )
+      GameParticipant.objects.update( Present = False )
 
    # TODO decide if we really want this, this is not used anywhere
    def getConnectionForUserState(self, game_id, state):

@@ -437,28 +437,32 @@
             self.readyState = self.READY_STATE_OPENING;
             sessionUrl = new Orbited.URL(_url);
 
-            // OWGS modified this so it always uses XSDR / xsdClose..
-            // before I could never get reset() calls in unload events to run because they were async.  This way the calls as sync and they run.
-            // I'm not totally up to speed on the particulars but I'll just let it be for now, this seems to work.
-            xhr = new Orbited.XSDR();
-            xsdClose = document.createElement('iframe');
-            xsdClose.style.display = 'block';
-            xsdClose.style.width = '0';
-            xsdClose.style.height = '0';
-            xsdClose.style.border = '0';
-            xsdClose.style.margin = '0';
-            xsdClose.style.padding = '0';
-            xsdClose.style.overflow = 'hidden';
-            xsdClose.style.visibility = 'hidden';
-            var ifUrl = new Orbited.URL("");
-            ifUrl.protocol = Orbited.settings.protocol;
-            ifUrl.domain = Orbited.settings.hostname;
-            ifUrl.port = Orbited.settings.port;
-            ifUrl.path = '/static/xsdClose.html';
-            ifUrl.hash = document.domain;
-            xsdClose.src = ifUrl.render();
-            document.body.appendChild(xsdClose);
-
+            if (sessionUrl.isSameDomain(location.href)) {
+                xhr = createXHR();
+            }
+            else {
+                xhr = new Orbited.XSDR();
+                if (sessionUrl.isSamePort(location.href)) {
+                    xsdClose = document.createElement('iframe');
+                    xsdClose.style.display = 'block';
+                    xsdClose.style.width = '0';
+                    xsdClose.style.height = '0';
+                    xsdClose.style.border = '0';
+                    xsdClose.style.margin = '0';
+                    xsdClose.style.padding = '0';
+                    xsdClose.style.overflow = 'hidden';
+                    xsdClose.style.visibility = 'hidden';
+                    var ifUrl = new Orbited.URL("");
+                    ifUrl.protocol = Orbited.settings.protocol;
+                    ifUrl.domain = Orbited.settings.hostname;
+                    ifUrl.port = Orbited.settings.port;
+                    ifUrl.path = '/static/xsdClose.html';
+                    ifUrl.hash = document.domain;
+                    xsdClose.src = ifUrl.render();
+                    document.body.appendChild(xsdClose);
+                }
+            }
+            
             if (Orbited.settings.enableFFPrivileges) {
                 try {
                     netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserRead');
@@ -877,11 +881,11 @@
         };
 
         /* self.reset closes the connection from this end immediately. The server
-     * may be notified, but there is no guarantee. The main purpose of the reset
-     * function is for a quick teardown in the case of a user navigation.
-     * if reset is not called when IE navigates, for instance, there will be
-     * potential issues with future TCPSocket communication.
-     */
+         * may be notified, but there is no guarantee. The main purpose of the reset
+         * function is for a quick teardown in the case of a user navigation.
+         * if reset is not called when IE navigates, for instance, there will be
+         * potential issues with future TCPSocket communication.
+         */
         self.reset = function() {
             if (session) {session.reset();}
         };

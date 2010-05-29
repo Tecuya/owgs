@@ -9,17 +9,18 @@
 <div id="header">
 
 <div style="float:left;">
-<h1>OWGS</h1>
-<h3>Open Web Go Server</h3>
+<h1><a style="color: #333311; text-decoration:none;" href="/">OWGS</a></h1>
 </div>
 
+{% if IsInterface %}
 <div id="topright">
- {% if user.is_authenticated %}
+{% if user.is_authenticated %}
  Logged in as {{ user.username }} <a href="/accounts/profile">Edit Profile</a> <a href="/accounts/logout">Log Out</a>
  {% else %}
- <a href="/accounts/login">Log In</a>
+ <a href="javascript:void(0);" onClick="javascript:iface.openLogin();">Log In</a>
  {% endif %}
 </div>
+{% endif %}
 
 </div>
 

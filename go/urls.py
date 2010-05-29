@@ -17,7 +17,7 @@ urlpatterns = patterns('',
                        url(r'^iiface', 'go.GoServer.views.IntegratedInterface', name='iiface'),
                        url(r'^chat/(?P<chat_id>\d+)', 'go.GoServer.views.Chat', name='chat'),
 
-                       (r'^accounts/', include('registration.urls')),
+                       (r'^accounts/', include('registration.backends.default.urls')),
 
                        url(r'^accounts/profile', 'go.GoServer.views.PlayerProfile', name='player-profile'),
 

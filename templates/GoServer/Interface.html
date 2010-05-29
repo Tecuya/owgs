@@ -8,7 +8,6 @@
 <script type="text/javascript" src="/static/jquery/js/jquery-1.4.2.min.js"></script>
 <script type="text/javascript" src="/static/jquery/js/jquery-ui-1.8.1.custom.min.js"></script>
 <style type="text/css">
-#ifacetabs { margin-top: 1em; }
 #ifacetabs li .ui-icon-close { float: left; margin: 0.4em 0.2em 0 0; cursor: pointer; }
 </style>
 
@@ -39,7 +38,7 @@ netclient_debug_mode = {{ DebugMode }};
    <li><a href="#tab-1">Home</a></li>
   </ul>
   <div id="tab-1">
-   Quick Links:
+   <p>Welcome to OWGS; the Open Web Go Server!</p>
    <ul>
     <li><a href="javascript:void(0);" onClick="javascript:$('#ifacetabs').tabs('add', '/games/active', 'Active Games');">Active Game List</a></li>
     <li><a href="javascript:void(0);" onClick="javascript:$('#ifacetabs').tabs('add', '/games/archive', 'Archived Games');">Archived Game List</a></li>

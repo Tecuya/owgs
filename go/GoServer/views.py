@@ -9,9 +9,16 @@ def GameList(request):
 
     gamelist = []
     for game in Game.objects.filter(State__in = ['I','P']).order_by('-State').order_by('-CreateDate'):
+
+        present_parts = len(GameParticipant.objects.filter( Game = game, Present=True ))
+                            
+        if present_parts == 0: 
+            continue
+
         gamelist.append( {'id': game.id,
                           'params':unicode(game), 
-                          'present_participants':unicode(len(GameParticipant.objects.filter( Game = game, Present=True ))) } )
+                          'present_participants':unicode(present_parts) } )
+
 
     return render_to_response('GoServer/GameList.html', 
                               {'GameList': gamelist},
@@ -192,7 +199,8 @@ def IntegratedInterface(request):
         DebugMode = request.user.get_profile().DebugMode
 
     return render_to_response('GoServer/Interface.html', 
-                              {"DebugMode": DebugMode},                              
+                              {'DebugMode': DebugMode,
+                               'IsInterface': True},                              
                               context_instance=RequestContext(request))
 
 

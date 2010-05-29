@@ -17,10 +17,33 @@ iface = new function Interface() {
     // once we get the GAME command back, which tab to open it in
     this.pendingGameTab = false;
 
+    // this tracks if we already have a login tab open
+    this.loginTab = false;
+
+    this.openLogin = function() { 
+        // if a login tab is already open just focus is
+        if(this.loginTab != false) { 
+            $tabs.tabs('select', this.loginTab);
+            return;
+        }
+             
+        $("#ifacetabs").tabs('add', '/accounts/login', 'Log In');
+
+        var tab_index = $tabs.tabs('option', 'selected');
+
+        this.loginTab = tab_index;
+        
+        this.registerTabCloseCallback( tab_index,
+                                       function() { 
+                                           iface.loginTab = false;
+                                       } );        
+    },
+
     this.makeChatTab = function(chat_id) { 
 
         // if this chat is already open, then just go to the already-opened tab
-        if(typeof(this.chatTabs[ chat_id ]) != "undefined") { 
+        if( (typeof(this.chatTabs[ chat_id ]) != "undefined") && 
+            (this.chatTabs[ chat_id ] != false) ) { 
             $tabs.tabs('select', this.chatTabs[ chat_id ]);
             return;
         }
@@ -35,17 +58,15 @@ iface = new function Interface() {
 
         var tab_index = $tabs.tabs('option', 'selected');
 
+        // store the tab index in chatTabs so we know whats opened where.
+        // this also causes the tab load event to run the netclient joinchat func after the tab loads
+        this.chatTabs[ chat_id ] = tab_index;
+
         this.registerTabCloseCallback( tab_index,
                                        function() { 
                                            iface.chatTabs[ chat_id ] = false; 
                                            NetClient_instance.partchat( chat_id ); 
                                        } );
-
-        // store the tab index in chatTabs so we know whats opened where
-        this.chatTabs[ chat_id ] = tab_index;
-
-        // join the chat 
-        NetClient_instance.joinchat( chat_id );
     },
 
     this.onNewGameCreated = function( game_id ) {
@@ -69,7 +90,8 @@ iface = new function Interface() {
 
     this.makeGameTab = function(game_id, in_tab, force_reload) {
 
-        if( typeof(this.gameTabs[ game_id ]) != "undefined" ) { 
+        if( (typeof(this.gameTabs[ game_id ]) != "undefined") && 
+            (this.gameTabs[ game_id ] != false) ) { 
             $tabs.tabs('select', this.gameTabs[ game_id ]);            
             if(!force_reload)
                 return;
@@ -82,6 +104,7 @@ iface = new function Interface() {
             in_tab = $("#ifacetabs").tabs('option', 'selected');;
         }
 
+        // this causes the tab load event to run the netclient joingame func after the tab loads
         this.gameTabs[ game_id ] = in_tab;
 
         this.registerTabCloseCallback( in_tab,
@@ -89,9 +112,6 @@ iface = new function Interface() {
                                            iface.gameTabs[ game_id ] = false; 
                                            NetClient_instance.partgame( game_id ); 
                                        } );
-
-        // make us join the game on the server
-        NetClient_instance.joingame( game_id );
     },
 
     this.closeTab = function(index) {
@@ -126,12 +146,6 @@ iface = new function Interface() {
     },
 
     this.initEidogo = function(game_id, sgf, myColor, type, state, mainTime, overtimeType, overtimePeriod, overtimeCount, isOvertimeW, isOvertimeB, overtimeCountW, overtimeCountB, timePeriodRemainW, timePeriodRemainB, focusNode) { 
-
-        // init if not already initted
-        if(typeof(this.eidogoPlayers[ game_id ]) != "undefined") {
-            alert("attempt to init an already initted eidogo instance");
-            return;
-        }
 
         // TODO - make this load real player preferences somehow!
         // use_theme = "compact"            
@@ -201,6 +215,7 @@ $(function() {
     // don't reload ajax tab contents every click
     $("#ifacetabs").tabs({cache: true});
 
+    // immediately select new tabs, also create close button template
     $tabs = $("#ifacetabs").tabs( { 
         add: function(event, ui) {
             // immediately select tabs that we just opened
@@ -217,4 +232,27 @@ $(function() {
                                                 index = $('li',$tabs).index($(this).parent());
                                                 iface.closeTab(index);
                                             });
+
+
+    // tab load event
+    $('#ifacetabs').bind('tabsload', 
+                         function(event, ui) { 
+                             // look at the type of tab that was loaded and run whatever NetClient commands are appropriate 
+                             var i;
+                             for(i=0;i<iface.chatTabs.length;i++) {
+                                 if(iface.chatTabs[i] == ui.index) { 
+                                     NetClient_instance.joinchat( i );
+                                     break;
+                                 }
+                             }
+
+                             for(i=0;i<iface.gameTabs.length;i++) {
+                                 if(iface.gameTabs[i] == ui.index) { 
+                                     NetClient_instance.joingame( i );
+                                     break;
+                                 }
+                             }
+                         });
 });
+
+

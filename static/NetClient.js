@@ -58,11 +58,10 @@ NetClient_instance = new function NetClient() {
         this.line = new LineProtocol(this.tcp);
         this.line.open(window.location.hostname,8002,false);
 
-        // theres gotta be a cleaner way to do this!
-        this.line.onopen = NetClient_onopen_wrapper;
-        this.line.onlinereceived = NetClient_onlinereceived_wrapper;
-        this.line.onclose = NetClient_onclose_wrapper;
-
+        this.line.onopen = function() { NetClient_instance.connected(); }; 
+        this.line.onlinereceived = function(data) { NetClient_instance.onlinereceived(data); }; 
+        this.line.onclose = function(code) { NetClient_instance.onclose(code); }; 
+        
     }
 
     this.onlinereceived = function(line) { 
@@ -206,7 +205,7 @@ NetClient_instance = new function NetClient() {
 
             part_select.options.add( new Option(dataAr[1], dataAr[0]) );
             
-            this.updatechat( "*** "+dataAr[1]+" has joined the chat" );
+            this.updatechat(chat_id, "*** "+dataAr[1]+" has joined the chat" );
             
         } else if(command == "PCHT") {
             
@@ -237,6 +236,11 @@ NetClient_instance = new function NetClient() {
 
     this.onclose = function(data) { 
         this.debug("NetClient.onclose: " + data + "\n");
+
+        /* TODO we need to be more graceful than this.
+        if(confirm('Your connection to the server has been lost, would you like to reconnect?')) { 
+            window.location.reload();
+        }*/
     }
 
     this.send = function(data) { 
@@ -275,10 +279,9 @@ NetClient_instance = new function NetClient() {
     }
 
     this.unload = function() { 
-        // reset our tcpsocket when we unload so the server can notify others that we left
-        this.tcp.reset();
+        this.line.reset();
     }
-    
+        
     this.debug = function(msg) { 
         curdate = new Date();
         if($("#NetClient_debug")[0])
@@ -309,7 +312,7 @@ NetClient_instance = new function NetClient() {
     }
 
     this.updatechat = function(chat_id, msg) { 
-        if(ta = $("#chat_"+chat_id+"_ChatTextarea")[0])
+        if(ta = $("#chat_"+chat_id+"_Textarea")[0])
             ta.value += msg + "\r\n";        
     }
     
@@ -407,33 +410,15 @@ NetClient_instance = new function NetClient() {
     }
 }
 
+// start netclient on-load
+$( function() { NetClient_instance.start(); } );
 
-// annoying wrappers for various event handlers
-
-// TODO kill these
-function NetClient_onopen_wrapper() { NetClient_instance.connected(); }
-function NetClient_onlinereceived_wrapper(data) { NetClient_instance.onlinereceived(data); }
-function NetClient_onclose_wrapper(code) { NetClient_instance.onclose(code); }
-function NetClient_ontime_wrapper(data) { NetClient_instance.ontime(data); }
-
-// init funcs
-function NetClient_start() { 
-    // TODO the unload event fires but the page always navigates away before orbited gets the PART message sent.. so this is useless until i figure out why
-    // window.onunload = NetClient_unload
-    addEventListener("unload", NetClient_unload, false);
-    NetClient_instance.start(); 
-}
-
-function NetClient_unload() { 
-    NetClient_instance.unload();
-}
-
+// call the netclient unload on unload.  this doesnt work in my browsers but it might work somewhere
+$(window).bind('beforeunload', function() { NetClient_instance.unload(); } );
 
 
 ////////////////////////////////////////////////////////////////////
-// This is lifted from orbited's stomp.js STOMP protocol example
-
-
+// Below here is lifted from orbited's examples:
 
 
 // NB: This is loosly based on twisted.protocols.basic.LineReceiver
@@ -555,10 +540,3 @@ LineProtocol = function(transport) {
     self.onlinereceived = function(line) {};
     self.onrawdatareceived = function(data) {};
 };
-
-// start netclient on-load
-$( NetClient_start );
-
-// this makes netclient fire its unload when the page unloads (unreliable)
-$(document).unload(NetClient_unload);
-
