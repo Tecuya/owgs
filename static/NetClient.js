@@ -24,6 +24,9 @@ NetClient_instance = new function NetClient() {
     // our send queue
     this.sendq = Array();
 
+    // keep track of which games we are joined
+    this.joinedgames = {};
+
     this.start = function() { 
 
         if(this.NetClient_debug) {
@@ -159,6 +162,10 @@ NetClient_instance = new function NetClient() {
             
             iface.initEidogo(game_id, dataAr[0], dataAr[1], dataAr[2], dataAr[3], dataAr[4], dataAr[5], dataAr[6], dataAr[7], dataAr[8], dataAr[9], dataAr[10], dataAr[11], dataAr[12], dataAr[13], dataAr[14]);
 
+        } else if(command == "GUSR") { 
+
+            iface.updateParticipantList(game_id, dataAr[0])
+            
         } else if(command == "BEGN") { 
             
             iface.makeGameTab( game_id, false, true );
@@ -292,10 +299,22 @@ NetClient_instance = new function NetClient() {
     // higher level commands
 
     this.joingame = function(game_id) { 
-        this.send( ["JOIN", game_id] );
+        
+        if(!this.joinedgames[game_id]) { 
+            this.joinedgames[game_id] = true;
+            this.send( ["JOIN", game_id] );
+        } 
+
+        // if we didnt actually join, go ahead and refresh the user list
+        this.send( ["GUSR", game_id] );
+
+        // in any case, attempt to get the game vars
+        this.send( ["GVAR", game_id] );        
     }
 
     this.partgame = function(game_id) { 
+        // make sure we know we are no longer joined
+        this.joinedgames[game_id] = false;
         this.send( ["PART", game_id] );
     }
 

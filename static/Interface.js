@@ -3,15 +3,15 @@
 iface = new function Interface() { 
 
     // global so we can always get to our eidogo instances
-    this.eidogoPlayers = Array();
+    this.eidogoPlayers = [];
 
-    this.tabCloseCallbacks = Array();
+    this.tabCloseCallbacks = [];
 
     // store what chats are open in which tabs
-    this.chatTabs = Array();
+    this.chatTabs = [];
 
     // store what games are open in which tabs
-    this.gameTabs = Array();
+    this.gameTabs = [];
 
     // when create game is clicked this stores the tab index so we know, 
     // once we get the GAME command back, which tab to open it in
@@ -19,6 +19,9 @@ iface = new function Interface() {
 
     // this tracks if we already have a login tab open
     this.loginTab = false;
+
+    // this tracks where we have game lists
+    this.gameLists = {};
 
     this.openLogin = function() { 
         // if a login tab is already open just focus is
@@ -88,20 +91,30 @@ iface = new function Interface() {
         $tabs.tabs('load', index );
     },
 
-    this.makeGameTab = function(game_id, in_tab, force_reload) {
+    this.makeGameTab = function(game_id, in_tab, reloading) {
 
         if( (typeof(this.gameTabs[ game_id ]) != "undefined") && 
             (this.gameTabs[ game_id ] != false) ) { 
-            $tabs.tabs('select', this.gameTabs[ game_id ]);            
-            if(!force_reload)
+            $tabs.tabs('select', this.gameTabs[ game_id ]);
+
+            // if we arent reloading then we are done!
+            if(typeof(reloading) == "undefined") { 
                 return;
+            }
+
+            in_tab = this.gameTabs[ game_id ];
         }
 
         if(in_tab) { 
             this.newTabTarget( in_tab, '/games/view/'+game_id, 'Game #'+game_id);
         } else { 
             $("#ifacetabs").tabs('add', '/games/view/'+game_id, 'Game #'+game_id);
-            in_tab = $("#ifacetabs").tabs('option', 'selected');;
+            in_tab = $("#ifacetabs").tabs('option', 'selected');
+        }
+
+        // if this is a reloading call, theres no need to re-set the stuff below
+        if(typeof(reloading) != "undefined") { 
+            return;
         }
 
         // this causes the tab load event to run the netclient joingame func after the tab loads
@@ -143,6 +156,56 @@ iface = new function Interface() {
             $("#id_OvertimeCount").val() );        
         
         this.pendingGameTab = $tabs.tabs('option', 'selected');
+    },
+
+    this.makeGameListTab = function(type) { 
+
+        if( (typeof(this.gameLists[ type ]) != "undefined") &&
+            (this.gameLists[ type ] != false) ) { 
+
+            $tabs.tabs('select', this.gameLists[ type ]);
+            in_tab = this.gameLists[ type ];
+
+        } else { 
+
+            if(type == 'active') { 
+                $("#ifacetabs").tabs('add', '/games/active', 'Active Games');
+            } else if(type == 'archive') { 
+                $("#ifacetabs").tabs('add', '/games/archive', 'Archived Games');
+            }
+            
+            in_tab = $("#ifacetabs").tabs('option', 'selected');
+            this.gameLists[ type ] = in_tab;
+        }
+
+        this.registerTabCloseCallback( in_tab, 
+                                       function() { 
+                                           iface.gameLists[ type ] = false;
+                                       } );
+    },
+
+
+    this.reloadGameList = function() { 
+        current_tab = $("#ifacetabs").tabs('option', 'selected');
+
+        if(iface.gameLists["active"] == current_tab) { 
+            this.newTabTarget( current_tab, '/games/active', 'Active Games' );
+        } else if(iface.gameLists["archive"] == current_tab) { 
+            this.newTabTarget( current_tab, '/games/archive', 'Archived Games' );
+        }
+    },
+
+
+    this.updateParticipantList = function(game_id, userList) { 
+        part_select = $("#game_"+game_id+"_ParticipantSelect")[0];
+        for(var i=0;i<part_select.length;i++) { 
+            part_select.remove(i);
+        }
+
+        for(i=0;i<userList.length;i++) { 
+            u = userList[i];
+            part_select.options.add( new Option( u[1]+'('+u[2]+')', u[0]) );
+        }
     },
 
     this.initEidogo = function(game_id, sgf, myColor, type, state, mainTime, overtimeType, overtimePeriod, overtimeCount, isOvertimeW, isOvertimeB, overtimeCountW, overtimeCountB, timePeriodRemainW, timePeriodRemainB, focusNode) { 

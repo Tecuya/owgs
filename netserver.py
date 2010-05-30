@@ -167,11 +167,6 @@ class GoServerProtocol(basic.LineReceiver):
                part_that_joined.Present = True
                part_that_joined.save()
             
-            # inform new user about all present participants besides himself (that'll happen latter when we broadcast this join to *everyone*)
-            for part in GameParticipant.objects.filter(Game = game, Present=True):
-               if part.Participant.id != self.user.id:
-                  self.writeToTransport(["JOIN", game.id, part.Participant.id, part.Participant.username, part.State])
-
             # if the user was not already in the game participant list, we need to let everyone know that now they are!
             if new_user:
 
@@ -202,37 +197,30 @@ class GoServerProtocol(basic.LineReceiver):
             if game.State == 'I':               
                self.commitTimeVars( game, self.timerUpdate(game) )
 
-
-            if game.State != 'P':
-               if game.FocusNode == None:
-                  focusNode = 0
-               else:
-                  focusNode = game.FocusNode
-
-               out = ["GVAR", 
-                      game.id,
-                      GameTree( game.id ).dumpSGF().replace("\n","\\n"),
-                      part_that_joined.State,
-                      game.Type,
-                      game.State,
-                      game.MainTime,
-                      game.OvertimeType,
-                      game.OvertimePeriod,
-                      game.OvertimeCount,
-                      game.IsOvertimeW,
-                      game.IsOvertimeB,
-                      game.OvertimeCountW,
-                      game.OvertimeCountB,
-                      str(game.TimePeriodRemainW),
-                      str(game.TimePeriodRemainB),
-                      focusNode]
-
-               self.writeToTransport(out)
-               
-
             response = CTS
                         
-            
+         elif(cmd[0] == 'GVAR'):
+
+            # if they make a gvar request and the game is pre-game, we ignore it
+            if game.State != 'P':
+               try:
+                  # try to find them and send the gvar
+                  our_part = GameParticipant.objects.filter(Game = game, Participant = self.user)[0]
+
+                  # TODO its kind of lame that a GVAR is necessary to set this!
+                  self.gamepartstate[ game.id ] = our_part.State
+
+                  self.sendGVAR( game, our_part.State )
+               except Exception, e:
+                  self.debug('Failed processing GVAR command: %s' % e)
+
+            response = CTS
+
+         elif(cmd[0] == 'GUSR'):
+            self.sendGUSR( game )
+
+            response = CTS
+
          elif(cmd[0] == 'CMNT'):
             message = cmd[2]
 
@@ -322,8 +310,10 @@ class GoServerProtocol(basic.LineReceiver):
 
             accepted_user = int(cmd[2])
 
-            if self.factory.user_game_offers.has_key( accepted_user ):
-               (board_size, main_time, komi, color) = self.factory.user_game_offers[ accepted_user ]
+            if ( game.id in self.factory.user_game_offers and 
+                 accepted_user in self.factory.user_game_offers[ game.id ] ):
+
+               (board_size, main_time, komi, color) = self.factory.user_game_offers[ game.id ][ accepted_user ]
 
                # Set the game to in-progress, set game variables as dictated by the offer
                game.State = 'I'
@@ -352,6 +342,7 @@ class GoServerProtocol(basic.LineReceiver):
                else:
                   other_color = 'W'
 
+               
                # store our game state so we are aware what color/state we are in this game later
                self.gamepartstate[ game.id ] = other_color
 
@@ -397,9 +388,11 @@ class GoServerProtocol(basic.LineReceiver):
                   prop = GameProperty(Node = gi_node, Property = prop, Value = value)
                   prop.save()
 
+
                # Send a message to all participants notifying them that the game has begun
                for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
                   if conn_game_id == game.id:
+                     # we found a connection related to this game
                      self.writeToTransport(["BEGN", game.id], transport = connection.transport)
 
             else:
@@ -411,7 +404,7 @@ class GoServerProtocol(basic.LineReceiver):
          elif cmd[0] == 'OFFR':
 
             # store the offer in the factory offer database for referencing later
-            self.factory.user_game_offers[ int(self.user.id) ] = [ cmd[2], cmd[3], cmd[4], cmd[5] ]
+            self.factory.user_game_offers[ game.id ] = { int(self.user.id): [ cmd[2], cmd[3], cmd[4], cmd[5] ] }
 
             # Send a message to all participants notifying them about your offer
             for (connection, conn_game_id, conn_user_id) in self.factory.gameConnectionList:
@@ -879,6 +872,43 @@ class GoServerProtocol(basic.LineReceiver):
             
       return [time_loss, color, other_color, new_period_remain, new_overtime_count, new_is_overtime]
 
+   def sendGUSR(self, game):
+      uList = []
+      for part in GameParticipant.objects.filter(Game = game, Present=True):
+         uList.append( [ part.Participant.id, part.Participant.username, part.State ] )
+
+      self.writeToTransport(["GUSR", game.id, uList])
+
+   def sendGVAR(self, game, myColor, useTransport = False):
+
+      if game.FocusNode == None:
+         focusNode = 0
+      else:
+         focusNode = game.FocusNode
+
+      out = ["GVAR", 
+             game.id,
+             GameTree( game.id ).dumpSGF().replace("\n","\\n"),
+             myColor,
+             game.Type,
+             game.State,
+             game.MainTime,
+             game.OvertimeType,
+             game.OvertimePeriod,
+             game.OvertimeCount,
+             game.IsOvertimeW,
+             game.IsOvertimeB,
+             game.OvertimeCountW,
+             game.OvertimeCountB,
+             str(game.TimePeriodRemainW),
+             str(game.TimePeriodRemainB),
+             focusNode]
+
+      if useTransport:
+         self.writeToTransport(out, transport = useTransport)
+      else:
+         self.writeToTransport(out)
+
 
    def removeUserFromGame(self, game):
 
@@ -972,7 +1002,7 @@ class GoServerFactory(protocol.ServerFactory):
    protocol = GoServerProtocol
 
    def debug(self, msg):
-      print '%s Fac | %s' % (datetime.datetime.now(), msg)
+      print '%s Fact | %s' % (datetime.datetime.now(), msg)
          
    def __init__(self):      
       # this maps connections to games & user IDs
@@ -992,7 +1022,6 @@ class GoServerFactory(protocol.ServerFactory):
 
       # this is a dict storing the offers users make to play games
       # { user_id: [ board size, main time, komi, color ], .... } 
-      # TODO this needs a game id... huh
       self.user_game_offers = {}
 
       # this holds scores submitted by users for comparison/validation with their opponent's submitted scores
@@ -1019,8 +1048,14 @@ class GoServerFactory(protocol.ServerFactory):
             deleteKeys.append(i)
             deletedList.append( self.gameConnectionList[i] )
 
+      # this right now looks like [1, 3, 5].. we need to reverse it otherwise the array will be re-keyed as we go and we'll get the wrong entries
+      deleteKeys.reverse()
+
       for key in deleteKeys:
-         del self.gameConnectionList[key];
+         try:
+            del self.gameConnectionList[key];
+         except Exception, e:
+            self.debug("Failed removing item from gameConnectionList: %s %s" % (key, e))
 
       return deletedList
 
@@ -1037,8 +1072,14 @@ class GoServerFactory(protocol.ServerFactory):
             deleteKeys.append(i)
             deletedList.append( self.chatConnectionList[i] )
 
+      # this right now looks like [1, 3, 5].. we need to reverse it otherwise the array will be re-keyed as we go and we'll get the wrong entries
+      deleteKeys.reverse()
+
       for key in deleteKeys:
-         del self.chatConnectionList[key];
+         try:
+            del self.chatConnectionList[key];
+         except Exception, e:
+            self.debug("Failed removing item from chatConnectionList: %s %s" % (key, e))
 
       return deletedList
 
