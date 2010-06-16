@@ -404,8 +404,7 @@ class Board:
         return [x,y]
         
     def syncBoardToNode( self, syncnode ):        
-        
-        
+                
         # TODO implement some manner of caching here so its not necessary to always
         # do a complete lookup of the game history!  This is going to get slllooow..
 
@@ -437,7 +436,9 @@ class Board:
                     # if we only captured one stone, this move's is marked koImmune
                     if len(caps) == 1:
                         self.koImmune = [x, y]
-
+                    else:
+                        # not koImmune
+                        self.koImmune = False
         return True
 
     

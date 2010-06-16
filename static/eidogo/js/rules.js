@@ -114,8 +114,6 @@ eidogo.Rules.prototype = {
                 (this.board.findGroupPoints( this.koImmune ).length == 1 ) && 
                 (this.board.getStoneLiberties( this.koImmune ).length == 0) ) { 
                 violation = 'Ko';
-            } else { 
-                this.koImmune = false;
             }
             
         } else if(this.cfgRules.koRule == 'positional_superko') { 
@@ -170,6 +168,8 @@ eidogo.Rules.prototype = {
         // if we captured one single stone with this play, mark it as ko-immune for the next move
         if(captures == 1) { 
             this.koImmune = pt;
+        } else { 
+            this.koImmune = false;
         }
 
         // check for suicide

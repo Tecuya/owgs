@@ -54,7 +54,7 @@ NetClient_instance = new function NetClient() {
 
             document.body.appendChild(debug_div);
 
-            this.debug("NetClient.start\n");
+            this.debug("NetClient.start - " + window.location.hostname + ":8002\n");
         }
 
         this.tcp = new Orbited.TCPSocket();
@@ -233,8 +233,17 @@ NetClient_instance = new function NetClient() {
             this.updatecomment(game_id, '<'+dataAr[0]+'> '+dataAr[1]);
                         
         } else if(command == "SCOR") { 
+                        
+            var score_w = dataAr[3];
+            var score_b = dataAr[7];
+            
+            if(score_w > score_b) { 
+                var result = 'W+' + (score_w - score_b);
+            } else { 
+                var result = 'B+' + (score_b - score_w);
+            }
 
-            // the SCOR command is really only used by bots or for client debugging, this is not information that is pertinent to eidogo / the web interface
+            this.updatecomment(game_id, 'Opponent submitted score: '+result);
 
         } else { 
             alert("Unknown net command received from server: "+command);

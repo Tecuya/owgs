@@ -237,6 +237,9 @@ class GoServerProtocol(basic.LineReceiver):
             sn = cmd[4]            
             comments = cmd[5]
 
+            # return success unless we are told otherwise..
+            response = CTS
+
             timerRet = self.timerUpdate(game, True)
             if timerRet[0]:
 
@@ -280,7 +283,6 @@ class GoServerProtocol(basic.LineReceiver):
                   # notify the client of the node ID for the node
                   self.writeToTransport(["NODE", game.id, new_node_id], self.transport)
                
-            response = CTS
 
          elif(cmd[0] == 'TIME'):
             
