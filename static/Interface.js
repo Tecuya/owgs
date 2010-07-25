@@ -224,6 +224,7 @@ iface = new function Interface() {
                               "owgs_scoreToggleStone": function(data) { NetClient_instance.ondead( game_id, data); },
                               "owgs_nav": function(data) { NetClient_instance.onnav( game_id, data); },
                               "owgs_undo": function(data) { NetClient_instance.onundo( game_id ); }, 
+                              "owgs_stoneSound": function(data) { NetClient_instance.onsound( game_id, data ); },
                               "owgs_resign": function(data) { NetClient_instance.onresign( game_id ); },
                               "owgs_scoresubmit": function(data) { NetClient_instance.onscoresubmit( game_id, data); } },
             loadPath:        [0, 0],

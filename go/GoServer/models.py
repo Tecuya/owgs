@@ -417,6 +417,7 @@ class Board:
 
         for (node,properties) in nodes:
             
+            # we are making the assumption here of one move per node.. probably safe assumption
             for prop in properties:
                 
                 color = self.colorMap[ prop.Property ]
@@ -439,6 +440,7 @@ class Board:
                     else:
                         # not koImmune
                         self.koImmune = False
+
         return True
 
     

@@ -1788,8 +1788,8 @@ eidogo.Player.prototype = {
         // if its not a pass, then let the rule checker validate it
         if((coord != "tt") && (!this.rules.check(this.sgfCoordToPoint(coord), this.currentColor, owgs_serverMove))) { 
             return;
-        }
-                
+        }              
+        
         var forColor = this.currentColor;
 
         var props = {};
@@ -1831,7 +1831,10 @@ eidogo.Player.prototype = {
             this.pendingSnProp.push( this.cursor.node );
         }
 
+        this.hook("owgs_stoneSound", coord);
+
         this.checkForDoublePass();
+
     },
 
     /**

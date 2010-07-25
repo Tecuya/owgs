@@ -380,6 +380,19 @@ NetClient_instance = new function NetClient() {
         this.send( ["UNDO", game_id] );
     }
 
+    this.onsound = function(game_id, coord) { 
+        // TODO check for some kind of per-game muting?
+
+        // TODO check for pass and play different noise
+        
+        
+        numSamples = 4;
+        whichClick = Math.floor(Math.random() * (numSamples+1))
+
+        a = new Audio('/static/audio/click'+whichClick+'.ogg');
+        a.play();
+    }
+
     this.onresign = function(game_id) { 
         this.send( ["RSGN", game_id] );
     }
