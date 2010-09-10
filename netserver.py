@@ -883,14 +883,16 @@ class GoServerProtocol(basic.LineReceiver):
 
    def sendGVAR(self, game, myColor, useTransport = False):
 
-      if game.FocusNode == None:
+      # if the game has no focusnode yet, or is finished, dont send a focusnode; this will
+      # cause the javascript to focus the last node using eidogo last()
+      if game.FocusNode == None or game.State == 'F':
          focusNode = 0
       else:
          focusNode = game.FocusNode
 
       out = ["GVAR", 
              game.id,
-             GameTree( game.id ).dumpSGF().replace("\n","\\n"),
+             GameTree( game.id ).dumpSGF(), # .replace("\n","\\n") -- why did i have this?
              myColor,
              game.Type,
              game.State,

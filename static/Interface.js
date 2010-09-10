@@ -1,5 +1,4 @@
 
-
 iface = new function Interface() { 
 
     // global so we can always get to our eidogo instances

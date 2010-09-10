@@ -255,7 +255,7 @@ NetClient_instance = new function NetClient() {
                 var result = 'B+' + (score_b - score_w);
             }
 
-            this.updatecomment(game_id, 'Opponent submitted score: '+result);
+            this.updatecomment(game_id, 'Opponent submitted score W:'+score_w+' B:'+score_b+' Result:'+result);
 
         } else { 
             alert("Unknown net command received from server: "+command);
