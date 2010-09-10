@@ -27,6 +27,9 @@ NetClient_instance = new function NetClient() {
     // keep track of which games we are joined
     this.joinedgames = {};
 
+    // keep track of audio samples
+    this.audio = {};
+
     this.start = function() { 
 
         if(this.NetClient_debug) {
@@ -46,11 +49,18 @@ NetClient_instance = new function NetClient() {
             debug_button.innerHTML = "Send";
             debug_button.setAttribute("type", "button");
             debug_button.setAttribute("onClick", 'NetClient_instance.sendraw( $("#sendraw").val())')
+
+            sound_button = document.createElement("BUTTON");
+            sound_button.innerHTML = "Clicky";
+            sound_button.setAttribute("type", "button");
+            sound_button.setAttribute("onClick", 'NetClient_instance.onsound(1,1)')
             
             debug_div.appendChild(debug_input);
             debug_div.appendChild(debug_button);
+            debug_div.appendChild(sound_button);
             debug_div.appendChild( document.createElement("BR") );
             debug_div.appendChild(debug_textarea);
+
 
             document.body.appendChild(debug_div);
 
@@ -181,8 +191,10 @@ NetClient_instance = new function NetClient() {
             iface.onNewGameCreated( game_id );
 
         } else if(command == "RSLT") { 
-            
-            iface.eidogoPlayers[ game_id ].setResult( dataAr[0], dataAr[1], dataAr[2]);
+
+            if(typeof(iface.eidogoPlayers[ game_id ]) != "undefined") { 
+                iface.eidogoPlayers[ game_id ].setResult( dataAr[0], dataAr[1], dataAr[2]);
+            }
 
         } else if(command == "SYNC") { 
             
@@ -302,6 +314,9 @@ NetClient_instance = new function NetClient() {
         curdate = new Date();
         if($("#NetClient_debug")[0])
             $("#NetClient_debug")[0].value += curdate.toLocaleString() + ": " + msg;
+        
+        // scroll down
+        $("#NetClient_debug")[0].scrollTop = $("#NetClient_debug")[0].scrollHeight;
     }
 
     /////////////////////////////////////////
@@ -385,14 +400,39 @@ NetClient_instance = new function NetClient() {
 
         // TODO check for pass and play different noise
         
-        
         numSamples = 4;
-        whichClick = Math.floor(Math.random() * (numSamples+1))
+        whichClick = Math.floor(Math.random() * (numSamples)) + 1
 
-        a = new Audio('/static/audio/click'+whichClick+'.ogg');
-        a.play();
+        this.playsound('/static/audio/click'+whichClick+'.ogg');
     }
 
+    this.playsound = function(file) { 
+
+        if( typeof(this.audio[ file ]) == "undefined" ) { 
+            this.audio[ file ] = new Audio( file );
+        } else { 
+            
+            // this next condition warrants some explanation; when you play() an element that 
+            // is playing, it will not play because its already playing.  however, the element
+            // will also not play if it has just finished playing but has not reset some internal
+            // state... if you play() a .5 sec sample, and re-play at .6 seconds, the sample will
+            // not replay.  If you put a currentTime = 0 there before the play() to rewind and then
+            // play, the sample will play, but delayed by a second or two.  In chrome and in firefox.
+            // i dunno why... but this method at least ensures the sound will play.  I put the
+            // delete in here in a meager attempt to make sure the browser releases the resources
+            // associated to the audio object.  i dont know enough about javascript implementations
+            // to know if that's necessary....
+            if( ! this.audio[ file ].ended) { 
+                delete this.audio[ file ];
+                this.audio[ file ] = new Audio( file );
+            }
+
+        }
+        
+   
+        this.audio[ file ].play();
+    }
+    
     this.onresign = function(game_id) { 
         this.send( ["RSGN", game_id] );
     }
