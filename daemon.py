@@ -61,7 +61,7 @@ procs = []
 for ex in executables:
     
     # if we were told to skip, then skip!
-    if ex.has_key('disabled') and ex['disabled'] == 'Y':
+    if ex.has_key('disabled') and ex['disabled']:
         continue
 
     log = "%s Starting %s: %s\n" % (time.strftime("%a, %d %b %Y %H:%M:%S +0000"), ex['name'], ex['cmd'])
