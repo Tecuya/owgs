@@ -9,6 +9,8 @@
 
 import os, subprocess, traceback, pwd, sys, time, ConfigParser
 
+os.chdir(os.path.dirname(__file__))
+
 config = ConfigParser.ConfigParser()
 config.read('daemon.cfg')
 def parseCfg(name):
