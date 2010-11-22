@@ -1,14 +1,8 @@
 #!/usr/bin/env python
 
-"""
-This should do the following:
-
-* Start orbited
-* Start netserver 
-* Start bot
-* Optionally start the development web server
-
-"""
+#####################################
+# This script is provided to easily start all the necessary OWGS services 
+# It is inteded to run as root.
 
 ######################################
 # Environment initialization
@@ -27,31 +21,28 @@ owgs_username = parseCfg('user')
 executables = [ 
 
     { 'name': 'devserver',
+      'user': owgs_username,
       'disabled': (parseCfg('django_manage') == 'N'),
       'cmd': parseCfg('django_command'),
       'log': parseCfg('django_log') },
 
     { 'name': 'orbited',
+      'user': 'root',
       'cmd': parseCfg('orbited_command'),
       'log': parseCfg('orbited_log') },
     
     { 'name': 'netserver',
+      'user': owgs_username,
       'cmd': parseCfg('netserver_command'),
       'log': parseCfg('netserver_log') },
     
     { 'name': 'gtpbot',
+      'user': owgs_username,
       'cmd': parseCfg('bot_command'),
       'log': parseCfg('bot_log') }
         
     ]
 
-try:
-    owgs_euid = pwd.getpwnam(owgs_username)[2]
-    os.seteuid(owgs_euid)
-except Exception, e:
-    print 'Failed in attempt to seteuid() to %s' % owgs_username
-    traceback.print_exc()
-    sys.exit()
 
 ######################################
 # Process launching
@@ -59,6 +50,14 @@ except Exception, e:
 procs = []
 
 for ex in executables:
+
+    try:
+        owgs_euid = pwd.getpwnam(ex['user'])[2]
+        os.seteuid(owgs_euid)
+    except Exception, e:
+        print 'Failed in attempt to seteuid() to %s' % owgs_username
+        traceback.print_exc()
+        sys.exit()
     
     # if we were told to skip, then skip!
     if ex.has_key('disabled') and ex['disabled']:
