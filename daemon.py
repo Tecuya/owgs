@@ -45,7 +45,6 @@ executables = [
         
     ]
 
-
 try:
     owgs_euid = pwd.getpwnam(owgs_username)[2]
     os.seteuid(owgs_euid)
@@ -61,8 +60,10 @@ procs = []
 
 for ex in executables:
     
-    # class subprocess.Popen(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None, universal_newlines=False, startupinfo=None, creationflags=0)
-    
+    # if we were told to skip, then skip!
+    if ex.has_key('disabled') and ex['disabled'] == 'Y':
+        continue
+
     log = "%s Starting %s: %s\n" % (time.strftime("%a, %d %b %Y %H:%M:%S +0000"), ex['name'], ex['cmd'])
     print log,
     
