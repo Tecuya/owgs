@@ -10,43 +10,41 @@ This should do the following:
 
 """
 
-#########################################
-# Configuration
+######################################
+# Environment initialization
+
+import os, subprocess, traceback, pwd, sys, time, ConfigParser
+
+config = ConfigParser.ConfigParser()
+config.read('daemon.cfg')
+def parseCfg(name):
+    return config.get('owgs', name)
 
 # Username to run OWGS as
-owgs_username = 'sean'
-
-# Path to owgs
-owgs_path = '/home/sean/code/go/django_code'
+owgs_username = parseCfg('user')
 
 # These are the scripts we will run, and where they will be logged to
 executables = [ 
 
     { 'name': 'devserver',
-      'wd': '%s/go' % owgs_path,
-      'args': [ '%s/go/manage.py' % owgs_path, 'runserver', '10.200.200.6:8000' ],
-      'log': '%s/log/manage.log' % owgs_path },
+      'disabled': (parseCfg('django_manage') == 'N'),
+      'cmd': parseCfg('django_command'),
+      'log': parseCfg('django_log') },
 
     { 'name': 'orbited',
-      'args': [ '/home/sean/code/go/orbited/start.py', '--config', '/home/sean/code/go/orbited/orbited.cfg' ],
-      'log': '%s/log/orbited.log' % owgs_path },
+      'cmd': parseCfg('orbited_command'),
+      'log': parseCfg('orbited_log') },
     
     { 'name': 'netserver',
-      'args': [ '%s/netserver.py' % owgs_path ],
-      'log': '%s/log/netserver.log' % owgs_path },
+      'cmd': parseCfg('netserver_command'),
+      'log': parseCfg('netserver_log') },
     
     { 'name': 'gtpbot',
-      'args': [ '%s/gtpbot.py' % owgs_path ],
-      'log': '%s/log/gtpbot.log' % owgs_path }
-    
-    
+      'cmd': parseCfg('bot_command'),
+      'log': parseCfg('bot_log') }
+        
     ]
 
-
-######################################
-# Environment initialization
-
-import os, subprocess, traceback, pwd, sys, time
 
 try:
     owgs_euid = pwd.getpwnam(owgs_username)[2]
@@ -65,8 +63,8 @@ for ex in executables:
     
     # class subprocess.Popen(args, bufsize=0, executable=None, stdin=None, stdout=None, stderr=None, preexec_fn=None, close_fds=False, shell=False, cwd=None, env=None, universal_newlines=False, startupinfo=None, creationflags=0)
     
-    log = "%s Starting %s: %s" % (time.strftime("%a, %d %b %Y %H:%M:%S +0000"), ex['name'], ' '.join(ex['args']))
-    print log
+    log = "%s Starting %s: %s\n" % (time.strftime("%a, %d %b %Y %H:%M:%S +0000"), ex['name'], ex['cmd'])
+    print log,
     
     try:
         logfile = file(ex['log'], 'a+')        
@@ -85,7 +83,7 @@ for ex in executables:
     else:
         setcwd = None
     
-    proc = subprocess.Popen( args=ex['args'], stdout=logfile, stderr=logfile, cwd=setcwd )
+    proc = subprocess.Popen( args=ex['cmd'].split(' '), stdout=logfile, stderr=logfile, cwd=setcwd )
     
     # store it to our procs list
     procs.append( proc )

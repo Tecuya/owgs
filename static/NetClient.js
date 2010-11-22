@@ -422,6 +422,8 @@ NetClient_instance = new function NetClient() {
             // delete in here in a meager attempt to make sure the browser releases the resources
             // associated to the audio object.  i dont know enough about javascript implementations
             // to know if that's necessary....
+            //
+            // NOTE ARG THIS STILL DOESNT WORK RIGHT IN CHROME on owgs.org
             if( ! this.audio[ file ].ended) { 
                 delete this.audio[ file ];
                 this.audio[ file ] = new Audio( file );

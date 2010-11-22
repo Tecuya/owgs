@@ -4,10 +4,11 @@ import cjson
 
 import pexpect
 
-from twisted.internet.protocol import ClientFactory
+from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.protocols.basic import LineReceiver
 from twisted.internet import reactor
 import sys
+import time
 
 # this is the prog & args to run to get our subprocess
 GTP_PROG = '/usr/games/gnugo --mode gtp'
@@ -249,16 +250,20 @@ class GTP_Process:
         return self.gtp_process.match.groups()[0].rstrip()
     
                 
-class OWGSClientFactory(ClientFactory):
-    protocol = OWGSClient
+class OWGSClientFactory(ReconnectingClientFactory):
 
     def clientConnectionFailed(self, connector, reason):
-        print 'connection failed:', reason.getErrorMessage()
-        reactor.stop()
-
+        print 'Connection failed:', reason.getErrorMessage()
+        time.sleep(5)
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+        
+         
     def clientConnectionLost(self, connector, reason):
-        print 'connection lost:', reason.getErrorMessage()
-        reactor.stop()
+        print 'Lost connection.  Reason:', reason
+        time.sleep(5)
+        ReconnectingClientFactory.clientConnectionLost(self, connector, reason)
+
+    protocol = OWGSClient
 
 def main():
     factory = OWGSClientFactory()

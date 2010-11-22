@@ -1,0 +1,29 @@
+# This is the example config file for daemon.py
+
+[owgs]
+
+# The username you want to run owgs as
+user=www-data
+
+# The path to OWGS (used in substitutions below)
+path=/var/www/owgs.org
+
+# If you want daemon.py to run django's dev server, change this to Y and supply the command
+django_manage=N
+django_command=%(path)s/go/manage.py runserver 10.200.200.6:8000
+django_log=%(path)s/log/manage.log
+
+# Command to start orbited with, where to log its output
+orbited_command=/home/sean/code/go/orbited/start.py --config /home/sean/code/go/orbited/orbited.cfg
+orbited_log=%(path)s/log/orbited.log
+
+# Command to start netserver with, where to log its output
+netserver_command=%(path)s/netserver.py
+netserver_log=%(path)s/log/netserver.log
+
+# Command to start gtpbot with, where to log its output
+bot_command=%(path)s/gtpbot.py
+bot_log=%(path)s/log/gtpbot.log
+
+
+
