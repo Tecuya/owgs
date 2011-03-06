@@ -3,7 +3,9 @@
 #####################################
 # This script is provided to easily start all the necessary OWGS services 
 # It is inteded to run as root.
-
+#
+# TODO clean shutdown of children processes (trap SIGKILL?)
+#
 ######################################
 # Environment initialization
 
@@ -13,6 +15,8 @@ os.chdir(os.path.dirname(__file__))
 
 config = ConfigParser.ConfigParser()
 config.read('daemon.cfg')
+
+# convenient way to fetch config 
 def parseCfg(name):
     return config.get('owgs', name)
 
@@ -53,6 +57,11 @@ procs = []
 
 for ex in executables:
 
+    # if we were told to skip, then skip!
+    if ex.has_key('disabled') and ex['disabled']:
+        continue
+
+    # attempt to seteuid 
     try:
         owgs_euid = pwd.getpwnam(ex['user'])[2]
         os.seteuid(owgs_euid)
@@ -61,10 +70,7 @@ for ex in executables:
         traceback.print_exc()
         sys.exit()
     
-    # if we were told to skip, then skip!
-    if ex.has_key('disabled') and ex['disabled']:
-        continue
-
+    # write message indicating when the program was started to the log
     log = "%s Starting %s: %s\n" % (time.strftime("%a, %d %b %Y %H:%M:%S +0000"), ex['name'], ex['cmd'])
     print log,
     
@@ -75,7 +81,6 @@ for ex in executables:
         traceback.print_exc()
         sys.exit()
 
-    # write message indicating when the program was started to the log
     logfile.write(log)
     logfile.flush()
 
@@ -84,7 +89,8 @@ for ex in executables:
         setcwd = ex['wd']
     else:
         setcwd = None
-    
+
+    # execute
     proc = subprocess.Popen( args=ex['cmd'].split(' '), stdout=logfile, stderr=logfile, cwd=setcwd )
     
     # store it to our procs list
