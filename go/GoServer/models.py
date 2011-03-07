@@ -176,7 +176,8 @@ class GameParticipant(models.Model):
     import datetime
 
     Game = models.ForeignKey(Game)
-    Participant = models.ForeignKey(User)
+
+    Participant = models.ForeignKey(User, blank=True, null=True)
 
     JoinDate = models.DateTimeField('Participant Join Date', default=datetime.datetime.now)
 
@@ -190,7 +191,7 @@ class GameParticipant(models.Model):
 
     State = models.CharField('State', max_length=1, choices=(('W', 'White'),
                                                              ('B', 'Black'),
-                                                             ('O', 'Owner'),
+                                                             ('O', 'Owner'), # O is a pre-game state; user owns the game but has no color yet
                                                              ('S', 'Spectator'),
                                                              ('U', 'Unset')), default='U')
     

@@ -99,10 +99,14 @@ class GoServerProtocol(basic.LineReceiver):
       # connect command ; index 1 is a session_key
       if(cmd[0] == 'SESS'):
          # load up the session's user object
-         session = Session.objects.get(session_key = cmd[1])
-         uid = session.get_decoded().get('_auth_user_id')
+         sess_qs = Session.objects.filter(session_key = cmd[1])
+         if len(sess_qs):
+            session = Session.objects.filter(session_key = cmd[1])            
+            uid = session[0].get_decoded().get('_auth_user_id')
+         else:
+            uid = None
+
          if uid == None:
-            # TODO support anonymous users
             self.user = AnonymousUser()
          else:
             self.user = User.objects.get(pk=uid)
@@ -158,9 +162,15 @@ class GoServerProtocol(basic.LineReceiver):
 
             # assume user is new
             new_user = True
+            
+            if self.user.is_anonymous():
+               query_user = None
+            else:
+               query_user = self.user
 
             # this should really never return more than one row....
-            existing_rows = GameParticipant.objects.filter(Game = game, Participant=self.user)
+            existing_rows = GameParticipant.objects.filter(Game = game, Participant = query_user)
+
             if(len(existing_rows) > 0):
                new_user = False
                part_that_joined = existing_rows[0]
@@ -177,7 +187,7 @@ class GoServerProtocol(basic.LineReceiver):
                   newstate = 'U'
 
                # now make a participant entry to tie this user to the game in the database
-               part_that_joined = GameParticipant( Participant=self.user, Game=game, State=newstate, Present=True )
+               part_that_joined = GameParticipant( Participant=query_user, Game=game, State=newstate, Present=True )
                part_that_joined.save()
 
             # store our game state so we are aware what color/state we are in this game later
@@ -205,7 +215,12 @@ class GoServerProtocol(basic.LineReceiver):
             if game.State != 'P':
                try:
                   # try to find them and send the gvar
-                  our_part = GameParticipant.objects.filter(Game = game, Participant = self.user)[0]
+                  if self.user.is_anonymous():
+                     query_user = None
+                  else:
+                     query_user = self.user
+
+                  our_part = GameParticipant.objects.filter(Game = game, Participant = query_user)[0]
 
                   # TODO its kind of lame that a GVAR is necessary to set this!
                   self.gamepartstate[ game.id ] = our_part.State
@@ -877,7 +892,14 @@ class GoServerProtocol(basic.LineReceiver):
    def sendGUSR(self, game):
       uList = []
       for part in GameParticipant.objects.filter(Game = game, Present=True):
-         uList.append( [ part.Participant.id, part.Participant.username, part.State ] )
+         if part.Participant:
+            user_name = part.Participant.username
+            user_id = part.Participant.id
+         else:
+            user_name = 'Guest'
+            user_id = 0
+
+         uList.append( [ user_id, user_name, part.State ] )
 
       self.writeToTransport(["GUSR", game.id, uList])
 

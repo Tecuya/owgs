@@ -113,45 +113,46 @@ def Chat(request, chat_id):
 def GameView(request, game_id):
     from go.GoServer.models import Game, GameParticipant, GameTree, UserProfile
     from django.contrib.auth.models import User
-
-    if request.user.is_anonymous():
-        return HttpResponseRedirect('/accounts/login')
-
+    
     game = Game.objects.get(pk = game_id)
 
-    # determine if we are the owner of this game or not
+    # spectator unless you end up being a player when loading participant
+    you_are = 'S'
+
     you_are_owner = (game.Owner == request.user)
-
-    you_are = 'U'
-
-    # TODO clean this up!  use more advanced model queries
 
     # load white/black participants, if there are any
     if GameParticipant.objects.filter(Game = game, State='W').count() == 1:
         gp_w = GameParticipant.objects.filter(Game = game, State='W')[0]
-        user_w = User.objects.get(pk = gp_w.Participant.id)
-        if gp_w.Participant == request.user:
-            you_are = 'W'
+        user_w = gp_w.Participant
     else:
         user_w = {}
 
     if GameParticipant.objects.filter(Game = game, State='B').count() == 1:
         gp_b = GameParticipant.objects.filter(Game = game, State='B')[0]
-        user_b = User.objects.get(pk = gp_b.Participant.id)
-        if gp_b.Participant == request.user:
-            you_are = 'B'
+        user_b = gp_b.Participant
     else:
         user_b = {}
 
-    sgf = GameTree( game.id ).dumpSGF().replace("\n","\\n")
+    if user_w == request.user:
+        you_are = 'W'
+    elif user_b == request.user:
+        you_are = 'B'
+
+    # sgf = GameTree( game.id ).dumpSGF().replace("\n","\\n")
+
+    if request.user.is_anonymous():
+        # defaulting to standard player mode in absence of user profile
+        debug_mode = 0
+    else:
+        profile = request.user.get_profile()
+        debug_mode = profile.DebugMode
     
     return render_to_response('GoServer/GameView.html', 
                               {"Game": game,
                                "PreGame": (game.State == 'P'),
                                "Finished": (game.State == 'F'),
-                               "SGF": sgf,
-                               "EidogoPlayerStyle": request.user.get_profile().EidogoPlayerMode,
-                               "DebugMode": request.user.get_profile().DebugMode,
+                               "DebugMode": debug_mode,
                                "YouAreColor": you_are,
                                "YouAreOwner": you_are_owner,
                                "UserBlack": user_b,

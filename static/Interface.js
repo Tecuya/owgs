@@ -322,6 +322,30 @@ $(function() {
         iface.openLogin();
     }
     
+
+    // scan get variables and see if they want us to do anything
+
+    var qsParm = new Array();
+    
+    var query = window.location.search.substring(1);
+    var parms = query.split('&');
+    for (var i=0; i<parms.length; i++) {
+        var pos = parms[i].indexOf('=');
+        if (pos > 0) {
+            var key = parms[i].substring(0,pos);
+            var val = parms[i].substring(pos+1);
+            qsParm[key] = val;
+        }
+    }
+    
+    
+    if(qsParm["joinGame"]) { 
+        var joingames = qsParm["joinGame"].split(",");
+    
+        for(var i=0;i<joingames.length;i++) { 
+            iface.makeGameTab( joingames[i] );
+        }
+        
+    }
+    
 });
-
-

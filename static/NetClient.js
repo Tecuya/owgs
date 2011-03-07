@@ -7,8 +7,11 @@ Orbited.settings.port = 8001
 NetClient_instance = new function NetClient() { 
 
     // debug mode
-    this.NetClient_debug = netclient_debug_mode;
-    
+    // this.NetClient_debug = netclient_debug_mode;
+
+    // perma debug.. only way to debug anonymous!
+    this.NetClient_debug = true;
+
     // track our session_key
     this.session_key = netclient_session_key;
 
@@ -98,7 +101,7 @@ NetClient_instance = new function NetClient() {
 
             this.cts = true;
             if(this.sendq.length > 0) { 
-                this.send( this.sendq.pop() );
+                this.send( this.sendq.shift() );
             }
 
         } else if(command == "JOIN") { 
@@ -274,15 +277,12 @@ NetClient_instance = new function NetClient() {
     this.send = function(data) { 
         
         // if we aren't clear to send, then just add the message to the send q
-        if(this.cts == false) { 
-            this.debug("SEND queued: " + data + "\n");
-            this.sendq.push(data);
-            return;
-        }
-        
-
         if (this.tcp.readyState < 3) {
-            this.debug("ERR: Not Connected - ready state " + this.tcp.readyState + "\n");
+            this.debug("SEND queued (not connected yet): " + data + "\n");
+            this.sendq.push(data);
+        } else if ( ! this.cts ) { 
+            this.debug("SEND queued (awaiting CTS): " + data + "\n");
+            this.sendq.push(data);
         } else if (this.tcp.readyState > 3 ) {
             this.debug("ERR: Disconnect(ed)(ing)\n");
         } else {
@@ -312,11 +312,12 @@ NetClient_instance = new function NetClient() {
         
     this.debug = function(msg) { 
         curdate = new Date();
-        if($("#NetClient_debug")[0])
+        if($("#NetClient_debug")[0]) {
             $("#NetClient_debug")[0].value += curdate.toLocaleString() + ": " + msg;
         
-        // scroll down
-        $("#NetClient_debug")[0].scrollTop = $("#NetClient_debug")[0].scrollHeight;
+            // scroll down
+            $("#NetClient_debug")[0].scrollTop = $("#NetClient_debug")[0].scrollHeight;
+        }
     }
 
     /////////////////////////////////////////
