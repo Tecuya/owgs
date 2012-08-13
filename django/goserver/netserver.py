@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 
 # python included modules
-import datetime, time, math, cjson, sys
+import datetime, time, math, cjson
 
 # twisted
 from twisted.internet import protocol, reactor
 from twisted.protocols import basic
 
 # django land
-from django.core.management import setup_environ
-from go import settings
-
-setup_environ(settings)
-
-from django.db.models import F, Max, Min, Count
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User, AnonymousUser
-from go.GoServer.models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree, Chat, ChatParticipant
+from models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree, Chat, ChatParticipant
 
 
 # our CTS command
@@ -1243,8 +1237,6 @@ class GoServerFactory(protocol.ServerFactory):
 
 
 
-reactor.listenTCP(PORT, GoServerFactory())
-reactor.run()
-
-   
-
+def start():
+   reactor.listenTCP(PORT, GoServerFactory())
+   reactor.run()

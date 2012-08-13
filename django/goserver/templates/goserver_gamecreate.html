@@ -5,8 +5,17 @@
 
 <div>
  <form method="post">
- {{ GameForm.as_p }}
- <button type="button" onClick="iface.createGame()">Create</button>
+  {% csrf_token %}   
+  <div class="label150">Type</div> {{ GameForm.Type }}<br />
+  <div class="label150">Board Size</div> {{ GameForm.BoardSize }}<br />
+  <div class="label150">Komi</div> {{ GameForm.Komi }}<br />
+  <div class="label150">Allow Undo</div> {{ GameForm.AllowUndo }}<br />
+  <div class="label150">Main Time</div> {{ GameForm.MainTime }}<br />
+  <div class="label150">Overtime Type</div> {{ GameForm.OvertimeType }}<br />
+  <div class="label150">Overtime Period</div> {{ GameForm.OvertimePeriod }}<br />
+  <div class="label150">Overtime Count</div> {{ GameForm.OvertimeCount }}<br />
+  
+  <button type="button" onClick="iface.createGame()">Create</button>
  </form>
 </div>
 

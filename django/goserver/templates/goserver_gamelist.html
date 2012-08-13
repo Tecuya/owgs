@@ -1,12 +1,15 @@
 <div id="gamelist">
 <a href="javascript:void(0);" onClick="iface.reloadGameList();">Refresh List</a>
 <ul>
+  
  {% for Game in GameList %}
  <li>
    <a href="javascript:void(0);" onClick="iface.makeGameTab({{ Game.id }});">Join</a>
    <a href="/games/sgf/{{ Game.id }}">SGF</a>
   {{ Game.id }} - {{ Game.params }} - <b>{{ Game.present_participants }}</b> participants connected.
  </li>
+ {% empty %}
+  <b>No games are currently active!</b>   
  {% endfor %}
 </ul>
 </div>

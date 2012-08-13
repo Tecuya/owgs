@@ -106,9 +106,6 @@ INSTALLED_APPS = (
     'south',
     # 'guardian',
 
-    # for orbited static
-    'orbited',
-
     'registration',
     
     'goserver',

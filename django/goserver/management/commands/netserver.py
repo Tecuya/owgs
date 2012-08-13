@@ -10,4 +10,6 @@ class Command(BaseCommand):
     help = 'Help text goes here'
 
     def handle(self, **options):
-        print goserver.models
+        
+        from goserver.netserver import start
+        start()
