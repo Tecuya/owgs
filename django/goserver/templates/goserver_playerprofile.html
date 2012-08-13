@@ -1,0 +1,15 @@
+{% extends "goserver_skin.html" %}
+
+{% block content %}
+
+<h2>Your Profile</h2>
+
+<div>
+<form method="post">
+{{ UserProfileForm.as_p }}
+<input type="submit" value="Save" />
+</form>
+</div>
+
+{% endblock %}
+

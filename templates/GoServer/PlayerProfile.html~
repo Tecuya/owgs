@@ -1,6 +1,0 @@
-{% extends "Skin.html" %}
-
-{% block content %}
-Game List Here!
-{% endblock %}
-

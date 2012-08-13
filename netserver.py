@@ -1050,7 +1050,8 @@ class GoServerFactory(protocol.ServerFactory):
       # { user_id: [ board size, main time, komi, color ], .... } 
       self.user_game_offers = {}
 
-      # this holds scores submitted by users for comparison/validation with their opponent's submitted scores
+      # this holds scores submitted by users for comparison/validation
+      # with their opponent's submitted scores
       self.user_game_scoring = {}
 
       # initial model presence sync
