@@ -1,23 +1,28 @@
 #!/usr/bin/env python
 
 import cjson
-
 import pexpect
+import time
+import ConfigParser
 
 from twisted.internet.protocol import ReconnectingClientFactory
 from twisted.protocols.basic import LineReceiver
 from twisted.internet import reactor
-import sys
-import time
+
+config = ConfigParser.ConfigParser()
+config.read('gtpbot.cfg')
+
+# convenient way to fetch config 
+parsecfg = lambda name: config.get('gtpbot', name)
+
+# owgs connection parameters
+USER = parsecfg('owgs_username')
+PASS = parsecfg('owgs_password')
+HOST = parsecfg('owgs_host')
+PORT = int(parsecfg('owgs_port'))
 
 # this is the prog & args to run to get our subprocess
 GTP_PROG = '/usr/games/gnugo --mode gtp'
-
-# owgs connection parameters
-USER = 'gnugo'
-PASS = '123'
-HOST = 'localhost'
-PORT = 8002
 
 # initial game parameters
 G_TYPE = 'F'

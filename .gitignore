@@ -5,4 +5,5 @@
 .\#*
 orbited-0*
 .ropeproject
-
+gtpbot.cfg
+daemon.cfg

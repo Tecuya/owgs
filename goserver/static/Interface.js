@@ -67,7 +67,7 @@ iface = new function Interface() {
         this.registerTabCloseCallback( tab_index,
                                        function() { 
                                            iface.chatTabs[ chat_id ] = false; 
-                                           NetClient_instance.partchat( chat_id ); 
+                                           owgs.partchat( chat_id ); 
                                        } );
     },
 
@@ -122,7 +122,7 @@ iface = new function Interface() {
         this.registerTabCloseCallback( in_tab,
                                        function() { 
                                            iface.gameTabs[ game_id ] = false; 
-                                           NetClient_instance.partgame( game_id ); 
+                                           owgs.partgame( game_id ); 
                                        } );
     },
 
@@ -144,7 +144,7 @@ iface = new function Interface() {
 
         // validate me!
 
-        NetClient_instance.creategame(
+        owgs.creategame(
             $("#id_Type").val(),
             $("#id_BoardSize").val(),
             $("#id_Komi").val(),
@@ -219,13 +219,13 @@ iface = new function Interface() {
             theme:           use_theme, // TODO standard or compact should be a player pref or something
             sgf:             sgf,
             mode:            "play",
-            hooks:           {"owgs_createMove": function(data) { NetClient_instance.onmove( game_id, data ); },
-                              "owgs_scoreToggleStone": function(data) { NetClient_instance.ondead( game_id, data); },
-                              "owgs_nav": function(data) { NetClient_instance.onnav( game_id, data); },
-                              "owgs_undo": function(data) { NetClient_instance.onundo( game_id ); }, 
-                              "owgs_stoneSound": function(data) { NetClient_instance.onsound( game_id, data ); },
-                              "owgs_resign": function(data) { NetClient_instance.onresign( game_id ); },
-                              "owgs_scoresubmit": function(data) { NetClient_instance.onscoresubmit( game_id, data); } },
+            hooks:           {"owgs_createMove": function(data) { owgs.onmove( game_id, data ); },
+                              "owgs_scoreToggleStone": function(data) { owgs.ondead( game_id, data); },
+                              "owgs_nav": function(data) { owgs.onnav( game_id, data); },
+                              "owgs_undo": function(data) { owgs.onundo( game_id ); }, 
+                              "owgs_stoneSound": function(data) { owgs.onsound( game_id, data ); },
+                              "owgs_resign": function(data) { owgs.onresign( game_id ); },
+                              "owgs_scoresubmit": function(data) { owgs.onscoresubmit( game_id, data); } },
             loadPath:        [0, 0],
             markCurrent:     true,
             markVariations:  true,
@@ -304,14 +304,14 @@ $(function() {
                              var i;
                              for(i=0;i<iface.chatTabs.length;i++) {
                                  if(iface.chatTabs[i] == ui.index) { 
-                                     NetClient_instance.joinchat( i );
+                                     owgs.joinchat( i );
                                      break;
                                  }
                              }
 
                              for(i=0;i<iface.gameTabs.length;i++) {
                                  if(iface.gameTabs[i] == ui.index) { 
-                                     NetClient_instance.joingame( i );
+                                     owgs.joingame( i );
                                      break;
                                  }
                              }

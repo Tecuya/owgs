@@ -9,6 +9,11 @@
     Anonymous users are allowed to spectate only.  Accounts are free!
   </p>
 
+  <p>
+    Logging in effectively resets the OWGS application; all your tabs
+    will be closed upon login.
+  </p>
+
 {% csrf_token %}
 
   <div class="label100">Username:</div> {{ form.username }}<br />
@@ -19,7 +24,15 @@
   <input type="hidden" name="next" value="/" />
 </form>
 
-<p>{% trans "Forgot password" %}? <a href="{% url auth_password_reset %}">{% trans "Reset it" %}</a>!</p>
-<p>{% trans "Not member" %}? <a href="{% url registration_register %}">{% trans "Register" %}</a>!</p>
+<a href="javascript:void(0);"    
+   onClick="$('#ifacetabs').tabs('add', '{% url registration_register %}', 'Register');">
+   Register Account</a> 
+<br />
+
+<a href="javascript:void(0);" 
+   onClick="$('#ifacetabs').tabs('add', '{% url auth_password_reset %}', 'Reset Password');">
+   Forgot Password   
+</a>
+
 
 {% endblock %}

@@ -1,17 +1,20 @@
-{% extends "goserver_skin.html" %}
 {% load i18n %}
 
 {% block content %}
-<h2>Registration</h2>
-<h3>Fill out this form to register a new account on OWGS.</h3>
-<form method="post" action=".">
-  {% csrf_token %}
+<p>Fill out this form to register a new account on OWGS.</p>
 
-  <div class="label150">Username:</div> {{ form.username }}<br />
-  <div class="label150">Email:</div> {{ form.email }}<br />
-  <div class="label150">Password:</div> {{ form.password1 }}<br />
-  <div class="label150">Password Confirm:</div> {{ form.password2 }}<br />
-  
-  <input type="submit" value="{% trans 'Submit' %}" />
-</form>
+<div style="margin-top:10px;">
+
+  <form method="post" action="." style="display:inline;">
+    {% csrf_token %}
+    
+    <div class="label150">Username:</div> {{ form.username }}<br />
+    <div class="label150">Email:</div> {{ form.email }}<br />
+    <div class="label150">Password:</div> {{ form.password1 }}<br />
+    <div class="label150">Password Confirm:</div> {{ form.password2 }}<br />
+    
+    <input type="submit" value="{% trans 'Submit' %}" />
+  </form>
+
+</div>
 {% endblock %}

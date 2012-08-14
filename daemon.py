@@ -17,35 +17,34 @@ config = ConfigParser.ConfigParser()
 config.read('daemon.cfg')
 
 # convenient way to fetch config 
-def parseCfg(name):
-    return config.get('owgs', name)
+parsecfg = lambda name: config.get('owgs', name)
 
 # Username to run OWGS as
-owgs_username = parseCfg('user')
+owgs_username = parsecfg('user')
 
 # These are the scripts we will run, and where they will be logged to
 executables = [ 
 
     { 'name': 'devserver',
       'user': owgs_username,
-      'disabled': (parseCfg('django_manage') == 'N'),
-      'cmd': parseCfg('django_command'),
-      'log': parseCfg('django_log') },
+      'disabled': (parsecfg('django_manage') == 'N'),
+      'cmd': parsecfg('django_command'),
+      'log': parsecfg('django_log') },
 
     { 'name': 'orbited',
       'user': 'root',
-      'cmd': parseCfg('orbited_command'),
-      'log': parseCfg('orbited_log') },
+      'cmd': parsecfg('orbited_command'),
+      'log': parsecfg('orbited_log') },
     
     { 'name': 'netserver',
       'user': owgs_username,
-      'cmd': parseCfg('netserver_command'),
-      'log': parseCfg('netserver_log') },
+      'cmd': parsecfg('netserver_command'),
+      'log': parsecfg('netserver_log') },
     
     { 'name': 'gtpbot',
       'user': owgs_username,
-      'cmd': parseCfg('bot_command'),
-      'log': parseCfg('bot_log') }
+      'cmd': parsecfg('bot_command'),
+      'log': parsecfg('bot_log') }
         
     ]
 

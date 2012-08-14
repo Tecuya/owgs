@@ -2,7 +2,7 @@
  <h3>Chat {{ ChatID }}</h3>
  <textarea cols=80 rows=25 id="chat_{{ ChatID }}_Textarea" readonly></textarea><br>
  <input size=90 type=text id="chat_{{ ChatID }}_Input">
- <button type=button onClick="NetClient_instance.chat( {{ ChatID }}, $('#chat_{{ ChatID }}_Input').val()); $('#chat_{{ ChatID }}_Input')[0].value = '';">
+ <button type=button onClick="owgs.chat( {{ ChatID }}, $('#chat_{{ ChatID }}_Input').val()); $('#chat_{{ ChatID }}_Input')[0].value = '';">
   Send
  </button>
 </div>

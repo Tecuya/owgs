@@ -1,0 +1,10 @@
+# This is the example config file for gtpbot.py
+
+[gtpbot]
+owgs_username=gnugo
+
+# change this password!
+owgs_password=insecure
+
+owgs_host=localhost
+owgs_port=8002

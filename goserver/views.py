@@ -10,6 +10,8 @@ def get_user_profile(user):
         return user.get_profile()
     except ObjectDoesNotExist:
         return None
+    except AttributeError:
+        return None
 
 def get_user_debug(user):
 
@@ -173,7 +175,8 @@ def NetClientUnloadWrapper():
 
 def player_profile(request):
 
-    from goserver.models import UserProfile, UserProfileForm
+    from goserver.models import UserProfile
+    from goserver.forms import UserProfileForm
 
     try:
         prof = UserProfile.objects.get(user = request.user.id)

@@ -1,39 +1,45 @@
 <html>
-<head>
- <title>Open Web Go Server</title>
-{% block head %}{% endblock %}
- <link rel="stylesheet" href="/static/style.css" type="text/css">
-</head>
-<body>
+  <head>
+    <title>Open Web Go Server</title>
+    {% block head %}{% endblock %}
+    <link rel="stylesheet" href="/static/style.css" type="text/css">
+  </head>
 
-<div id="header">
-
-<div style="float:left;">
-<h1><a style="color: #333311; text-decoration:none;" href="/"><img src="/static/owgs/owgs_logo.png"></a></h1>
-</div>
-
-<div id="topright">
-{% if user.is_authenticated %}
- Logged in as {{ user.username }} <a href="/accounts/profile">Edit Profile</a> <a href="/accounts/logout">Log Out</a>
- {% else %}
-  {% if IsInterface %}
-   <a href="javascript:void(0);" onClick="javascript:iface.openLogin();">Log In</a>
-  {% else %}
-   <a href="/#login">Log In</a>
-  {% endif %}  
- {% endif %}
-</div>
-
-</div>
-
-<div id="content">
- {% block content %}No content!{% endblock %}
-</div>
-
-<div id="footer">
-<a target="_blank" href="http://github.com/Tecuya/owgs/">Visit OWGS on github</a>
-<a target="_blank" style="float:right;"href="http://github.com/Tecuya/owgs/blob/master/LICENSE">License</a>
-</div>
-
-</body>
+  <body>
+    
+    <div id="header">
+      
+      <div style="float:left;">
+        <h1>
+          <a style="color: #333311; text-decoration:none;" href="/">
+            <img src="/static/owgs/owgs_logo.png">
+          </a>
+        </h1>
+      </div>
+      
+      <div id="topright">
+        {% if user.is_authenticated %}
+          Logged in as {{ user.username }} <a href="/accounts/profile">Edit Profile</a> <a href="/accounts/logout">Log Out</a>
+        {% else %}
+          {% if IsInterface %}
+            <a href="javascript:void(0);" onClick="javascript:iface.openLogin();">Log In</a>
+          {% else %}
+            <a href="/#login">Log In</a>
+          {% endif %}  
+        {% endif %}
+      </div>
+      
+    </div>
+    
+    <div id="content">
+      {% block content %}No content!{% endblock %}
+    </div>
+    
+    <div id="footer">
+      <a target="_blank" href="http://github.com/Tecuya/owgs/">Visit OWGS on github</a>
+      <a target="_blank" style="float:right;" 
+         href="http://github.com/Tecuya/owgs/blob/master/LICENSE">License</a>
+    </div>
+    
+  </body>
 </html>
