@@ -1,93 +1,91 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# Jannis Leidel <jannis@leidel.info>, 2007-2009.
+# jonklo <jon at funkbit dot no>, 2010.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: django-registration 0.8 \n"
+"Project-Id-Version: django-registration 0.8\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-10-18 21:32+0200\n"
-"PO-Revision-Date: 2007-09-29 16:50+0200\n"
-"Last-Translator: Jannis Leidel <jannis@leidel.info>\n"
-"Language-Team: Deutsch <de@li.org>\n"
+"POT-Creation-Date: 2010-12-15 21:37+0100\n"
+"PO-Revision-Date: 2010-12-15 21:37+0100\n"
+"Last-Translator: jonklo <jon at funkbit dot no>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: admin.py:23
 msgid "Activate users"
-msgstr "Benutzer aktivieren"
+msgstr "Aktiver brukere"
 
 #: admin.py:43
 msgid "Re-send activation emails"
-msgstr "Aktivierungs-E-Mail erneut senden"
+msgstr "Send ny aktiveringsmail"
 
 #: forms.py:35
 msgid "Username"
-msgstr "Benutzername"
+msgstr "Brukernavn"
 
 #: forms.py:36
 msgid "This value must contain only letters, numbers and underscores."
-msgstr "Dieser Wert darf nur Buchstaben, Ziffern und Unterstriche enthalten."
+msgstr "Dette feltet kan bare inneholde bokstaver, nummer og understreker."
 
 #: forms.py:39
 msgid "Email address"
-msgstr "E-Mail-Adresse"
+msgstr "E-postadresse"
 
 #: forms.py:41
 msgid "Password"
-msgstr "Passwort"
+msgstr "Passord"
 
 #: forms.py:43
 msgid "Password (again)"
-msgstr "Passwort (wiederholen)"
+msgstr "Passord (gjenta)"
 
 #: forms.py:55
 msgid "A user with that username already exists."
-msgstr "Dieser Benutzername ist bereits vergeben."
+msgstr "Det eksisterer allerede en bruker med dette brukernavnet."
 
 #: forms.py:67
 msgid "The two password fields didn't match."
-msgstr "Die beiden Passwörter sind nicht identisch."
+msgstr "De to passordfeltene er ikke like."
 
 #: forms.py:78
 msgid "I have read and agree to the Terms of Service"
-msgstr "Ich habe die Nutzungsvereinbarung gelesen und stimme ihr zu"
+msgstr "Jeg har lest og godtar betingelsene"
 
 #: forms.py:79
 msgid "You must agree to the terms to register"
-msgstr "Sie müssen der Nutzungsvereinbarung zustimmen, um sich zu registrieren"
+msgstr "Du må godta betingelsene for å registrere deg"
 
 #: forms.py:95
 msgid ""
 "This email address is already in use. Please supply a different email "
 "address."
-msgstr ""
-"Diese E-Mail-Adresse wird schon genutzt. Bitte geben Sie eine andere E-Mail-"
-"Adresse an."
+msgstr "Denne e-postadressen er allerede i bruk. Vennligst oppgi en annen "
+"e-postadresse."
 
 #: forms.py:122
 msgid ""
 "Registration using free email addresses is prohibited. Please supply a "
 "different email address."
-msgstr ""
-"Die Registrierung mit einer kostenlosen E-Mail-Adresse ist untersagt. Bitte "
-"geben Sie eine andere E-Mail-Adresse an."
+msgstr "Registrering med gratis e-postadresse er ikke tillatt. Vennligst "
+"oppgi en annen e-postadresse."
 
-#: models.py:165
+#: models.py:168
 msgid "user"
-msgstr "Benutzer"
+msgstr "bruker"
 
-#: models.py:166
+#: models.py:169
 msgid "activation key"
-msgstr "Aktivierungsschlüssel"
+msgstr "aktiveringsnøkkel"
 
-#: models.py:171
+#: models.py:174
 msgid "registration profile"
-msgstr "Registrierungsprofil"
+msgstr "registrasjonsprofil"
 
-#: models.py:172
+#: models.py:175
 msgid "registration profiles"
-msgstr "Registrierungsprofile"
+msgstr "registrasjonsprofiler"

@@ -19,22 +19,22 @@ class RegistrationViewTests(TestCase):
 
     def setUp(self):
         """
-        Set ``REGISTRATION_BACKEND`` to the default backend, and store
-        the original value to be restored later.
+        These tests use the default backend, since we know it's
+        available; that needs to have ``ACCOUNT_ACTIVATION_DAYS`` set.
 
         """
-        self.old_backend = getattr(settings, 'REGISTRATION_BACKEND', None)
-        settings.REGISTRATION_BACKEND = 'registration.backends.default.DefaultBackend'
         self.old_activation = getattr(settings, 'ACCOUNT_ACTIVATION_DAYS', None)
-        settings.ACCOUNT_ACTIVATION_DAYS = 7
+        if self.old_activation is None:
+            settings.ACCOUNT_ACTIVATION_DAYS = 7 # pragma: no cover
 
     def tearDown(self):
         """
-        Restore the original value of ``REGISTRATION_BACKEND``.
+        Yank ``ACCOUNT_ACTIVATION_DAYS`` back out if it wasn't
+        originally set.
 
         """
-        settings.REGISTRATION_BACKEND = self.old_backend
-        settings.ACCOUNT_ACTIVATION_DAYS = self.old_activation
+        if self.old_activation is None:
+            settings.ACCOUNT_ACTIVATION_DAYS = self.old_activation # pragma: no cover
 
     def test_registration_view_initial(self):
         """
@@ -62,6 +62,7 @@ class RegistrationViewTests(TestCase):
                                           'password2': 'swordfish'})
         self.assertRedirects(response,
                              'http://testserver%s' % reverse('registration_complete'))
+        self.assertEqual(RegistrationProfile.objects.count(), 1)
         self.assertEqual(len(mail.outbox), 1)
 
     def test_registration_view_failure(self):
