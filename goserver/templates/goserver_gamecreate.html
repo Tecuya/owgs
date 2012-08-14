@@ -1,21 +1,34 @@
 
 {% block content %}
 <h2>Create Game</h2>
-<h3>For now, all time fields are in seconds.</h3>
 
-<div style="padding-top:10px;">
- <form method="post">
+<p>
+Once you create a game, it will be added to the publicly-visible list
+of open games.  Other players may load your game and offer to be a
+player in your game, at which point you can accept or decline their
+offer.  Once all player slots are filled, non-player users can
+spectate your game.
+</p>
+
+<div style="padding-top:6px;" class="darkbox">
+  <div style="text-align:center;padding-bottom:10px;">  
+    <h2>Game Properties</h2>
+  </div>
+  
+ <form method="post" style="display:inline;">
   {% csrf_token %}   
   <div class="label150">Type</div> {{ GameForm.Type }}<br />
   <div class="label150">Board Size</div> {{ GameForm.BoardSize }}<br />
   <div class="label150">Komi</div> {{ GameForm.Komi }}<br />
   <div class="label150">Allow Undo</div> {{ GameForm.AllowUndo }}<br />
-  <div class="label150">Main Time</div> {{ GameForm.MainTime }}<br />
+  <div class="label150">Main Time</div> {{ GameForm.MainTime }} minutes<br />
   <div class="label150">Overtime Type</div> {{ GameForm.OvertimeType }}<br />
-  <div class="label150">Overtime Period</div> {{ GameForm.OvertimePeriod }}<br />
-  <div class="label150">Overtime Count</div> {{ GameForm.OvertimeCount }}<br />
+  <div class="label150">O.T. Period Length</div> {{ GameForm.OvertimePeriod }}<br />
+  <div class="label150">O.T. Period Count</div> {{ GameForm.OvertimeCount }}<br />
   
-  <button type="button" onClick="iface.createGame()">Create</button>
+  <div style="text-align:center; padding-top:6px;">  
+    <button type="button" onClick="iface.createGame()">Create</button>
+  </div>
  </form>
 </div>
 

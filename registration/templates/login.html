@@ -4,7 +4,10 @@
 <form method="post" action="/accounts/login/" target="_top">
 
 {{ request.GET.error }}
-<p>You need an account in order to create new games.</p>
+  <p>
+    You need an account in order to create new games or chat.
+    Anonymous users are allowed to spectate only.  Accounts are free!
+  </p>
 
 {% csrf_token %}
 

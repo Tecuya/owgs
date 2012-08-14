@@ -49,13 +49,12 @@ class ChatParticipant(models.Model):
 
 class Game(models.Model):
     import datetime
-    
+
     # the owner of the game
     Owner = models.ForeignKey(User)
 
     # Date at which this game record was created
     CreateDate = models.DateTimeField('Game Start Date', default=datetime.datetime.now)
-
 
     ########### Player Preferences ###########
     # type
@@ -64,31 +63,59 @@ class Game(models.Model):
                                                                 ('T', 'Teaching')), default='F')
     
     # board size
-    BoardSize = models.CharField(max_length=10, choices=(('19x19','19 x 19'),
-                                                         ('13x13','13 x 13'),
-                                                         ('9x9','9 x 9')), default='19x19')
-
+    BoardSize = models.CharField(max_length=10,
+                                 choices=(('19x19','19 x 19'),
+                                          ('13x13','13 x 13'),
+                                          ('9x9','9 x 9')),
+                                 default='19x19')
+    
     # Komi for this game
-    Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1)
+    Komi = models.DecimalField('Komi', max_digits=4, decimal_places=1, default='5.5')
 
     # Indicates whether or not W / B players are determined
     AllowUndo = models.BooleanField('Allow Undo')
     
-
     ########### Time #############
     # Main time period length
-    MainTime = models.IntegerField('Main Time')    
+    MainTime = models.IntegerField('Main Time',
+                                   choices=((60,'1'),
+                                            (300,'5'),
+                                            (600,'10'),
+                                            (900,'15'),
+                                            (1200,'20'),
+                                            (1800,'30'),
+                                            (2400,'40'),
+                                            (3000,'50'),
+                                            (3600,'60')),
+                                   default=600)
     
     # overtime type
-    OvertimeType = models.CharField('Overtime Type', max_length=1, choices=(('N', 'No Overtime'),
-                                                                            ('B', 'Byo-Yomi'),
-                                                                            ('C', 'Canadian')),
+    OvertimeType = models.CharField('Overtime Type',
+                                    max_length=1,
+                                    choices=(('N', 'No Overtime'),
+                                             ('B', 'Byo-Yomi'),
+                                             ('C', 'Canadian')),
                                     default='N')
     
     # the length of an overtime period
-    OvertimePeriod = models.IntegerField('Overtime Period Length')
+    OvertimePeriod = models.IntegerField('Overtime Period Length',
+
+                                         choices=((10,'0:10'),
+                                                  (15,'0:15'),
+                                                  (20,'0:20'),
+                                                  (25,'0:25'),
+                                                  (30,'0:30'),
+                                                  (40,'0:40'),
+                                                  (50,'0:50'),
+                                                  (60,'1:00'),
+                                                  (90,'1:30'),
+                                                  (120,'2:00')),
+    
+                                         default=10)
+    
     # in N, meaningless, in B, the number of byo-yomi periods. in C, the number of stones 
-    OvertimeCount = models.IntegerField('Overtime Count')
+    OvertimeCount = models.IntegerField('Overtime Count',
+                                        default=0)
 
     # determine whether or not player is in overtime
     IsOvertimeW = models.BooleanField('W Is Overtime')

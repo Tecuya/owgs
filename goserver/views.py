@@ -1,7 +1,25 @@
 
-# Create your views here.
-from django.shortcuts import render
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
+
+
+def get_user_profile(user):
+
+    try:
+        return user.get_profile()
+    except ObjectDoesNotExist:
+        return None
+
+def get_user_debug(user):
+
+    profile = get_user_profile(user)
+
+    if profile is None:
+        return False
+
+    return profile.DebugMode
+        
 
 def game_list(request):
     from goserver.models import Game, GameParticipant
@@ -104,7 +122,7 @@ def chat(request, chat_id):
         return HttpResponseRedirect('/accounts/login')
 
     return render('goserver_chat.html', 
-                  {"DebugMode": request.user.get_profile().DebugMode,
+                  {"DebugMode": get_user_debug(request.user),
                    "ChatID": chat_id})
 
 def game_view(request, game_id):
@@ -136,13 +154,8 @@ def game_view(request, game_id):
         you_are = 'B'
 
     # sgf = GameTree( game.id ).dumpSGF().replace("\n","\\n")
-
-    if request.user.is_anonymous():
-        # defaulting to standard player mode in absence of user profile
-        debug_mode = 0
-    else:
-        profile = request.user.get_profile()
-        debug_mode = profile.DebugMode
+    
+    debug_mode = get_user_debug(request.user)
     
     return render(request,
                   'goserver_gameview.html', 
@@ -187,16 +200,9 @@ def Index(request):
                   'goserver_index.html')
 
 def integrated_interface(request):
-    if request.user.is_anonymous():
-        DebugMode = 'false'
-    elif request.user.get_profile().DebugMode:
-        DebugMode = 'true'
-    else:
-        DebugMode = 'false'
-
     return render(request,
                   'goserver_interface.html', 
-                  {'DebugMode': DebugMode,
+                  {'DebugMode': 'true' if get_user_debug(request.user) else 'false',
                    'IsInterface': True})
 
 

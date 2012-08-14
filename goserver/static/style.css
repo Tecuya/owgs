@@ -172,3 +172,11 @@ a:hover {
     -moz-border-radius: 10px; 
     -webkit-border-radius: 10px;
 }
+
+.darkbox { 
+    -moz-border-radius: 10px; 
+    -webkit-border-radius: 10px;
+    background-color: #bba;
+    padding: 6px;
+    display: inline-block;
+}
