@@ -115,7 +115,8 @@ def game_edit(request, game_id):
     
     form = GameForm(instance=game)
 
-    return render('goserver_gameedit.html',
+    return render(request,
+                  'goserver_gameedit.html',
                   {"game_editForm": form, "Game": game})   
 
 def chat(request, chat_id):
@@ -123,7 +124,8 @@ def chat(request, chat_id):
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
 
-    return render('goserver_chat.html', 
+    return render(request,
+                  'goserver_chat.html', 
                   {"DebugMode": get_user_debug(request.user),
                    "ChatID": chat_id})
 
