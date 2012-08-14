@@ -3,10 +3,13 @@
 {% block content %}
 <form method="post" action="/accounts/login/" target="_top">
 
-{% csrf_token %}
-  
-  {{ form.as_p }}
+<p>You need an account in order to create new games.</p>
 
+{% csrf_token %}
+
+  <div class="label100">Username:</div> {{ form.username }}<br />
+  <div class="label100">Password:</div> {{ form.password }}<br />
+  
   <input type="submit" value="{% trans 'Log in' %}" />
   <!-- <input type="hidden" name="next" value="{{ next }}" /> -->
   <input type="hidden" name="next" value="/" />

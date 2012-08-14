@@ -162,6 +162,12 @@ a:hover {
     height: 2em;
 }
 
+.label100 { 
+    width:100px;
+    display:inline-block;
+    height: 2em;
+}
+
 .rounded { 
     -moz-border-radius: 10px; 
     -webkit-border-radius: 10px;
