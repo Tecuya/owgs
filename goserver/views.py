@@ -1,8 +1,7 @@
 
 # Create your views here.
-from django.shortcuts import render_to_response
+from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
-from django.template import RequestContext
 
 def GameList(request):
     from goserver.models import Game, GameParticipant
@@ -20,12 +19,12 @@ def GameList(request):
                           'present_participants':unicode(present_parts) } )
 
 
-    return render_to_response('goserver_gamelist.html', 
-                              {'GameList': gamelist},
-                              context_instance=RequestContext(request))
+    return render(request,
+                  'goserver_gamelist.html', 
+                  {'GameList': gamelist})
 
 def GameArchive(request):
-    from goserver.models import GameForm, Game, GameParticipant
+    from goserver.models import Game, GameParticipant
 
     gamelist = []
     for game in Game.objects.filter(State = 'F').order_by('CreateDate'):
@@ -33,13 +32,14 @@ def GameArchive(request):
                           'params': unicode(game), 
                           'present_participants': unicode(len(GameParticipant.objects.filter( Game = game, Present=True ))) } )
 
-    return render_to_response('goserver_gamelist.html', 
-                              {'GameList': gamelist},
-                              context_instance=RequestContext(request))
+    return render(request,
+                  'goserver_gamelist.html', 
+                  {'GameList': gamelist})
+
 
 
 def GameCreate(request):
-    from goserver.models import GameForm, Game, GameParticipant
+    from goserver.models import GameForm, Game
     
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -56,7 +56,9 @@ def GameCreate(request):
     else:
         form = GameForm()
 
-    return render_to_response('goserver_gamecreate.html', {"GameForm": form}, context_instance=RequestContext(request))   
+    return render(request,
+                  'goserver_gamecreate.html',
+                  {"GameForm": form})
 
 
 def GameMakeSGF(request, game_id):
@@ -76,7 +78,7 @@ def GameMakeSGF(request, game_id):
 
 
 def GameEdit(request, game_id):
-    from goserver.models import GameForm, Game, GameParticipant
+    from goserver.models import GameForm, Game
 
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -96,7 +98,8 @@ def GameEdit(request, game_id):
     
     form = GameForm(instance=game)
 
-    return render_to_response('goserver_gameedit.html', {"GameEditForm": form, "Game": game}, context_instance=RequestContext(request))   
+    return render('goserver_gameedit.html',
+                  {"GameEditForm": form, "Game": game})   
 
 
 def Chat(request, chat_id):
@@ -104,15 +107,13 @@ def Chat(request, chat_id):
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
 
-    return render_to_response('goserver_chat.html', 
-                              {"DebugMode": request.user.get_profile().DebugMode,
-                               "ChatID": chat_id},                              
-                              context_instance=RequestContext(request))
+    return render('goserver_chat.html', 
+                  {"DebugMode": request.user.get_profile().DebugMode,
+                   "ChatID": chat_id})
 
 
 def GameView(request, game_id):
-    from goserver.models import Game, GameParticipant, GameTree, UserProfile
-    from django.contrib.auth.models import User
+    from goserver.models import Game, GameParticipant
     
     game = Game.objects.get(pk = game_id)
 
@@ -148,16 +149,16 @@ def GameView(request, game_id):
         profile = request.user.get_profile()
         debug_mode = profile.DebugMode
     
-    return render_to_response('goserver_gameview.html', 
-                              {"Game": game,
-                               "PreGame": (game.State == 'P'),
-                               "Finished": (game.State == 'F'),
-                               "DebugMode": debug_mode,
-                               "YouAreColor": you_are,
-                               "YouAreOwner": you_are_owner,
-                               "UserBlack": user_b,
-                               "UserWhite": user_w},
-                              context_instance=RequestContext(request))   
+    return render(request,
+                  'goserver_gameview.html', 
+                  {"Game": game,
+                   "PreGame": (game.State == 'P'),
+                   "Finished": (game.State == 'F'),
+                   "DebugMode": debug_mode,
+                   "YouAreColor": you_are,
+                   "YouAreOwner": you_are_owner,
+                   "UserBlack": user_b,
+                   "UserWhite": user_w})
 
 
 
@@ -184,13 +185,13 @@ def PlayerProfile(request):
     else:
         form = UserProfileForm(instance = prof)
 
-    return render_to_response('goserver_playerprofile.html', 
-                              { 'UserProfileForm': form },
-                              context_instance=RequestContext(request))
+    return render(request,
+                  'goserver_playerprofile.html', 
+                  { 'UserProfileForm': form })
 
 def Index(request):
-    return render_to_response('goserver_index.html', context_instance=RequestContext(request))
-
+    return render(request,
+                  'goserver_index.html')
 
 def IntegratedInterface(request):
     if request.user.is_anonymous():
@@ -200,10 +201,10 @@ def IntegratedInterface(request):
     else:
         DebugMode = 'false'
 
-    return render_to_response('goserver_interface.html', 
-                              {'DebugMode': DebugMode,
-                               'IsInterface': True},                              
-                              context_instance=RequestContext(request))
+    return render(request,
+                  'goserver_interface.html', 
+                  {'DebugMode': DebugMode,
+                   'IsInterface': True})
 
 
 
