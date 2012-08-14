@@ -3,6 +3,7 @@
 {% block content %}
 <form method="post" action="/accounts/login/" target="_top">
 
+{{ request.GET.error }}
 <p>You need an account in order to create new games.</p>
 
 {% csrf_token %}
@@ -17,4 +18,5 @@
 
 <p>{% trans "Forgot password" %}? <a href="{% url auth_password_reset %}">{% trans "Reset it" %}</a>!</p>
 <p>{% trans "Not member" %}? <a href="{% url registration_register %}">{% trans "Register" %}</a>!</p>
+
 {% endblock %}

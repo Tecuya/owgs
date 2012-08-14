@@ -3,7 +3,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 
-def GameList(request):
+def game_list(request):
     from goserver.models import Game, GameParticipant
 
     gamelist = []
@@ -18,12 +18,11 @@ def GameList(request):
                           'params':unicode(game), 
                           'present_participants':unicode(present_parts) } )
 
-
     return render(request,
                   'goserver_gamelist.html', 
                   {'GameList': gamelist})
 
-def GameArchive(request):
+def game_archive(request):
     from goserver.models import Game, GameParticipant
 
     gamelist = []
@@ -36,10 +35,9 @@ def GameArchive(request):
                   'goserver_gamelist.html', 
                   {'GameList': gamelist})
 
-
-
-def GameCreate(request):
-    from goserver.models import GameForm, Game
+def game_create(request):
+    from goserver.forms import GameForm
+    from goserver.models import Game
     
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -60,8 +58,7 @@ def GameCreate(request):
                   'goserver_gamecreate.html',
                   {"GameForm": form})
 
-
-def GameMakeSGF(request, game_id):
+def game_make_sgf(request, game_id):
     from goserver.models import GameTree
     
     # check if they are logged in and bail if they arent
@@ -76,9 +73,9 @@ def GameMakeSGF(request, game_id):
 
     return response
 
-
-def GameEdit(request, game_id):
-    from goserver.models import GameForm, Game
+def game_edit(request, game_id):
+    from goserver.forms import GameForm
+    from goserver.models import Game
 
     # check if they are logged in and bail if they arent
     if request.user.is_anonymous():
@@ -99,10 +96,9 @@ def GameEdit(request, game_id):
     form = GameForm(instance=game)
 
     return render('goserver_gameedit.html',
-                  {"GameEditForm": form, "Game": game})   
+                  {"game_editForm": form, "Game": game})   
 
-
-def Chat(request, chat_id):
+def chat(request, chat_id):
 
     if request.user.is_anonymous():
         return HttpResponseRedirect('/accounts/login')
@@ -111,8 +107,7 @@ def Chat(request, chat_id):
                   {"DebugMode": request.user.get_profile().DebugMode,
                    "ChatID": chat_id})
 
-
-def GameView(request, game_id):
+def game_view(request, game_id):
     from goserver.models import Game, GameParticipant
     
     game = Game.objects.get(pk = game_id)
@@ -160,12 +155,10 @@ def GameView(request, game_id):
                    "UserBlack": user_b,
                    "UserWhite": user_w})
 
-
-
 def NetClientUnloadWrapper():
     pass
 
-def PlayerProfile(request):
+def player_profile(request):
 
     from goserver.models import UserProfile, UserProfileForm
 
@@ -193,7 +186,7 @@ def Index(request):
     return render(request,
                   'goserver_index.html')
 
-def IntegratedInterface(request):
+def integrated_interface(request):
     if request.user.is_anonymous():
         DebugMode = 'false'
     elif request.user.get_profile().DebugMode:

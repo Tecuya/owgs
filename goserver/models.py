@@ -2,11 +2,9 @@
 import sys
 
 from django.db import models
-from django.forms import ModelForm
 
 # so we can have user foreign keys
 from django.contrib.auth.models import User
-
 
 class GameNode(models.Model):
     """ 
@@ -16,12 +14,15 @@ class GameNode(models.Model):
     """
 
     # muhuk #django/FreeNode sez:
-    #  <muhuk> if I had a hierarcy, I wouldn't want blank=True, null=True on my FK. So I'd use a hack for the exception; the root node.
-    # so consider that!  for now i'm being lazy and making this blank/null
+    #
+    #  <muhuk> if I had a hierarcy, I wouldn't want blank=True,
+    # null=True on my FK. So I'd use a hack for the exception; the
+    # root node.  so consider that!  for now
+    #
+    # i'm being lazy and making this blank/null
     ParentNode = models.ForeignKey('self', null=True, blank=True)
 
     Game = models.ForeignKey('Game')
-
 
 class GameProperty(models.Model):
     """
@@ -81,7 +82,8 @@ class Game(models.Model):
     # overtime type
     OvertimeType = models.CharField('Overtime Type', max_length=1, choices=(('N', 'No Overtime'),
                                                                             ('B', 'Byo-Yomi'),
-                                                                            ('C', 'Canadian')), default='N')
+                                                                            ('C', 'Canadian')),
+                                    default='N')
     
     # the length of an overtime period
     OvertimePeriod = models.IntegerField('Overtime Period Length')
@@ -164,13 +166,6 @@ class Game(models.Model):
         return u'State: %s | Type: %s | Size: %s | %s %s' % (translate_state[self.State], translate_type[self.Type], self.BoardSize, ' '.join(player_list), winner)
 
     
-class GameForm(ModelForm):
-    class Meta:
-        model = Game
-        exclude = ('Owner', 'CreateDate', 'PlayersAssigned', 'ScoreDelta', 'WinType', 'Winner', 'FocusNode', 'Finished', 'State', 'PendingUndoNode',
-                   'TimePeriodW', 'TimePeriodB', 'OvertimeCountW', 'OvertimeCountB', 'TimePeriodRemainW', 'TimePeriodRemainB', 'TurnColor', 'LastClock',
-                   'IsOvertimeW', 'IsOvertimeB')
-
         
 class GameParticipant(models.Model):
     import datetime
@@ -247,11 +242,6 @@ class UserProfile(models.Model):
                                                           ('9d', '9d')), default='N')
                                                           
                                                           
-class UserProfileForm(ModelForm):
-    class Meta:
-        model = UserProfile
-        exclude = ('user','activation_key','key_expires')
-
 
 class GameTree:
     """ This class provides all our SGF and game tree traversal functionality """
