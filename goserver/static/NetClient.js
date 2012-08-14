@@ -87,6 +87,15 @@ NetClient_instance = new function NetClient() {
 
         command = dataAr.shift();
 
+        // early check for error condition
+        if(command == "ERRR") { 
+            $(document.createElement('div'))
+                .attr('title','Server Error')
+                .text(dataAr[0])
+                .dialog();
+            return;
+        }
+            
         if(dataAr.length > 0) {         
             if( (command == 'JCHT') || 
                 (command == 'CHAT') ||

@@ -83,7 +83,7 @@ class GoServerProtocol(basic.LineReceiver):
 
    def lineReceived(self, data):
 
-      response = ["ERROR","Unspecified error"]
+      response = ["ERRR","Unspecified error"]
 
 
       cmd = cjson.decode(data)
@@ -132,7 +132,7 @@ class GoServerProtocol(basic.LineReceiver):
          
       # we arent connected and we dont have a session? not allowed!
       elif( self.user == False ):
-         response = ['ERROR','No user attached to this connection; you must SESS or AUTH first.']
+         response = ['ERRR','No user attached to this connection; you must SESS or AUTH first.']
 
       else:
 
@@ -407,7 +407,7 @@ class GoServerProtocol(basic.LineReceiver):
                      self.writeToTransport(["BEGN", game.id], transport = connection.transport)
 
             else:
-               self.writeToTransport(["ERROR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[2]) ])
+               self.writeToTransport(["ERRR", "Invalid BEGN parameter: %d has no registered offers" % int(cmd[2]) ])
 
             response = CTS
 
@@ -748,16 +748,21 @@ class GoServerProtocol(basic.LineReceiver):
 
          elif(cmd[0] == 'GAME'):
             # create a new game
-            
-            game = Game( Owner = self.user, 
-                         Type = cmd[1], BoardSize = cmd[2], Komi = cmd[3], 
-                         AllowUndo = cmd[4],
-                         MainTime = cmd[5], OvertimeType = cmd[6], 
-                         OvertimePeriod = cmd[7], OvertimeCount = cmd[8] )
-            game.save()
 
-            self.writeToTransport(["GAME", game.id])
-            
+            try:
+               game = Game( Owner = self.user, 
+                            Type = cmd[1], BoardSize = cmd[2], Komi = cmd[3], 
+                            AllowUndo = cmd[4],
+                            MainTime = cmd[5], OvertimeType = cmd[6], 
+                            OvertimePeriod = cmd[7], OvertimeCount = cmd[8] )
+               game.save()
+
+               self.writeToTransport(["GAME", game.id])
+
+            except Exception, e:
+
+               self.writeToTransport(['ERRR', 'Failed to create game with requested parameters: %s' % e])
+               
             response = CTS
             
             

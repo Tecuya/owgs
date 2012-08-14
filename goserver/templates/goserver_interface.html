@@ -5,8 +5,8 @@
 <script type="text/javascript" src="/static/Orbited.js"></script>
 
 <link type="text/css" href="/static/jquery/css/owgs/jquery-ui-1.8.1.custom.css" rel="stylesheet" />	
-<script type="text/javascript" src="/static/jquery/js/jquery-1.4.2.min.js"></script>
-<script type="text/javascript" src="/static/jquery/js/jquery-ui-1.8.1.custom.min.js"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="/static/jquery/js/jquery-ui-1.8.22.custom.min.js"></script>
 <style type="text/css">
 #ifacetabs li .ui-icon-close { float: left; margin: 0.4em 0.2em 0 0; cursor: pointer; }
 </style>
@@ -17,9 +17,7 @@ netclient_session_key = "{{ request.session.session_key }}";
 netclient_debug_mode = {{ DebugMode }};
 </script>
 <script type="text/javascript" src="/static/NetClient.js"></script>
-
 <script type="text/javascript" src="/static/Interface.js"></script>
-
 <script type="text/javascript" src="/static/eidogo/js/lang.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/eidogo.js"></script>
 <script type="text/javascript" src="/static/eidogo/js/util.js"></script>
@@ -38,14 +36,51 @@ netclient_debug_mode = {{ DebugMode }};
    <li><a href="#tab-1">Home</a></li>
   </ul>
   <div id="tab-1">
-   <p>Welcome to OWGS; the Open Web Go Server!</p>
-   <ul>
-    <li><a href="javascript:void(0);" onClick="iface.makeChatTab(1);">Chat</a></li>
-    <li><a href="javascript:void(0);" onClick="$('#ifacetabs').tabs('add', '/games/new', 'New Game');">New Game</a></li>
-    <li><a href="javascript:void(0);" onClick="iface.makeGameListTab('active');">Active Games</a></li>
-    <li><a href="javascript:void(0);" onClick="iface.makeGameListTab('archive');">Archived Games</a></li>
-   </ul>
-   <p>OWGS is under development.  There are lots of bugs.  Think of this as a technology preview.</p>
+
+    <div style="float:right; display:inline-block;">
+      <img src="/static/owgs/Go_board.jpg" width=450>      
+    </div>    
+
+    <h1 style="margin-bottom:15px;">Welcome to OWGS; the Open Web Go Server!</h1>
+    
+    <div class="rounded" style="float:left; display:inline-block; margin:5px; background-color: #CCB; margin-right:15px; padding:5px;">
+      
+      <h2 style="margin-bottom:6px;">Quick Start</h2>     
+      
+      <a href="javascript:void(0);" onClick="iface.makeChatTab(1);">Chat</a>
+      <br />
+      
+      <a href="javascript:void(0);" onClick="$('#ifacetabs').tabs('add', '/games/new', 'New Game');">New Game</a>
+      <br />
+      
+      <a href="javascript:void(0);" onClick="iface.makeGameListTab('active');">Active Games</a>
+      <br />
+      
+      <a href="javascript:void(0);" onClick="iface.makeGameListTab('archive');">Archived Games</a>
+      <br />
+      
+    </div>
+    
+   <h2>What is OWGS?</h2>
+   
+   <p>
+     OWGS is a free web application enabling go/baduk/wei-qi players
+     to find one another, play games online, review games and chat.
+   </p>
+
+   <p>
+     OWGS runs in your browser in pure javascript; no plugins are
+     required.  OWGS is an event-driven real-time server; your moves
+     are instantly visible to the other player(s) and vice-versa,
+     without polling.  OWGS is an open source application, free to use
+     and modify under the terms of the GPLv2.
+   </p>
+
+   <p>
+   </p>
+
+   <div style="clear:both;"></div>   
+
   </div>
 </div>
 

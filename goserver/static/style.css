@@ -36,7 +36,8 @@ a {
 }
 
 a:hover {
-	color: #558899;
+	color: #557777;
+    background-color: #bba;
     text-decoration: underline;
 }
 
@@ -49,6 +50,8 @@ a:hover {
     float: right;
     height: 10px;
     padding: 6px;
+    margin-top: 49px;
+    vertical-align: bottom;
     border: solid #D0D0C0 2px !important;
     background-color: #D3D3C4;
     color: #000000 !important;
@@ -158,4 +161,9 @@ a:hover {
     width:150px;
     display:inline-block;
     height: 2em;
+}
+
+.rounded { 
+    -moz-border-radius: 10px; 
+    -webkit-border-radius: 10px;
 }
