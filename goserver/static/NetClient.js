@@ -13,7 +13,7 @@ var owgs;
         // this.NetClient_debug = netclient_debug_mode;
         
         // perma debug.. only way to debug anonymous!
-        this.NetClient_debug = false;
+        this.NetClient_debug = true;
         
         // track our session_key
         this.session_key = netclient_session_key;
@@ -275,7 +275,7 @@ var owgs;
             } else { 
                 alert("Unknown net command received from server: "+command);
             }
-        }
+        };
 
         this.onclose = function(data) { 
             this.debug("NetClient.onclose: " + data + "\n");
@@ -284,7 +284,7 @@ var owgs;
                if(confirm('Your connection to the server has been lost, would you like to reconnect?')) { 
                window.location.reload();
                }*/
-        }
+        };
 
         this.send = function(data) { 
             
@@ -304,23 +304,23 @@ var owgs;
 
                 this.tcp.send(json_out + "\r\n");
             }
-        }
+        };
 
         // this is a debug function that sends arbitrary strings 
         this.sendraw = function(msg) { 
             this.debug("SENDRAW: " + msg + "\n");
             this.tcp.send(msg + "\r\n");
-        }
+        };
 
         this.connected = function() { 
             this.debug("NetClient.connected\n");
             
             this.send( ["SESS", this.session_key] );
-        }
+        };
 
         this.unload = function() { 
             this.line.reset();
-        }
+        };
         
         this.debug = function(msg) { 
             curdate = new Date();
@@ -330,7 +330,7 @@ var owgs;
                 // scroll down
                 $("#NetClient_debug")[0].scrollTop = $("#NetClient_debug")[0].scrollHeight;
             }
-        }
+        };
 
         /////////////////////////////////////////
         // higher level commands
@@ -347,35 +347,35 @@ var owgs;
 
             // in any case, attempt to get the game vars
             this.send( ["GVAR", game_id] );        
-        }
+        };
 
         this.partgame = function(game_id) { 
             // make sure we know we are no longer joined
             this.joinedgames[game_id] = false;
             this.send( ["PART", game_id] );
-        }
+        };
 
         this.joinchat = function(chat_id) { 
             this.send( ["JCHT", chat_id] );
-        }
+        };
 
         this.partchat = function(chat_id) { 
             this.send( ["PCHT", chat_id] );
-        }
+        };
 
         this.chat = function(chat_id, chattext) {
             this.send( ["CHAT", chat_id, chattext] );
-        }
+        };
 
         this.updatechat = function(chat_id, msg) { 
             if(ta = $("#chat_"+chat_id+"_Textarea")[0])
                 ta.value += msg + "\r\n";        
-        }
+        };
         
         this.comment = function(game_id, commentinput) {
             this.send( ["CMNT", game_id, commentinput.value] );
             commentinput.value = '';
-        }
+        };
 
         this.updatecomment = function(game_id, msg) { 
             if(ta = $("#game_"+game_id+"_CommentTextarea")[0])
@@ -383,7 +383,7 @@ var owgs;
             
             if(typeof(iface.eidogoPlayers[ game_id ]) != "undefined") 
                 iface.eidogoPlayers[ game_id ].dom.comments.innerHTML += msg.replace('<','&lt;').replace('>','&gt;') + "<br>";            
-        }
+        };
 
         this.onmove = function(game_id, data) { 
             coord = data[0];
@@ -394,19 +394,19 @@ var owgs;
             comments = "";
             
             this.send( ["MOVE", game_id, coord, color, sn, comments] )
-        }
+        };
 
         this.ondead = function(game_id, data) { 
             this.send( ["DEAD", game_id, iface.eidogoPlayers[ game_id ].pointToSgfCoord({'x': data[0], 'y': data[1]})] )
-        }
+        };
 
         this.onnav = function(game_id, path) { 
             this.send( ["NAVI", game_id, path] );
-        }
+        };
         
         this.onundo = function(game_id) { 
             this.send( ["UNDO", game_id] );
-        }
+        };
 
         this.onsound = function(game_id, coord) { 
             // TODO check for some kind of per-game muting?
@@ -417,7 +417,7 @@ var owgs;
             whichClick = Math.floor(Math.random() * (numSamples)) + 1
 
             this.playsound('/static/audio/click'+whichClick+'.ogg');
-        }
+        };
 
         this.playsound = function(file) { 
 
@@ -444,32 +444,35 @@ var owgs;
 
             }
             
-            
             this.audio[ file ].play();
-        }
+        };
         
         this.onresign = function(game_id) { 
             this.send( ["RSGN", game_id] );
-        }
+        };
         
         this.onscoresubmit = function(game_id, data) {         
             data.unshift(game_id);
             data.unshift("SCOR");
             this.send( data );
-        }
+        };
 
         this.creategame = function(type, boardsize, komi, allowundo, maintime, ot_type, ot_period, ot_count) { 
             this.send( ["GAME", type, boardsize, komi, allowundo, maintime, ot_type, ot_period, ot_count] );
-        }
+        };
 
+        // register a new user
+        this.register = function(username, email, password) { 
+            this.send( ['RGST', username, email, password ] );
+        };
 
         // this func is called when the game owner decides he's ready to start the game
         this.startgame = function(game_id) { 
             parts = $("#game_"+game_id+"_ParticipantSelect")[0];
             selected_user = parts.options[ parts.selectedIndex ].value;
 
-            this.send( ["BEGN", game_id, selected_user ] )
-        }
+            this.send( ["BEGN", game_id, selected_user ] );
+        };
 
         // this func is called when challenders click the "Offer to Play" button
         this.makeoffer = function(game_id) { 
@@ -479,7 +482,7 @@ var owgs;
             my_color = $("#offer_Color").val();
             
             this.send( ["OFFR", game_id, board_size, main_time, komi, my_color] )
-        }
+        };
 
         // this func is called when an offer is received
         this.receivedoffer = function(game_id, board_size, main_time, komi, color, user_id, username) { 
@@ -494,7 +497,7 @@ var owgs;
             }
 
             part_select.options.add( new Option(username + ' ' + ' ' + board_size + ' ' + main_time + ' ' + komi + ' ' + color , user_id) );        
-        }
+        };
 
         this.navi = function(data) { 
             iface.eidogoPlayers[ game_id ].goToNodeWithSN( data[0] );
@@ -503,7 +506,7 @@ var owgs;
             // that we move them out of it whenever we do a navi, otherwise they get stuck in score mode
             if(iface.eidogoPlayers[ game_id ].owgsRestrictedNav)
                 iface.eidogoPlayers[ game_id ].selectTool("play");
-        }
+        };
     }
 
     // start netclient on-load

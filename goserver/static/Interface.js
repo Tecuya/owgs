@@ -92,9 +92,45 @@
                 tab_index,
 
                 function() {
-                    $('#submit_registration').click(
+                    $('#registration_submit').click(
                         function() { 
-                            alert('bwa');
+
+                            $('#registration_error').empty();
+                            
+                            var doerror = function( errtext ) { 
+                                $('#registration_error').append( 
+                                    $(document.createElement('div')).text(errtext) );
+                            };
+                            
+                            var pw1 = $('#registration > input[name="password1"]').val();
+                            var pw2 = $('#registration > input[name="password2"]').val();
+
+                            if(pw1 != pw2) { 
+                                doerror('Password and Confirm Password do not match.');
+                            }
+
+                            var fdata = {};
+
+                            $.each(
+                                [
+                                    ['username', 'Username'],
+                                    ['email', 'Email'],
+                                    ['password1', 'Password'], 
+                                ],
+                                function(idx,val) { 
+                                    
+                                    var vv = $('#registration > input[name="'+val[0]+'"]').val();
+
+                                    if( vv.length == 0) { 
+                                        doerror(val[1]+' is required.');
+                                    }
+                                    
+                                    fdata[val[0]] = vv;
+                                });
+                            
+                            owgs.register( fdata['username'],
+                                           fdata['email'],
+                                           fdata['password1'] );
                         });
             });
 

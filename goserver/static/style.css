@@ -180,3 +180,10 @@ a:hover {
     padding: 6px;
     display: inline-block;
 }
+
+.error { 
+    color: red;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+}
