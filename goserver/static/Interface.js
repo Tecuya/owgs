@@ -1,5 +1,4 @@
 
-var iface
 
 (function() { 
 
@@ -8,7 +7,9 @@ var iface
         // global so we can always get to our eidogo instances
         this.eidogoPlayers = [];
 
-        this.tabCloseCallbacks = [];
+        // stores events that will be executed upon tab open/close events
+        this.tabOpenCallback = [];
+        this.tabCloseCallback = [];
 
         // store what chats are open in which tabs
         this.chatTabs = [];
@@ -64,16 +65,41 @@ var iface
 
             var tab_index = $tabs.tabs('option', 'selected');
 
-            // store the tab index in chatTabs so we know whats opened where.
-            // this also causes the tab load event to run the netclient joinchat func after the tab loads
+            // store the tab index in chatTabs so we know whats opened
+            // where.  this also causes the tab load event to run the
+            // netclient joinchat func after the tab loads
+
             this.chatTabs[ chat_id ] = tab_index;
 
+            this.registerTabOpenCallback( tab_index,
+                                          owgs.joinchat );
+            
             this.registerTabCloseCallback( tab_index,
                                            function() { 
                                                iface.chatTabs[ chat_id ] = false; 
                                                owgs.partchat( chat_id ); 
                                            } );
         },
+
+        this.makeRegistrationTab = function() { 
+            
+            $('#ifacetabs').tabs('add', '/accounts/register', 'Register');
+
+            var tab_index = $tabs.tabs('option', 'selected');
+
+            // register submit button click on load
+            this.registerTabOpenCallback( 
+                tab_index,
+
+                function() {
+                    $('#submit_registration').click(
+                        function() { 
+                            alert('bwa');
+                        });
+            });
+
+        },
+
 
         this.onNewGameCreated = function( game_id ) {
 
@@ -132,16 +158,20 @@ var iface
 
         this.closeTab = function(index) {
             // execute the callback, then clear the callback, if there is one
-            if(this.tabCloseCallbacks[index]) { 
-                this.tabCloseCallbacks[index]();
-                this.tabCloseCallbacks[index] = false;
+            if(this.tabCloseCallback[index]) { 
+                this.tabCloseCallback[index]();
+                this.tabCloseCallback[index] = false;
             }
 
 		    $tabs.tabs('remove', index);
         },
         
         this.registerTabCloseCallback = function(index, callback) { 
-            this.tabCloseCallbacks[index] = callback;
+            this.tabCloseCallback[index] = callback;
+        },
+
+        this.registerTabOpenCallback = function(index, callback) { 
+            this.tabOpenCallback[index] = callback;            
         },
 
         this.createGame = function() { 
@@ -304,21 +334,30 @@ var iface
         // tab load event
         $('#ifacetabs').bind('tabsload', 
                              function(event, ui) { 
-                                 // look at the type of tab that was loaded and run whatever NetClient commands are appropriate 
-                                 var i;
-                                 for(i=0;i<iface.chatTabs.length;i++) {
-                                     if(iface.chatTabs[i] == ui.index) { 
-                                         owgs.joinchat( i );
-                                         break;
-                                     }
-                                 }
+                                 // look at the type of tab that was
+                                 // loaded and run whatever NetClient
+                                 // commands are appropriate
 
-                                 for(i=0;i<iface.gameTabs.length;i++) {
-                                     if(iface.gameTabs[i] == ui.index) { 
-                                         owgs.joingame( i );
-                                         break;
-                                     }
+                                 if( iface.tabOpenCallback[ui.index] !== undefined) { 
+                                     iface.tabOpenCallback[ ui.index ]( ui.index );
                                  }
+                                 
+                                 // var i;
+                                 // for(i=0;i<iface.chatTabs.length;i++) {
+                                 //     if(iface.chatTabs[i] == ui.index) { 
+                                 //         owgs.joinchat( i );
+                                 //         break;
+                                 //     }
+                                 // }
+
+                                 // for(i=0;i<iface.gameTabs.length;i++) {
+                                 //     if(iface.gameTabs[i] == ui.index) { 
+                                 //         owgs.joingame( i );
+                                 //         break;
+                                 //     }
+                                 // }
+                                 
+
                              });
 
         // if the fragment selector (http://URL.com#thisthing) 

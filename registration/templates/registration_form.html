@@ -5,7 +5,8 @@
 
 <div style="margin-top:10px;">
 
-  <form method="post" action="." style="display:inline;">
+  <div style="padding-top:6px;" class="darkbox">
+  
     {% csrf_token %}
     
     <div class="label150">Username:</div> {{ form.username }}<br />
@@ -13,8 +14,10 @@
     <div class="label150">Password:</div> {{ form.password1 }}<br />
     <div class="label150">Password Confirm:</div> {{ form.password2 }}<br />
     
-    <input type="submit" value="{% trans 'Submit' %}" />
-  </form>
+    <div style="text-align:center;">    
+      <button id="submit_registration" type="button">{% trans 'Submit' %}</button>
+    </div>
 
+  </div>
 </div>
 {% endblock %}
