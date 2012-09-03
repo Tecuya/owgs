@@ -13,7 +13,7 @@ var owgs;
         // this.NetClient_debug = netclient_debug_mode;
         
         // perma debug.. only way to debug anonymous!
-        this.NetClient_debug = true;
+        this.NetClient_debug = false;
         
         // track our session_key
         this.session_key = netclient_session_key;
