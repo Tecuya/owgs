@@ -17,7 +17,6 @@ from registration.backends import get_backend
 # owgs django
 from models import Game, GameParticipant, GameProperty, GameNode, Board, \
      GameTree, Chat, ChatParticipant
-from utils import make_session
      
 # our CTS command
 CTS = ['CTS']
