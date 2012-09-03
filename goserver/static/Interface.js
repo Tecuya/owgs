@@ -86,9 +86,10 @@
             // netclient joinchat func after the tab loads
 
             this.chatTabs[ chat_id ] = tab_index;
-
             this.registerTabOpenCallback( tab_index,
-                                          owgs.joinchat );
+                                          function() { 
+                                              owgs.joinchat( chat_id ) 
+                                          });
             
             this.registerTabCloseCallback( tab_index,
                                            function() { 
@@ -217,7 +218,11 @@
             }
 
             // this causes the tab load event to run the netclient joingame func after the tab loads
-            this.gameTabs[ game_id ] = in_tab;
+            iface.gameTabs[ game_id ] = in_tab;
+            this.registerTabOpenCallback( in_tab,
+                                          function() { 
+                                              owgs.joingame( game_id );
+                                          });
 
             this.registerTabCloseCallback( in_tab,
                                            function() { 
