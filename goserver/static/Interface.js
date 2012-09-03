@@ -21,8 +21,9 @@
         // once we get the GAME command back, which tab to open it in
         this.pendingGameTab = false;
 
-        // this tracks if we already have a login tab open
+        // this tracks if we already have a login/registration tab open
         this.loginTab = false;
+        this.registrationTab = false;
 
         // this tracks where we have game lists
         this.gameLists = {};
@@ -82,10 +83,19 @@
         },
 
         this.makeRegistrationTab = function() { 
+
+            // if a reg tab is already open just focus is
+            if(this.registrationTab != false) { 
+                $tabs.tabs('select', this.registrationTab);
+                return;
+            }
             
             $('#ifacetabs').tabs('add', '/accounts/register', 'Register');
 
             var tab_index = $tabs.tabs('option', 'selected');
+
+            // store the index so we may reference the tab later
+            this.registrationTab = tab_index;
 
             // register submit button click on load
             this.registerTabOpenCallback( 
@@ -128,10 +138,14 @@
                                     
                                     fdata[val[0]] = vv;
                                 });
-                            
-                            owgs.register( fdata['username'],
-                                           fdata['email'],
-                                           fdata['password1'] );
+
+                            // if no errors appear, clear to register
+                            if( $('#registration_error').find('div').length == 0 ) { 
+
+                                owgs.register( fdata['username'],
+                                               fdata['email'],
+                                               fdata['password1'] );
+                            }
                         });
             });
 

@@ -60,13 +60,23 @@ var owgs;
                 sound_button.innerHTML = "Clicky";
                 sound_button.setAttribute("type", "button");
                 sound_button.setAttribute("onClick", 'owgs.onsound(1,1)')
-                
+
                 debug_div.appendChild(debug_input);
                 debug_div.appendChild(debug_button);
                 debug_div.appendChild(sound_button);
+
+                // var nc = this;
+                // $(document.createElement('button'))
+                //     .text('Reconnect')
+                //     .attr('type','button')
+                //     .click(function() { 
+                //         nc.connect();
+                //     })
+                //     .appendTo($(debug_div));
+    
+
                 debug_div.appendChild( document.createElement("BR") );
                 debug_div.appendChild(debug_textarea);
-
 
                 document.body.appendChild(debug_div);
 
@@ -75,13 +85,17 @@ var owgs;
 
             this.tcp = new Orbited.TCPSocket();
             this.line = new LineProtocol(this.tcp);
-            this.line.open(window.location.hostname,8002,false);
 
             this.line.onopen = function() { owgs.connected(); }; 
             this.line.onlinereceived = function(data) { owgs.onlinereceived(data); }; 
             this.line.onclose = function(code) { owgs.onclose(code); }; 
-            
-        }
+
+            this.connect();            
+        };
+
+        this.connect = function() { 
+            this.line.open(window.location.hostname,8002,false);
+        };
 
         this.onlinereceived = function(line) { 
             this.debug("RECV: " + line + "\n");
@@ -127,6 +141,15 @@ var owgs;
 
                 this.updatecomment(game_id, '*** '+dataAr[1]+' has joined the game');
 
+            } else if(command == 'SENT') { 
+
+                // make sure registration tab is open
+                $('#ifacetabs').tabs('select', iface.registrationTab);
+                
+                $('#ui-tabs-'+iface.registrationTab)
+                    .empty()
+                    .html('Registration accepted, and a validation e-mail has been sent to the address you specified.  Please click the activate link in that e-mail to complete your registration');
+                
             } else if(command == "PART") { 
 
                 part_select = $("#game_"+game_id+"_ParticipantSelect")[0];

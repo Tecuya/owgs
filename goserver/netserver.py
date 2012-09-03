@@ -10,8 +10,13 @@ from twisted.protocols import basic
 # django land
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import User, AnonymousUser
-from models import Game, GameParticipant, GameProperty, GameNode, Board, GameTree, Chat, ChatParticipant
 
+# 3rd party django
+from registration.backends import get_backend
+
+# owgs django
+from models import Game, GameParticipant, GameProperty, GameNode, Board, \
+     GameTree, Chat, ChatParticipant
 
 # our CTS command
 CTS = ['CTS']
@@ -105,6 +110,28 @@ class GoServerProtocol(basic.LineReceiver):
 
             response = CTS
 
+        # RGST command; allow a user to register a new account
+        elif cmd[0] == 'RGST':
+
+            if len(cmd) != 4 or not ( cmd[1] and cmd[2] and cmd[3] ):
+                self.writeToTransport( ['ERRR','Invalid registration parameters.'] )
+                
+            try:
+                backend = get_backend('registration.backends.default.DefaultBackend')
+
+                new_user = backend.register(
+                    None,
+                    username = cmd[1],
+                    password1 = cmd[3],
+                    email = cmd[2])
+
+                self.writeToTransport( ['SENT'] )
+                    
+            except Exception, e:
+                self.writeToTransport( ['ERRR','Generalized registration failure: %s' % e] )
+
+            response = CTS
+            
         # AUTH command; allow a user to log in over the network rather than using a web session
         elif cmd[0] == 'AUTH':
 
@@ -120,7 +147,7 @@ class GoServerProtocol(basic.LineReceiver):
                 self.writeToTransport(["AUTH", 0])
             else:
                 user = uqs[0]
-                if not user.check_password(cmd[2]):
+                if not user.check_password(password):
                     self.writeToTransport(["AUTH", 0])
                 else:
                     self.user = user
@@ -712,7 +739,6 @@ class GoServerProtocol(basic.LineReceiver):
                 for part in ChatParticipant.objects.filter(Chat = chat, Present = True):
                     if part.Participant.id != self.user.id:
                         self.writeToTransport(["JCHT", chat.id, part.Participant.id, part.Participant.username])
-
 
                 if not already_present:
                     self.debug('User joined chat who is not present')
