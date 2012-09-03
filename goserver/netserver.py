@@ -113,22 +113,38 @@ class GoServerProtocol(basic.LineReceiver):
         # RGST command; allow a user to register a new account
         elif cmd[0] == 'RGST':
 
-            if len(cmd) != 4 or not ( cmd[1] and cmd[2] and cmd[3] ):
+            valid = True
+
+            user = cmd[1]
+            passwd = cmd[3]
+            email = cmd[2]
+            
+            if len(cmd) != 4 or not ( user and email and passwd ):
                 self.writeToTransport( ['ERRR','Invalid registration parameters.'] )
+                valid = False
+
+            if len(User.objects.filter(username=user)) > 0:
+                self.writeToTransport( ['ERRR', 'The requested username is already taken.'] )
+                valid = False
+
+            if len(User.objects.filter(email=email, is_active=True)) > 0:
+                self.writeToTransport( ['ERRR', 'An active user already exists with that e-mail address'] )
+                valid = False
                 
-            try:
-                backend = get_backend('registration.backends.default.DefaultBackend')
+            if valid:
+                try:
+                    backend = get_backend('registration.backends.default.DefaultBackend')
 
-                new_user = backend.register(
-                    None,
-                    username = cmd[1],
-                    password1 = cmd[3],
-                    email = cmd[2])
+                    new_user = backend.register(
+                        None,
+                        username = user,
+                        password1 = passwd,
+                        email = email)
 
-                self.writeToTransport( ['SENT'] )
-                    
-            except Exception, e:
-                self.writeToTransport( ['ERRR','Generalized registration failure: %s' % e] )
+                    self.writeToTransport( ['SENT'] )
+
+                except Exception, e:
+                    self.writeToTransport( ['ERRR','Generalized registration failure: %s' % e] )
 
             response = CTS
             
