@@ -146,9 +146,9 @@ var owgs;
                 // make sure registration tab is open
                 $('#ifacetabs').tabs('select', iface.registrationTab);
                 
-                $('#ui-tabs-'+iface.registrationTab)
+                $('#registration_tab')
                     .empty()
-                    .html('Registration accepted, and a validation e-mail has been sent to the address you specified.  Please click the activate link in that e-mail to complete your registration');
+                    .html('Registration accepted, and a validation e-mail has been sent to the address you specified.  Please click the activate link in that e-mail to complete your registration. ');
                 
             } else if(command == "PART") { 
 

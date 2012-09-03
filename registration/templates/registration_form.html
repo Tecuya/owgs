@@ -1,24 +1,26 @@
 {% load i18n %}
 
 {% block content %}
-<p>Fill out this form to register a new account on OWGS.</p>
-
-<div style="margin-top:10px;">
-
-  <div style="padding-top:6px;" class="darkbox" id="registration">
+<div id="registration_tab">
+  <p>Fill out this form to register a new account on OWGS.</p>
   
-    <div class="error" id="registration_error"></div>    
-    {% csrf_token %}
+  <div style="margin-top:10px;">
     
-    <div class="label150">Username:</div> {{ form.username }}<br />
-    <div class="label150">Email:</div> {{ form.email }}<br />
-    <div class="label150">Password:</div> {{ form.password1 }}<br />
-    <div class="label150">Password Confirm:</div> {{ form.password2 }}<br />
-    
-    <div style="text-align:center;">    
-      <button id="registration_submit" type="button">{% trans 'Submit' %}</button>
+    <div style="padding-top:6px;" class="darkbox" id="registration">
+      
+      <div class="error" id="registration_error"></div>    
+      {% csrf_token %}
+      
+      <div class="label150">Username:</div> {{ form.username }}<br />
+      <div class="label150">Email:</div> {{ form.email }}<br />
+      <div class="label150">Password:</div> {{ form.password1 }}<br />
+      <div class="label150">Password Confirm:</div> {{ form.password2 }}<br />
+      
+      <div style="text-align:center;">    
+        <button id="registration_submit" type="button">{% trans 'Submit' %}</button>
+      </div>
+      
     </div>
-
   </div>
 </div>
 {% endblock %}
