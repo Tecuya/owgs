@@ -21,7 +21,8 @@ def get_user_debug(user):
         return False
 
     return profile.DebugMode
-        
+
+
 
 def game_list(request):
     from goserver.models import Game, GameParticipant
@@ -210,6 +211,33 @@ def integrated_interface(request):
                   {'DebugMode': 'true' if get_user_debug(request.user) else 'false',
                    'IsInterface': True})
 
+def json_login(request):
+    """ 
+    Provide generic login service with JSON response so it can be done
+    in the background of the client
+    """
+    
+    from django.contrib.auth import login, authenticate
+    
+    user = authenticate(username=request.POST['username'], 
+                        password=request.POST['password'])
 
 
-
+    if user is not None:
+        if user.is_active:
+            login(request, user)
+            # Indicate success page.
+            response = '1'
+        else:
+            # Return a 'disabled account' error message
+            response = '-1'
+    else:
+        # Return an 'invalid login' error message.
+        response = '0'
+        
+    return HttpResponse(
+        response,
+        mimetype='text/plain')
+            
+def render_template(request, template):
+    return render(request, template)

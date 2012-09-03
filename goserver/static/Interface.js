@@ -35,13 +35,28 @@
                 return;
             }
             
-            $("#ifacetabs").tabs('add', '/accounts/login', 'Log In');
+            $("#ifacetabs").tabs('add', '/t/owgs_login.html', 'Log In');
 
-            var tab_index = $tabs.tabs('option', 'selected');
-
-            this.loginTab = tab_index;
+            this.loginTab = $tabs.tabs('option', 'selected');
             
-            this.registerTabCloseCallback( tab_index,
+            // bind handler once the form is ready
+            this.registerTabOpenCallback( 
+                this.loginTab,
+                function() {
+                    $('#login_form > #login_button').click(
+                        function() { 
+                            $('#login_status')
+                                .html('Logging in....')
+                                .css('color','gray');
+
+                            owgs.login( 
+                                $('#login_form > #username').val(),
+                                $('#login_form > #password').val(),
+                                $('#login_form > div > input[name="csrfmiddlewaretoken"]').val());
+                        });
+                });
+            
+            this.registerTabCloseCallback( this.loginTab,
                                            function() { 
                                                iface.loginTab = false;
                                            } );        
@@ -90,7 +105,7 @@
                 return;
             }
             
-            $('#ifacetabs').tabs('add', '/accounts/register', 'Register');
+            $('#ifacetabs').tabs('add', '/static/owgs/registration.html', 'Register');
 
             var tab_index = $tabs.tabs('option', 'selected');
 
@@ -149,6 +164,10 @@
                         });
             });
 
+            this.registerTabCloseCallback( tab_index,
+                                           function() { 
+                                               iface.registrationTab = false;
+                                           } );        
         },
 
 
@@ -431,7 +450,6 @@
                 qsParm[key] = val;
             }
         }
-        
         
         if(qsParm["joinGame"]) { 
             var joingames = qsParm["joinGame"].split(",");

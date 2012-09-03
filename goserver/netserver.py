@@ -17,7 +17,8 @@ from registration.backends import get_backend
 # owgs django
 from models import Game, GameParticipant, GameProperty, GameNode, Board, \
      GameTree, Chat, ChatParticipant
-
+from utils import make_session
+     
 # our CTS command
 CTS = ['CTS']
 
@@ -165,12 +166,11 @@ class GoServerProtocol(basic.LineReceiver):
                 user = uqs[0]
                 if not user.check_password(password):
                     self.writeToTransport(["AUTH", 0])
-                else:
+                else:                    
                     self.user = user
                     self.writeToTransport(["AUTH", 1])
-
+                    
             response = CTS
-
 
         # we arent connected and we dont have a session? not allowed!
         elif self.user == False:

@@ -17,6 +17,8 @@ urlpatterns = patterns(
     url(r'^games/archive', 'goserver.views.game_archive', name='game-archive'),
     url(r'^iiface', 'goserver.views.integrated_interface', name='iiface'),
     url(r'^chat/(?P<chat_id>\d+)', 'goserver.views.chat', name='chat'),
+    url(r'^js_login$', 'goserver.views.json_login'),
+    url(r'^t/(?P<template>.*)$', 'goserver.views.render_template'),
     
     (r'^accounts/', include('registration.backends.default.urls')),
     

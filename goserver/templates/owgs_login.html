@@ -1,0 +1,32 @@
+<form method="post" id="login_form">
+
+  {% csrf_token %}
+
+  <p>
+    You need an account in order to create new games or chat.
+    Anonymous users are allowed to spectate only.  Accounts are free!
+  </p>
+
+  <p>
+    Logging in effectively resets the OWGS application; all your tabs
+    will be closed upon login.
+  </p>
+
+  <div class="label100">Username:</div> <input type=text id="username" name="username"><br />
+  <div class="label100">Password:</div> <input type=password id="password" name="password"><br />
+
+  <div id="login_status" />
+  
+  <button type="button" id="login_button">Log In</button>
+
+</form>
+
+<a href="javascript:void(0);"    
+   onClick="iface.makeRegistrationTab()">
+   Register New Account</a> 
+<br />
+
+<a href="javascript:void(0);" 
+   onClick="$('#ifacetabs').tabs('add', '/static/owgs/reset_password.html', 'Reset Password');">
+   Forgot Password   
+</a>

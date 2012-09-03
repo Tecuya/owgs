@@ -118,7 +118,7 @@ var owgs;
                     (command == 'CHAT') ||
                     (command == 'PCHT') ) 
                     chat_id = dataAr.shift()
-                else
+                else if (command != 'AUTH') 
                     game_id = dataAr.shift()
             }
 
@@ -130,6 +130,15 @@ var owgs;
                     this.send( this.sendq.shift() );
                 }
 
+            } else if(command == 'SENT') { 
+
+                // make sure registration tab is open
+                $('#ifacetabs').tabs('select', iface.registrationTab);
+                
+                $('#registration_tab')
+                    .empty()
+                    .html('Registration accepted, and a validation e-mail has been sent to the address you specified.  Please click the activate link in that e-mail to complete your registration. ');
+                
             } else if(command == "JOIN") { 
                 part_select = $("#game_"+game_id+"_ParticipantSelect")[0];
 
@@ -141,15 +150,6 @@ var owgs;
 
                 this.updatecomment(game_id, '*** '+dataAr[1]+' has joined the game');
 
-            } else if(command == 'SENT') { 
-
-                // make sure registration tab is open
-                $('#ifacetabs').tabs('select', iface.registrationTab);
-                
-                $('#registration_tab')
-                    .empty()
-                    .html('Registration accepted, and a validation e-mail has been sent to the address you specified.  Please click the activate link in that e-mail to complete your registration. ');
-                
             } else if(command == "PART") { 
 
                 part_select = $("#game_"+game_id+"_ParticipantSelect")[0];
@@ -520,6 +520,26 @@ var owgs;
             }
 
             part_select.options.add( new Option(username + ' ' + ' ' + board_size + ' ' + main_time + ' ' + komi + ' ' + color , user_id) );        
+        };
+
+        this.login = function(username, password, csrf) {             
+            // perform a sneaky background login 
+            $.ajax(
+                {type: 'POST',
+                 url: '/js_login',
+                 data: {username: username,
+                        password: password,
+                        csrfmiddlewaretoken: csrf},
+                 success: function(data) { 
+                     if(data == '1') { 
+                         window.location.reload();
+                     } else { 
+                         $('#login_status')
+                             .html('Invalid username/password')
+                             .css('color','red');
+                     }
+                 }
+                });
         };
 
         this.navi = function(data) { 
