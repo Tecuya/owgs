@@ -107,6 +107,7 @@
 
                             if(pw1 != pw2) { 
                                 doerror('Password and Confirm Password do not match.');
+                                return;
                             }
 
                             var fdata = {};

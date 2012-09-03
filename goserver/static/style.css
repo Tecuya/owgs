@@ -187,3 +187,11 @@ a:hover {
     text-align: center;
     margin-bottom: 10px;
 }
+
+#NetClient_debug { 
+    background-color: #DDDDCC;
+}
+
+#NetClient_sendraw { 
+    background-color: #DDDDCC;
+}

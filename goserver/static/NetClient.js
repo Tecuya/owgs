@@ -47,14 +47,14 @@ var owgs;
                 debug_textarea.setAttribute("id", "NetClient_debug");
 
                 debug_input = document.createElement("INPUT");
-                debug_input.setAttribute("id", "sendraw");
+                debug_input.setAttribute("id", "NetClient_sendraw");
                 debug_input.setAttribute("size", "80");
                 debug_input.setAttribute("type", "text");       
                 
                 debug_button = document.createElement("BUTTON");
                 debug_button.innerHTML = "Send";
                 debug_button.setAttribute("type", "button");
-                debug_button.setAttribute("onClick", 'owgs.sendraw( $("#sendraw").val())')
+                debug_button.setAttribute("onClick", 'owgs.sendraw( $("#NetClient_sendraw").val())')
 
                 sound_button = document.createElement("BUTTON");
                 sound_button.innerHTML = "Clicky";
