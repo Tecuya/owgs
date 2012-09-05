@@ -28,96 +28,47 @@
         // this tracks where we have game lists
         this.gameLists = {};
 
-        this.openLogin = function() { 
-            // if a login tab is already open just focus is
-            if(this.loginTab != false) { 
-                $tabs.tabs('select', this.loginTab);
-                return;
-            }
-            
-            $("#ifacetabs").tabs('add', '/t/owgs_login.html', 'Log In');
+        this.tabregistry = {};
 
-            this.loginTab = $tabs.tabs('option', 'selected');
-            
-            // bind handler once the form is ready
-            this.registerTabOpenCallback( 
-                this.loginTab,
-                function() {
-                    $('#login_form > #login_button').click(
-                        function() { 
-                            $('#login_status')
-                                .html('Logging in....')
-                                .css('color','gray');
-
-                            owgs.login( 
-                                $('#login_form > #username').val(),
-                                $('#login_form > #password').val(),
-                                $('#login_form > div > input[name="csrfmiddlewaretoken"]').val());
+        this.tabdefs = {
+            login: {
+                title: 'Log In',
+                url: '/t/owgs_login.html',
+                open: function() {
+                    var do_login = function() { 
+                        $('#login_status')
+                            .html('Logging in....')
+                            .css('color','gray');
+                        
+                        owgs.login( 
+                            $('#login_form > #username').val(),
+                            $('#login_form > #password').val(),
+                            $('#login_form > div > input[name="csrfmiddlewaretoken"]').val());
+                    }; 
+                    
+                    $('#login_form > #login_button').click(do_login);
+                    $('#login_form > #password').keyup(
+                        function(event) { 
+                            // hit enter on password field to login
+                            if(event.keyCode == 13) { 
+                                do_login();
+                            }
                         });
-                });
+                }
+            },
             
-            this.registerTabCloseCallback( this.loginTab,
-                                           function() { 
-                                               iface.loginTab = false;
-                                           } );        
-        },
+            chat: {
+                title: 'Chat',
+                url: '/chat/1',
+                open: function() { owgs.joinchat(1); },
+                close: function() { owgs.partchat(1); }
+            },
 
-        this.makeChatTab = function(chat_id) { 
 
-            // if this chat is already open, then just go to the already-opened tab
-            if( (typeof(this.chatTabs[ chat_id ]) != "undefined") && 
-                (this.chatTabs[ chat_id ] != false) ) { 
-                $tabs.tabs('select', this.chatTabs[ chat_id ]);
-                return;
-            }
-
-            // if a chat ID was not passed the default chat is 1
-            if(typeof(chat_id) == "undefined") {
-                chat_id = 1;
-            }
-
-            // create chat tab for this chat
-            $("#ifacetabs").tabs('add', '/chat/'+chat_id, 'Chat #'+chat_id); 
-
-            var tab_index = $tabs.tabs('option', 'selected');
-
-            // store the tab index in chatTabs so we know whats opened
-            // where.  this also causes the tab load event to run the
-            // netclient joinchat func after the tab loads
-
-            this.chatTabs[ chat_id ] = tab_index;
-            this.registerTabOpenCallback( tab_index,
-                                          function() { 
-                                              owgs.joinchat( chat_id ) 
-                                          });
-            
-            this.registerTabCloseCallback( tab_index,
-                                           function() { 
-                                               iface.chatTabs[ chat_id ] = false; 
-                                               owgs.partchat( chat_id ); 
-                                           } );
-        },
-
-        this.makeRegistrationTab = function() { 
-
-            // if a reg tab is already open just focus is
-            if(this.registrationTab != false) { 
-                $tabs.tabs('select', this.registrationTab);
-                return;
-            }
-            
-            $('#ifacetabs').tabs('add', '/static/owgs/registration.html', 'Register');
-
-            var tab_index = $tabs.tabs('option', 'selected');
-
-            // store the index so we may reference the tab later
-            this.registrationTab = tab_index;
-
-            // register submit button click on load
-            this.registerTabOpenCallback( 
-                tab_index,
-
-                function() {
+            register: {
+                title: 'Register',
+                url: '/static/owgs/registration.html',
+                open: function() { 
                     $('#registration_submit').click(
                         function() { 
 
@@ -163,15 +114,45 @@
                                                fdata['password1'] );
                             }
                         });
-            });
+                }
+            }
+            
+        };
 
-            this.registerTabCloseCallback( tab_index,
-                                           function() { 
-                                               iface.registrationTab = false;
-                                           } );        
-        },
+        // focus or open a singleton tab.  register appropriate handlers
+        this.singletonTab = function(type) { 
+            
+            if(!type in this.tabdefs) { 
+                console.log('Requested an unknown tab type: %s' % type);
+                return;
+            }
+            var tabdef = this.tabdefs[type];
 
+            // maybe the tabs already open, just focus it
+            if(type in this.tabregistry) { 
+                $tabs.tabs('select', this.tabregistry[type]);
+                return;
+            }
 
+            $("#ifacetabs").tabs('add', tabdef.url, tabdef.title);
+            this.tabregistry[type] = $tabs.tabs('option', 'selected');
+            
+            if('open' in tabdef) { 
+                this.registerTabOpenCallback(
+                    this.tabregistry[type],
+                    tabdef.open);
+            }
+            
+            if('close' in this.tabdefs[type]) { 
+                this.registerTabCloseCallback(
+                    this.tabregistry[type],
+                    function() { 
+                        delete this.tabregistry[type];
+                        tabdef.close();
+                    });
+            }              
+        };
+        
         this.onNewGameCreated = function( game_id ) {
 
             // if for whatever reason we couldnt resolve the tab index to load into, just open a new tab
@@ -374,10 +355,7 @@
 
             this.eidogoPlayers[ game_id ].checkForDoublePass();       
         }
-
-
     }
-
 
     // init jquery-ui tabs
     $(function() { 
@@ -437,10 +415,9 @@
 
         // if the fragment selector (http://URL.com#thisthing) 
         if( window.location.href.match(/#login/) ) { 
-            iface.openLogin();
+            iface.singletonTab('login');
         }
         
-
         // scan get variables and see if they want us to do anything
 
         var qsParm = new Array();

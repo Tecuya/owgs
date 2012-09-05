@@ -22,9 +22,7 @@
           Logged in as {{ user.username }} <a href="/accounts/profile">Edit Profile</a> <a href="/accounts/logout">Log Out</a>
         {% else %}
           {% if IsInterface %}
-            <a href="javascript:void(0);" onClick="javascript:iface.openLogin();">Log In</a>
-          {% else %}
-            <a href="/#login">Log In</a>
+            <a href="javascript:void(0);" onClick="javascript:iface.singletonTab('login');">Log In</a>
           {% endif %}  
         {% endif %}
       </div>
